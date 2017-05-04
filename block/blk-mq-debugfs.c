@@ -705,11 +705,7 @@ static ssize_t blk_mq_debugfs_write(struct file *file, const char __user *buf,
 	const struct blk_mq_debugfs_attr *attr = m->private;
 	void *data = d_inode(file->f_path.dentry->d_parent)->i_private;
 
-	/*
-	 * Attributes that only implement .seq_ops are read-only and 'attr' is
-	 * the same with 'data' in this case.
-	 */
-	if (attr == data || !attr->write)
+	if (!attr->write)
 		return -EPERM;
 
 	return attr->write(data, buf, count, ppos);
@@ -848,6 +844,19 @@ void blk_mq_debugfs_unregister(struct request_queue *q)
 	debugfs_remove_recursive(q->debugfs_dir);
 	q->sched_debugfs_dir = NULL;
 	q->debugfs_dir = NULL;
+}
+
+static bool debugfs_create_files(struct dentry *parent, void *data,
+				 const struct blk_mq_debugfs_attr *attr)
+{
+	d_inode(parent)->i_private = data;
+
+	for (; attr->name; attr++) {
+		if (!debugfs_create_file(attr->name, attr->mode, parent,
+					 (void *)attr, &blk_mq_debugfs_fops))
+			return false;
+	}
+	return true;
 }
 
 static int blk_mq_debugfs_register_ctx(struct blk_mq_hw_ctx *hctx,
