@@ -357,10 +357,10 @@ int lirc_dev_fop_close(struct inode *inode, struct file *file)
 }
 EXPORT_SYMBOL(lirc_dev_fop_close);
 
-unsigned int lirc_dev_fop_poll(struct file *file, poll_table *wait)
+__poll_t lirc_dev_fop_poll(struct file *file, poll_table *wait)
 {
-	struct irctl *ir = irctls[iminor(file_inode(file))];
-	unsigned int ret;
+	struct lirc_dev *d = file->private_data;
+	__poll_t ret;
 
 	if (!ir) {
 		pr_err("called with invalid irctl\n");
