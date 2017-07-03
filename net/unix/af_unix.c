@@ -671,8 +671,8 @@ static int unix_stream_connect(struct socket *, struct sockaddr *,
 static int unix_socketpair(struct socket *, struct socket *);
 static int unix_accept(struct socket *, struct socket *, int, bool);
 static int unix_getname(struct socket *, struct sockaddr *, int *, int);
-static unsigned int unix_poll(struct file *, struct socket *, poll_table *);
-static unsigned int unix_dgram_poll(struct file *, struct socket *,
+static __poll_t unix_poll(struct file *, struct socket *, poll_table *);
+static __poll_t unix_dgram_poll(struct file *, struct socket *,
 				    poll_table *);
 static int unix_ioctl(struct socket *, unsigned int, unsigned long);
 #ifdef CONFIG_COMPAT
@@ -2686,10 +2686,10 @@ static int unix_compat_ioctl(struct socket *sock, unsigned int cmd, unsigned lon
 }
 #endif
 
-static unsigned int unix_poll(struct file *file, struct socket *sock, poll_table *wait)
+static __poll_t unix_poll(struct file *file, struct socket *sock, poll_table *wait)
 {
 	struct sock *sk = sock->sk;
-	unsigned int mask;
+	__poll_t mask;
 
 	sock_poll_wait(file, sk_sleep(sk), wait);
 	mask = 0;
@@ -2721,11 +2721,12 @@ static unsigned int unix_poll(struct file *file, struct socket *sock, poll_table
 	return mask;
 }
 
-static unsigned int unix_dgram_poll(struct file *file, struct socket *sock,
+static __poll_t unix_dgram_poll(struct file *file, struct socket *sock,
 				    poll_table *wait)
 {
 	struct sock *sk = sock->sk, *other;
-	unsigned int mask, writable;
+	unsigned int writable;
+	__poll_t mask;
 
 	sock_poll_wait(file, sk_sleep(sk), wait);
 	mask = 0;

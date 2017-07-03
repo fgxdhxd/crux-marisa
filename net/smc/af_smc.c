@@ -1099,7 +1099,7 @@ out:
 	return rc;
 }
 
-static unsigned int smc_accept_poll(struct sock *parent)
+static __poll_t smc_accept_poll(struct sock *parent)
 {
 	struct smc_sock *isk;
 	struct sock *sk;
@@ -1118,7 +1118,7 @@ static unsigned int smc_accept_poll(struct sock *parent)
 	return 0;
 }
 
-static unsigned int smc_poll(struct file *file, struct socket *sock,
+static __poll_t smc_poll(struct file *file, struct socket *sock,
 			     poll_table *wait)
 {
 	struct sock *sk = sock->sk;
