@@ -41,6 +41,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return &dma_direct_ops;
 }
 
+<<<<<<< HEAD
 static inline void __dma_sync(unsigned long paddr,
 			      size_t size, enum dma_data_direction direction)
 {
@@ -64,4 +65,6 @@ static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 	__dma_sync(virt_to_phys(vaddr), size, (int)direction);
 }
 
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 #endif	/* _ASM_MICROBLAZE_DMA_MAPPING_H */

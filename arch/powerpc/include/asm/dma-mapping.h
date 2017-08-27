@@ -117,6 +117,7 @@ extern u64 __dma_get_required_mask(struct device *dev);
 
 #define ARCH_HAS_DMA_MMAP_COHERENT
 
+<<<<<<< HEAD
 static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 		enum dma_data_direction direction)
 {
@@ -124,5 +125,7 @@ static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 	__dma_sync(vaddr, size, (int)direction);
 }
 
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 #endif /* __KERNEL__ */
 #endif	/* _ASM_DMA_MAPPING_H */

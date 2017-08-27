@@ -77,6 +77,7 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
 }
 #endif /* CONFIG_X86_DMA_REMAP */
 
+<<<<<<< HEAD
 static inline void
 dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 	enum dma_data_direction dir)
@@ -86,6 +87,8 @@ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 
 =======
 >>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 static inline unsigned long dma_alloc_coherent_mask(struct device *dev,
 						    gfp_t gfp)
 {

@@ -47,13 +47,4 @@ static inline void set_dma_offset(struct device *dev, dma_addr_t off)
 #define HAVE_ARCH_DMA_SET_MASK 1
 int dma_set_mask(struct device *dev, u64 mask);
 
-/*
- * dma_alloc_attrs() always returns non-cacheable memory, so there's no need to
- * do any flushing here.
- */
-static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
-				  enum dma_data_direction direction)
-{
-}
-
 #endif /* _ASM_TILE_DMA_MAPPING_H */

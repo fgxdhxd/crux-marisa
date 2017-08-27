@@ -21,6 +21,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return &mn10300_dma_ops;
 }
 
+<<<<<<< HEAD
 static inline
 void dma_cache_sync(void *vaddr, size_t size,
 		    enum dma_data_direction direction)
@@ -28,4 +29,6 @@ void dma_cache_sync(void *vaddr, size_t size,
 	mn10300_dcache_flush_inv();
 }
 
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 #endif

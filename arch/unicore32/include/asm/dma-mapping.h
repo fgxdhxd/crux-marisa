@@ -31,6 +31,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 <<<<<<< HEAD
 static inline void dma_mark_clean(void *addr, size_t size) {}
 
+<<<<<<< HEAD
 static inline void dma_cache_sync(struct device *dev, void *vaddr,
 		size_t size, enum dma_data_direction direction)
 {
@@ -52,5 +53,7 @@ static inline void dma_cache_sync(struct device *dev, void *vaddr,
 
 =======
 >>>>>>> b49efd762482 (dma-mapping: move dma_mark_clean to dma-direct.h)
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 #endif /* __KERNEL__ */
 #endif

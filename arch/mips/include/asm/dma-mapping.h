@@ -41,11 +41,14 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 >>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
 static inline void dma_mark_clean(void *addr, size_t size) {}
 
+<<<<<<< HEAD
 extern void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 	       enum dma_data_direction direction);
 
 =======
 >>>>>>> b49efd762482 (dma-mapping: move dma_mark_clean to dma-direct.h)
+=======
+>>>>>>> c9eb6172c328 (dma-mapping: turn dma_cache_sync into a dma_map_ops method)
 #define arch_setup_dma_ops arch_setup_dma_ops
 static inline void arch_setup_dma_ops(struct device *dev, u64 dma_base,
 				      u64 size, const struct iommu_ops *iommu,
