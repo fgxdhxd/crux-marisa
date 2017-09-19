@@ -201,7 +201,7 @@ struct dvb_demux_feed {
 
 	int cc;
 	int first_cc;
-	int pusi_seen;		/* prevents feeding of garbage from previous section */
+	bool pusi_seen;		/* prevents feeding of garbage from previous section */
 
 	u8 scrambling_bits;
 
