@@ -399,9 +399,60 @@ int dvb_dmx_swfilter_section_packet(struct dvb_demux_feed *feed, const u8 *buf,
 	int should_lock);
 void dvb_dmx_swfilter_packets(struct dvb_demux *dvbdmx, const u8 *buf,
 			      size_t count);
+
+/**
+ * dvb_dmx_swfilter -  use dvb software filter for a buffer with
+ *	multiple MPEG-TS packets with 188 bytes each.
+ *
+ * @demux: pointer to &struct dvb_demux
+ * @buf: buffer with data to be filtered
+ * @count: number of MPEG-TS packets with size of 188.
+ *
+ * If a DVB packet doesn't start with 0x47, it will seek for the first
+ * byte that starts with 0x47.
+ *
+ * Use this routine if the DVB demux fill buffers that may not start with
+ * a packet start mark (0x47).
+ *
+ * NOTE: The @buf size should have size equal to ``count * 188``.
+ */
 void dvb_dmx_swfilter(struct dvb_demux *demux, const u8 *buf, size_t count);
+
+/**
+ * dvb_dmx_swfilter_204 -  use dvb software filter for a buffer with
+ *	multiple MPEG-TS packets with 204 bytes each.
+ *
+ * @demux: pointer to &struct dvb_demux
+ * @buf: buffer with data to be filtered
+ * @count: number of MPEG-TS packets with size of 204.
+ *
+ * If a DVB packet doesn't start with 0x47, it will seek for the first
+ * byte that starts with 0x47.
+ *
+ * Use this routine if the DVB demux fill buffers that may not start with
+ * a packet start mark (0x47).
+ *
+ * NOTE: The @buf size should have size equal to ``count * 204``.
+ */
 void dvb_dmx_swfilter_204(struct dvb_demux *demux, const u8 *buf,
 			  size_t count);
+
+/**
+ * dvb_dmx_swfilter_raw -  make the raw data available to userspace without
+ *	filtering
+ *
+ * @demux: pointer to &struct dvb_demux
+ * @buf: buffer with data
+ * @count: number of packets to be passed. The actual size of each packet
+ *	depends on the &dvb_demux->feed->cb.ts logic.
+ *
+ * Use it if the driver needs to deliver the raw payload to userspace without
+ * passing through the kernel demux. That is meant to support some
+ * delivery systems that aren't based on MPEG-TS.
+ *
+ * This function relies on &dvb_demux->feed->cb.ts to actually handle the
+ * buffer.
+ */
 void dvb_dmx_swfilter_raw(struct dvb_demux *demux, const u8 *buf,
 			  size_t count);
 void dvb_dmx_swfilter_format(
