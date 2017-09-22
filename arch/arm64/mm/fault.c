@@ -109,9 +109,6 @@ static void data_abort_decode(unsigned int esr)
 		 (esr & ESR_ELx_WNR) >> ESR_ELx_WNR_SHIFT);
 }
 
-/*
- * Decode mem abort information
- */
 static void mem_abort_decode(unsigned int esr)
 {
 	pr_alert("Mem abort info:\n");
@@ -266,9 +263,6 @@ static inline bool is_permission_fault(unsigned int esr, struct pt_regs *regs,
 	return false;
 }
 
-/*
- * The kernel tried to access some page that wasn't present.
- */
 static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 			      struct pt_regs *regs)
 {
@@ -281,9 +275,6 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	if (!is_el1_instruction_abort(esr) && fixup_exception(regs))
 		return;
 
-	/*
-	 * No handler, we'll have to terminate things with extreme prejudice.
-	 */
 	bust_spinlocks(1);
 
 	if (is_permission_fault(esr, regs, addr)) {
@@ -308,10 +299,6 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	make_task_dead(SIGKILL);
 }
 
-/*
- * Something tried to access memory that isn't in our memory map. User mode
- * accesses just cause a SIGSEGV
- */
 static void __do_user_fault(struct task_struct *tsk, unsigned long addr,
 			    unsigned int esr, unsigned int sig, int code,
 			    struct pt_regs *regs, int fault)
@@ -614,23 +601,6 @@ static int do_tlb_conf_fault(unsigned long addr,
 	return 0;
 }
 
-/*
- * First Level Translation Fault Handler
- *
- * We enter here because the first level page table doesn't contain a valid
- * entry for the address.
- *
- * If the address is in kernel space (>= TASK_SIZE), then we are probably
- * faulting in the vmalloc() area.
- *
- * If the init_task's first level page tables contains the relevant entry, we
- * copy the it to this task.  If not, we send the process a signal, fixup the
- * exception, or oops the kernel.
- *
- * NOTE! We MUST NOT take any locks for this case. We may be in an interrupt
- * or a critical region, and should only copy the information from the master
- * page table, nothing more.
- */
 static int __kprobes do_translation_fault(unsigned long addr,
 					  unsigned int esr,
 					  struct pt_regs *regs)
@@ -649,18 +619,11 @@ static int do_alignment_fault(unsigned long addr, unsigned int esr,
 	return 0;
 }
 
-/*
- * This abort handler always returns "fault".
- */
 static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 {
-	return 1;
+	return 1; /* "fault" */
 }
 
-/*
- * This abort handler deals with Synchronous External Abort.
- * It calls notifiers, and then returns "fault".
- */
 static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 {
 	struct siginfo info;
@@ -775,9 +738,6 @@ int kvm_handle_guest_sea(phys_addr_t addr, unsigned int esr)
 	return ret;
 }
 
-/*
- * Dispatch a data abort to the relevant handler.
- */
 asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 					 struct pt_regs *regs)
 {
@@ -821,10 +781,6 @@ asmlinkage void __exception do_el0_ia_bp_hardening(unsigned long addr,
 	do_mem_abort(addr, esr, regs);
 }
 
-
-/*
- * Handle stack alignment exceptions.
- */
 asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
 					   unsigned int esr,
 					   struct pt_regs *regs)
