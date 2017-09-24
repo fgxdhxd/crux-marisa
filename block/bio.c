@@ -1261,7 +1261,7 @@ int bio_uncopy_user(struct bio *bio)
  */
 struct bio *bio_copy_user_iov(struct request_queue *q,
 			      struct rq_map_data *map_data,
-			      const struct iov_iter *iter,
+			      struct iov_iter *iter,
 			      gfp_t gfp_mask)
 {
 	struct bio_map_data *bmd;
@@ -1367,6 +1367,7 @@ struct bio *bio_copy_user_iov(struct request_queue *q,
 		if (ret)
 			goto cleanup;
 	}
+	iov_iter_advance(iter, bio->bi_iter.bi_size);
 
 	bio->bi_private = bmd;
 	return bio;
@@ -1389,7 +1390,7 @@ out_bmd:
  *	device. Returns an error pointer in case of error.
  */
 struct bio *bio_map_user_iov(struct request_queue *q,
-			     const struct iov_iter *iter,
+			     struct iov_iter *iter,
 			     gfp_t gfp_mask)
 {
 	int j;
@@ -1468,6 +1469,7 @@ struct bio *bio_map_user_iov(struct request_queue *q,
 	 * reference to it
 	 */
 	bio_get(bio);
+	iov_iter_advance(iter, bio->bi_iter.bi_size);
 	return bio;
 
  out_unmap:
