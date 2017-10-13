@@ -254,7 +254,7 @@ void tcf_chain_put(struct tcf_chain *chain)
 EXPORT_SYMBOL(tcf_chain_put);
 
 int tcf_block_get(struct tcf_block **p_block,
-		  struct tcf_proto __rcu **p_filter_chain)
+		  struct tcf_proto __rcu **p_filter_chain, struct Qdisc *q)
 {
 	return block->offloadcnt;
 }
