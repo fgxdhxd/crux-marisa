@@ -4788,9 +4788,10 @@ void linked_status_chk(struct adapter *padapter)
 	}
 }
 
-void survey_timer_hdl(unsigned long data)
+void survey_timer_hdl(struct timer_list *t)
 {
-	struct adapter *padapter = (struct adapter *)data;
+	struct adapter *padapter = from_timer(padapter, t,
+					    mlmeextpriv.link_timer);
 	struct cmd_obj	*ph2c;
 	struct sitesurvey_parm	*psurveyPara;
 	struct cmd_priv					*pcmdpriv = &padapter->cmdpriv;
@@ -4828,9 +4829,10 @@ exit_survey_timer_hdl:
 	return;
 }
 
-void link_timer_hdl(unsigned long data)
+void link_timer_hdl(struct timer_list *t)
 {
-	struct adapter *padapter = (struct adapter *)data;
+	struct adapter *padapter = from_timer(padapter, t,
+					    mlmeextpriv.link_timer);
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 
@@ -4864,9 +4866,9 @@ void link_timer_hdl(unsigned long data)
 	}
 }
 
-void addba_timer_hdl(unsigned long data)
+void addba_timer_hdl(struct timer_list *t)
 {
-	struct sta_info *psta = (struct sta_info *)data;
+	struct sta_info *psta = from_timer(psta, t, addba_retry_timer);
 	struct ht_priv	*phtpriv;
 
 	if (!psta)
