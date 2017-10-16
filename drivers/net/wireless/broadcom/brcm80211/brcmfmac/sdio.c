@@ -3968,9 +3968,9 @@ brcmf_sdio_watchdog_thread(void *data)
 }
 
 static void
-brcmf_sdio_watchdog(unsigned long data)
+brcmf_sdio_watchdog(struct timer_list *t)
 {
-	struct brcmf_sdio *bus = (struct brcmf_sdio *)data;
+	struct brcmf_sdio *bus = from_timer(bus, t, timer);
 
 	if (bus->watchdog_tsk) {
 		complete(&bus->watchdog_wait);
@@ -4146,10 +4146,7 @@ struct brcmf_sdio *brcmf_sdio_probe(struct brcmf_sdio_dev *sdiodev)
 	init_waitqueue_head(&bus->dcmd_resp_wait);
 
 	/* Set up the watchdog timer */
-	init_timer(&bus->timer);
-	bus->timer.data = (unsigned long)bus;
-	bus->timer.function = brcmf_sdio_watchdog;
-
+	timer_setup(&bus->timer, brcmf_sdio_watchdog, 0);
 	/* Initialize watchdog thread */
 	init_completion(&bus->watchdog_wait);
 	bus->watchdog_tsk = kthread_run(brcmf_sdio_watchdog_thread,

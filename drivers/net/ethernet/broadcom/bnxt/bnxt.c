@@ -7026,9 +7026,9 @@ static void bnxt_poll_controller(struct net_device *dev)
 }
 #endif
 
-static void bnxt_timer(unsigned long data)
+static void bnxt_timer(struct timer_list *t)
 {
-	struct bnxt *bp = (struct bnxt *)data;
+	struct bnxt *bp = from_timer(bp, t, timer);
 	struct net_device *dev = bp->dev;
 
 	if (!netif_running(dev))
@@ -7270,16 +7270,7 @@ static int bnxt_init_board(struct pci_dev *pdev, struct net_device *dev)
 	bp->rx_coal_ticks_irq = 1;
 	bp->rx_coal_bufs_irq = 2;
 
-	bp->tx_coal_ticks = 25;
-	bp->tx_coal_bufs = 30;
-	bp->tx_coal_ticks_irq = 2;
-	bp->tx_coal_bufs_irq = 2;
-
-	bp->stats_coal_ticks = BNXT_DEF_STATS_COAL_TICKS;
-
-	init_timer(&bp->timer);
-	bp->timer.data = (unsigned long)bp;
-	bp->timer.function = bnxt_timer;
+	timer_setup(&bp->timer, bnxt_timer, 0);
 	bp->current_interval = BNXT_TIMER_INTERVAL;
 
 	clear_bit(BNXT_STATE_OPEN, &bp->state);

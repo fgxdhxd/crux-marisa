@@ -310,7 +310,7 @@ static void __aarp_expire_device(struct aarp_entry **n, struct net_device *dev)
 }
 
 /* Handle the timer event */
-static void aarp_expire_timeout(unsigned long unused)
+static void aarp_expire_timeout(struct timer_list *unused)
 {
 	int ct;
 
@@ -888,8 +888,7 @@ int __init aarp_proto_init(void)
 		printk(KERN_CRIT "Unable to register AARP with SNAP.\n");
 		return -ENOMEM;
 	}
-	setup_timer(&aarp_timer, aarp_expire_timeout, 0);
-	aarp_timer.expires  = jiffies + sysctl_aarp_expiry_time;
+	timer_setup(&aarp_timer, aarp_expire_timeout, 0);
 	add_timer(&aarp_timer);
 	rc = register_netdevice_notifier(&aarp_notifier);
 	if (rc) {

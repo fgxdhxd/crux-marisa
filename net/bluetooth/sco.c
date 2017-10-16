@@ -483,6 +483,8 @@ static struct sock *sco_sock_alloc(struct net *net, struct socket *sock,
 
 	sco_pi(sk)->setting = BT_VOICE_CVSD_16BIT;
 
+	timer_setup(&sk->sk_timer, sco_sock_timeout, 0);
+
 	bt_sock_link(&sco_sk_list, sk);
 	return sk;
 }

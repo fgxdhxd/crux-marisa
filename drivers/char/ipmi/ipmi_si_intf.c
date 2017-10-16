@@ -1167,9 +1167,9 @@ static void set_need_watch(void *send_info, bool enable)
 
 static int initialized;
 
-static void smi_timeout(unsigned long data)
+static void smi_timeout(struct timer_list *t)
 {
-	struct smi_info   *smi_info = (struct smi_info *) data;
+	struct smi_info   *smi_info = from_timer(smi_info, t, si_timer);
 	enum si_sm_result smi_result;
 	unsigned long     flags;
 	unsigned long     jiffies_now;
@@ -1246,8 +1246,7 @@ static int smi_start_processing(void       *send_info,
 	new_smi->intf = intf;
 
 	/* Set up the timer that drives the interface. */
-	setup_timer(&new_smi->si_timer, smi_timeout, (long)new_smi);
-	new_smi->timer_can_start = true;
+	timer_setup(&new_smi->si_timer, smi_timeout, 0);
 	smi_mod_timer(new_smi, jiffies + SI_TIMEOUT_JIFFIES);
 
 	/* Try to claim any interrupts. */

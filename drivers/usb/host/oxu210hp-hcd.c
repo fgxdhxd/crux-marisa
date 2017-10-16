@@ -2552,9 +2552,9 @@ static irqreturn_t oxu_irq(struct usb_hcd *hcd)
 	return ret;
 }
 
-static void oxu_watchdog(unsigned long param)
+static void oxu_watchdog(struct timer_list *t)
 {
-	struct oxu_hcd	*oxu = (struct oxu_hcd *) param;
+	struct oxu_hcd	*oxu = from_timer(oxu, t, watchdog);
 	unsigned long flags;
 
 	spin_lock_irqsave(&oxu->lock, flags);
@@ -2590,7 +2590,7 @@ static int oxu_hcd_init(struct usb_hcd *hcd)
 
 	spin_lock_init(&oxu->lock);
 
-	setup_timer(&oxu->watchdog, oxu_watchdog, (unsigned long)oxu);
+	timer_setup(&oxu->watchdog, oxu_watchdog, 0);
 
 	/*
 	 * hw default: 1K periodic list heads, one per frame.

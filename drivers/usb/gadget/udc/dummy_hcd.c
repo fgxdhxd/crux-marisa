@@ -1790,9 +1790,9 @@ static int handle_control_request(struct dummy_hcd *dum_hcd, struct urb *urb,
 /* drive both sides of the transfers; looks like irq handlers to
  * both drivers except the callbacks aren't in_irq().
  */
-static void dummy_timer(unsigned long _dum_hcd)
+static void dummy_timer(struct timer_list *t)
 {
-	struct dummy_hcd	*dum_hcd = (struct dummy_hcd *) _dum_hcd;
+	struct dummy_hcd	*dum_hcd = from_timer(dum_hcd, t, timer);
 	struct dummy		*dum = dum_hcd->dum;
 	struct urbp		*urbp, *tmp;
 	unsigned long		flags;
@@ -2465,9 +2465,7 @@ static DEVICE_ATTR_RO(urbs);
 
 static int dummy_start_ss(struct dummy_hcd *dum_hcd)
 {
-	init_timer(&dum_hcd->timer);
-	dum_hcd->timer.function = dummy_timer;
-	dum_hcd->timer.data = (unsigned long)dum_hcd;
+	timer_setup(&dum_hcd->timer, dummy_timer, 0);
 	dum_hcd->rh_state = DUMMY_RH_RUNNING;
 	dum_hcd->stream_en_ep = 0;
 	INIT_LIST_HEAD(&dum_hcd->urbp_list);
@@ -2496,9 +2494,7 @@ static int dummy_start(struct usb_hcd *hcd)
 		return dummy_start_ss(dum_hcd);
 
 	spin_lock_init(&dum_hcd->dum->lock);
-	init_timer(&dum_hcd->timer);
-	dum_hcd->timer.function = dummy_timer;
-	dum_hcd->timer.data = (unsigned long)dum_hcd;
+	timer_setup(&dum_hcd->timer, dummy_timer, 0);
 	dum_hcd->rh_state = DUMMY_RH_RUNNING;
 
 	INIT_LIST_HEAD(&dum_hcd->urbp_list);

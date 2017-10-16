@@ -123,9 +123,9 @@ static void sa1100_mctrl_check(struct sa1100_port *sport)
  * This is our per-port timeout handler, for checking the
  * modem status signals.
  */
-static void sa1100_timeout(unsigned long data)
+static void sa1100_timeout(struct timer_list *t)
 {
-	struct sa1100_port *sport = (struct sa1100_port *)data;
+	struct sa1100_port *sport = from_timer(sport, t, timer);
 	unsigned long flags;
 
 	if (sport->port.state) {
@@ -640,9 +640,7 @@ static void __init sa1100_init_ports(void)
 		sa1100_ports[i].port.fifosize  = 8;
 		sa1100_ports[i].port.line      = i;
 		sa1100_ports[i].port.iotype    = UPIO_MEM;
-		init_timer(&sa1100_ports[i].timer);
-		sa1100_ports[i].timer.function = sa1100_timeout;
-		sa1100_ports[i].timer.data     = (unsigned long)&sa1100_ports[i];
+		timer_setup(&sa1100_ports[i].timer, sa1100_timeout, 0);
 	}
 
 	/*

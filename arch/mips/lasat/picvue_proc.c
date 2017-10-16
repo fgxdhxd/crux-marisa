@@ -156,7 +156,7 @@ static const struct file_operations pvc_scroll_proc_fops = {
 	.write		= pvc_scroll_proc_write,
 };
 
-void pvc_proc_timerfunc(unsigned long data)
+void pvc_proc_timerfunc(struct timer_list *unused)
 {
 	if (scroll_dir < 0)
 		pvc_move(DISPLAY|RIGHT);

@@ -361,9 +361,9 @@ static irqreturn_t kw_i2c_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void kw_i2c_timeout(unsigned long data)
+static void kw_i2c_timeout(struct timer_list *t)
 {
-	struct pmac_i2c_host_kw *host = (struct pmac_i2c_host_kw *)data;
+	struct pmac_i2c_host_kw *host = from_timer(host, t, timeout_timer);
 	unsigned long flags;
 
 	spin_lock_irqsave(&host->lock, flags);

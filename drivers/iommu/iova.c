@@ -33,7 +33,7 @@ static unsigned long iova_rcache_get(struct iova_domain *iovad,
 static void init_iova_rcaches(struct iova_domain *iovad);
 static void free_iova_rcaches(struct iova_domain *iovad);
 static void fq_destroy_all_entries(struct iova_domain *iovad);
-static void fq_flush_timeout(unsigned long data);
+static void fq_flush_timeout(struct timer_list *t);
 
 void
 init_iova_domain(struct iova_domain *iovad, unsigned long granule,
@@ -105,11 +105,7 @@ int init_iova_flush_queue(struct iova_domain *iovad,
 		spin_lock_init(&fq->lock);
 	}
 
-	smp_wmb();
-
-	iovad->fq = queue;
-
-	setup_timer(&iovad->fq_timer, fq_flush_timeout, (unsigned long)iovad);
+	timer_setup(&iovad->fq_timer, fq_flush_timeout, 0);
 	atomic_set(&iovad->fq_timer_on, 0);
 
 	return 0;
@@ -574,9 +570,9 @@ static void fq_destroy_all_entries(struct iova_domain *iovad)
 	}
 }
 
-static void fq_flush_timeout(unsigned long data)
+static void fq_flush_timeout(struct timer_list *t)
 {
-	struct iova_domain *iovad = (struct iova_domain *)data;
+	struct iova_domain *iovad = from_timer(iovad, t, fq_timer);
 	int cpu;
 
 	atomic_set(&iovad->fq_timer_on, 0);

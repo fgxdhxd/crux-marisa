@@ -631,9 +631,9 @@ static irqreturn_t sn_sal_interrupt(int irq, void *dev_id)
  * Obviously not used in interrupt mode
  *
  */
-static void sn_sal_timer_poll(unsigned long data)
+static void sn_sal_timer_poll(struct timer_list *t)
 {
-	struct sn_cons_port *port = (struct sn_cons_port *)data;
+	struct sn_cons_port *port = from_timer(port, t, sc_timer);
 	unsigned long flags;
 
 	if (!port)
@@ -687,9 +687,7 @@ static void __init sn_sal_switch_to_asynch(struct sn_cons_port *port)
 	 * timer to poll for input and push data from the console
 	 * buffer.
 	 */
-	init_timer(&port->sc_timer);
-	port->sc_timer.function = sn_sal_timer_poll;
-	port->sc_timer.data = (unsigned long)port;
+	timer_setup(&port->sc_timer, sn_sal_timer_poll, 0);
 
 	if (IS_RUNNING_ON_SIMULATOR())
 		port->sc_interrupt_timeout = 6;

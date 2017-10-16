@@ -451,7 +451,7 @@ static inline void enable_ctr(u32 cpu, u32 ctr, u32 *pm07_cntrl)
  * This routine will alternate loading the virtual counters for
  * virtual CPUs
  */
-static void cell_virtual_cntr(unsigned long data)
+static void cell_virtual_cntr(struct timer_list *unused)
 {
 	int i, prev_hdw_thread, next_hdw_thread;
 	u32 cpu;
@@ -589,7 +589,7 @@ static int cell_reg_setup_spu_cycles(struct op_counter_config *ctr,
  * periodically based on kernel timer to switch which SPU is
  * being monitored in a round robbin fashion.
  */
-static void spu_evnt_swap(unsigned long data)
+static void spu_evnt_swap(struct timer_list *unused)
 {
 	int node;
 	int cur_phys_spu, nxt_phys_spu, cur_spu_evnt_phys_spu_indx;

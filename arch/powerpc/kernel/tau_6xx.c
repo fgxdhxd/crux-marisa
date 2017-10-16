@@ -162,7 +162,7 @@ static void tau_timeout(void * info)
 	mtspr(SPRN_THRM3, THRM3_SITV(0x1fff) | THRM3_E);
 }
 
-static void tau_timeout_smp(unsigned long unused)
+static void tau_timeout_smp(struct timer_list *unused)
 {
 
 	/* schedule ourselves to be run again */
