@@ -2288,8 +2288,7 @@ static int __init isdn_init(void)
 		printk(KERN_WARNING "isdn: Could not allocate device-struct.\n");
 		return -EIO;
 	}
-	init_timer(&dev->timer);
-	dev->timer.function = isdn_timer_funct;
+	setup_timer(&dev->timer, isdn_timer_funct, 0UL);
 	spin_lock_init(&dev->lock);
 	spin_lock_init(&dev->timerlock);
 #ifdef MODULE
