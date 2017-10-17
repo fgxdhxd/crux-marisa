@@ -358,9 +358,14 @@ struct i915_sw_dma_fence_cb {
 	struct timer_list timer;
 };
 
-static void timer_i915_sw_fence_wake(unsigned long data)
+static void timer_i915_sw_fence_wake(struct timer_list *t)
 {
-	struct i915_sw_dma_fence_cb *cb = (struct i915_sw_dma_fence_cb *)data;
+	struct i915_sw_dma_fence_cb *cb = from_timer(cb, t, timer);
+	struct i915_sw_fence *fence;
+
+	fence = xchg(&cb->fence, NULL);
+	if (!fence)
+		return;
 
 	pr_warn("asynchronous wait on fence %s:%s:%x timed out\n",
 		cb->dma->ops->get_driver_name(cb->dma),
@@ -411,9 +416,8 @@ int i915_sw_fence_await_dma_fence(struct i915_sw_fence *fence,
 	i915_sw_fence_await(fence);
 
 	cb->dma = NULL;
-	__setup_timer(&cb->timer,
-		      timer_i915_sw_fence_wake, (unsigned long)cb,
-		      TIMER_IRQSAFE);
+	timer_setup(&cb->timer, timer_i915_sw_fence_wake, TIMER_IRQSAFE);
+	init_irq_work(&cb->work, irq_i915_sw_fence_work);
 	if (timeout) {
 		cb->dma = dma_fence_get(dma);
 		mod_timer(&cb->timer, round_jiffies_up(jiffies + timeout));
