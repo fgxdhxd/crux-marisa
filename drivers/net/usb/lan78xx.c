@@ -3493,11 +3493,9 @@ static const struct net_device_ops lan78xx_netdev_ops = {
 	.ndo_features_check	= lan78xx_features_check,
 };
 
-static void lan78xx_stat_monitor(unsigned long param)
+static void lan78xx_stat_monitor(struct timer_list *t)
 {
-	struct lan78xx_net *dev;
-
-	dev = (struct lan78xx_net *)param;
+	struct lan78xx_net *dev = from_timer(dev, t, stat_monitor);
 
 	lan78xx_defer_kevent(dev, EVENT_STAT_UPDATE);
 }
@@ -3549,10 +3547,8 @@ static int lan78xx_probe(struct usb_interface *intf,
 	netdev->watchdog_timeo = TX_TIMEOUT_JIFFIES;
 	netdev->ethtool_ops = &lan78xx_ethtool_ops;
 
-	dev->stat_monitor.function = lan78xx_stat_monitor;
-	dev->stat_monitor.data = (unsigned long)dev;
 	dev->delta = 1;
-	init_timer(&dev->stat_monitor);
+	timer_setup(&dev->stat_monitor, lan78xx_stat_monitor, 0);
 
 	mutex_init(&dev->stats.access_lock);
 
