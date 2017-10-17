@@ -295,16 +295,13 @@ static int bcm_enet_refill_rx(struct net_device *dev)
 /*
  * timer callback to defer refill rx queue in case we're OOM
  */
-static void bcm_enet_refill_rx_timer(unsigned long data)
+static void bcm_enet_refill_rx_timer(struct timer_list *t)
 {
-	struct net_device *dev;
-	struct bcm_enet_priv *priv;
-
-	dev = (struct net_device *)data;
-	priv = netdev_priv(dev);
+	struct bcm_enet_priv *priv = from_timer(priv, t, rx_timeout);
+	struct net_device *dev = priv->net_dev;
 
 	spin_lock(&priv->rx_lock);
-	bcm_enet_refill_rx((struct net_device *)data);
+	bcm_enet_refill_rx(dev);
 	spin_unlock(&priv->rx_lock);
 }
 
@@ -1863,9 +1860,7 @@ static int bcm_enet_probe(struct platform_device *pdev)
 	spin_lock_init(&priv->rx_lock);
 
 	/* init rx timeout (used for oom) */
-	init_timer(&priv->rx_timeout);
-	priv->rx_timeout.function = bcm_enet_refill_rx_timer;
-	priv->rx_timeout.data = (unsigned long)dev;
+	timer_setup(&priv->rx_timeout, bcm_enet_refill_rx_timer, 0);
 
 	/* init the mib update lock&work */
 	mutex_init(&priv->mib_update_lock);
@@ -2030,9 +2025,9 @@ static inline int bcm_enet_port_is_rgmii(int portid)
 /*
  * enet sw PHY polling
  */
-static void swphy_poll_timer(unsigned long data)
+static void swphy_poll_timer(struct timer_list *t)
 {
-	struct bcm_enet_priv *priv = (struct bcm_enet_priv *)data;
+	struct bcm_enet_priv *priv = from_timer(priv, t, swphy_poll);
 	unsigned int i;
 
 	for (i = 0; i < priv->num_ports; i++) {
@@ -2341,11 +2336,8 @@ static int bcm_enetsw_open(struct net_device *dev)
 	}
 
 	/* start phy polling timer */
-	init_timer(&priv->swphy_poll);
-	priv->swphy_poll.function = swphy_poll_timer;
-	priv->swphy_poll.data = (unsigned long)priv;
-	priv->swphy_poll.expires = jiffies;
-	add_timer(&priv->swphy_poll);
+	timer_setup(&priv->swphy_poll, swphy_poll_timer, 0);
+	mod_timer(&priv->swphy_poll, jiffies);
 	return 0;
 
 out:
@@ -2770,9 +2762,7 @@ static int bcm_enetsw_probe(struct platform_device *pdev)
 	spin_lock_init(&priv->rx_lock);
 
 	/* init rx timeout (used for oom) */
-	init_timer(&priv->rx_timeout);
-	priv->rx_timeout.function = bcm_enet_refill_rx_timer;
-	priv->rx_timeout.data = (unsigned long)dev;
+	timer_setup(&priv->rx_timeout, bcm_enet_refill_rx_timer, 0);
 
 	/* register netdevice */
 	dev->netdev_ops = &bcm_enetsw_ops;
