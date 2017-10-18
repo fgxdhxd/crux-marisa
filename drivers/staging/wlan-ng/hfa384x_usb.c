@@ -184,11 +184,11 @@ static void hfa384x_usbin_ctlx(struct hfa384x *hw, union hfa384x_usbin *usbin,
 
 static void hfa384x_usbctlxq_run(struct hfa384x *hw);
 
-static void hfa384x_usbctlx_reqtimerfn(unsigned long data);
+static void hfa384x_usbctlx_reqtimerfn(struct timer_list *t);
 
-static void hfa384x_usbctlx_resptimerfn(unsigned long data);
+static void hfa384x_usbctlx_resptimerfn(struct timer_list *t);
 
-static void hfa384x_usb_throttlefn(unsigned long data);
+static void hfa384x_usb_throttlefn(struct timer_list *t);
 
 static void hfa384x_usbctlx_completion_task(unsigned long data);
 
@@ -553,13 +553,11 @@ void hfa384x_create(struct hfa384x *hw, struct usb_device *usb)
 	INIT_WORK(&hw->link_bh, prism2sta_processing_defer);
 	INIT_WORK(&hw->usb_work, hfa384x_usb_defer);
 
-	setup_timer(&hw->throttle, hfa384x_usb_throttlefn, (unsigned long)hw);
+	timer_setup(&hw->throttle, hfa384x_usb_throttlefn, 0);
 
-	setup_timer(&hw->resptimer, hfa384x_usbctlx_resptimerfn,
-		    (unsigned long)hw);
+	timer_setup(&hw->resptimer, hfa384x_usbctlx_resptimerfn, 0);
 
-	setup_timer(&hw->reqtimer, hfa384x_usbctlx_reqtimerfn,
-		    (unsigned long)hw);
+	timer_setup(&hw->reqtimer, hfa384x_usbctlx_reqtimerfn, 0);
 
 	usb_init_urb(&hw->rx_urb);
 	usb_init_urb(&hw->tx_urb);
@@ -569,8 +567,7 @@ void hfa384x_create(struct hfa384x *hw, struct usb_device *usb)
 	hw->state = HFA384x_STATE_INIT;
 
 	INIT_WORK(&hw->commsqual_bh, prism2sta_commsqual_defer);
-	setup_timer(&hw->commsqual_timer, prism2sta_commsqual_timer,
-		    (unsigned long)hw);
+	timer_setup(&hw->commsqual_timer, prism2sta_commsqual_timer, 0);
 }
 
 /*----------------------------------------------------------------
@@ -3798,9 +3795,9 @@ delresp:
  *	interrupt
  *----------------------------------------------------------------
  */
-static void hfa384x_usbctlx_reqtimerfn(unsigned long data)
+static void hfa384x_usbctlx_reqtimerfn(struct timer_list *t)
 {
-	struct hfa384x *hw = (struct hfa384x *)data;
+	struct hfa384x *hw = from_timer(hw, t, reqtimer);
 	unsigned long flags;
 
 	spin_lock_irqsave(&hw->ctlxq.lock, flags);
@@ -3857,9 +3854,9 @@ static void hfa384x_usbctlx_reqtimerfn(unsigned long data)
  *	interrupt
  *----------------------------------------------------------------
  */
-static void hfa384x_usbctlx_resptimerfn(unsigned long data)
+static void hfa384x_usbctlx_resptimerfn(struct timer_list *t)
 {
-	struct hfa384x *hw = (struct hfa384x *)data;
+	struct hfa384x *hw = from_timer(hw, t, resptimer);
 	unsigned long flags;
 
 	spin_lock_irqsave(&hw->ctlxq.lock, flags);
@@ -3897,9 +3894,9 @@ static void hfa384x_usbctlx_resptimerfn(unsigned long data)
  *	Interrupt
  *----------------------------------------------------------------
  */
-static void hfa384x_usb_throttlefn(unsigned long data)
+static void hfa384x_usb_throttlefn(struct timer_list *t)
 {
-	struct hfa384x *hw = (struct hfa384x *)data;
+	struct hfa384x *hw = from_timer(hw, t, throttle);
 	unsigned long flags;
 
 	spin_lock_irqsave(&hw->ctlxq.lock, flags);
