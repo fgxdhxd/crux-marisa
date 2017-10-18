@@ -178,9 +178,9 @@ int pblk_rl_sysfs_rate_show(struct pblk_rl *rl)
 	return rl->rb_user_max;
 }
 
-static void pblk_rl_u_timer(unsigned long data)
+static void pblk_rl_u_timer(struct timer_list *t)
 {
-	struct pblk_rl *rl = (struct pblk_rl *)data;
+	struct pblk_rl *rl = from_timer(rl, t, u_timer);
 
 	/* Release user I/O state. Protect from GC */
 	smp_store_release(&rl->rb_user_active, 0);
@@ -221,7 +221,7 @@ void pblk_rl_init(struct pblk_rl *rl, int budget)
 	atomic_set(&rl->rb_gc_cnt, 0);
 	atomic_set(&rl->rb_space, -1);
 
-	setup_timer(&rl->u_timer, pblk_rl_u_timer, (unsigned long)rl);
+	timer_setup(&rl->u_timer, pblk_rl_u_timer, 0);
 
 	rl->rb_user_active = 0;
 	rl->rb_gc_active = 0;
