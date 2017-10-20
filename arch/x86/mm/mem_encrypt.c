@@ -42,6 +42,8 @@ static char sme_cmdline_off[] __initdata = "off";
 u64 sme_me_mask __section(.data) = 0;
 EXPORT_SYMBOL(sme_me_mask);
 
+static bool sev_enabled __section(.data);
+
 /* Buffer used for early in-place encryption by BSP, no locking needed */
 static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
 
@@ -192,6 +194,7 @@ void __init sme_early_init(void)
 		protection_map[i] = pgprot_encrypted(protection_map[i]);
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -377,6 +380,8 @@ int __init early_set_memory_encrypted(unsigned long vaddr, unsigned long size)
 	return early_set_memory_enc_dec(vaddr, size, true);
 }
 
+=======
+>>>>>>> d8aa7eea78a1 (x86/mm: Add Secure Encrypted Virtualization (SEV) support)
 /*
  * SME and SEV are very similar but they are not the same, so there are
  * times that the kernel will need to distinguish between SME and SEV. The
@@ -393,12 +398,17 @@ bool sme_active(void)
 {
 	return sme_me_mask && !sev_enabled;
 }
+<<<<<<< HEAD
 EXPORT_SYMBOL(sme_active);
+=======
+EXPORT_SYMBOL_GPL(sme_active);
+>>>>>>> d8aa7eea78a1 (x86/mm: Add Secure Encrypted Virtualization (SEV) support)
 
 bool sev_active(void)
 {
 	return sme_me_mask && sev_enabled;
 }
+<<<<<<< HEAD
 EXPORT_SYMBOL(sev_active);
 
 <<<<<<< HEAD
@@ -419,6 +429,10 @@ static const struct dma_map_ops sev_dma_ops = {
 >>>>>>> 038d07a283d6 (x86/dma: Remove dma_alloc_coherent_mask())
 =======
 >>>>>>> c10f07aa27da (dma/direct: Handle force decryption for DMA coherent buffers in common code)
+=======
+EXPORT_SYMBOL_GPL(sev_active);
+
+>>>>>>> d8aa7eea78a1 (x86/mm: Add Secure Encrypted Virtualization (SEV) support)
 /* Architecture __weak replacement functions */
 void __init mem_encrypt_init(void)
 {

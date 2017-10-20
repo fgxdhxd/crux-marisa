@@ -52,6 +52,9 @@ bool sme_active(void);
 bool sev_active(void);
 >>>>>>> e7de6c7cc207 (dma/swiotlb: Remove swiotlb_set_mem_attributes())
 
+bool sme_active(void);
+bool sev_active(void);
+
 #else	/* !CONFIG_AMD_MEM_ENCRYPT */
 
 #define sme_me_mask	0ULL
@@ -69,7 +72,12 @@ static inline void __init sme_early_init(void) { }
 static inline void __init sme_encrypt_kernel(struct boot_params *bp) { }
 static inline void __init sme_enable(struct boot_params *bp) { }
 
+<<<<<<< HEAD
 static inline void mem_encrypt_init(void) { }
+=======
+static inline bool sme_active(void) { return false; }
+static inline bool sev_active(void) { return false; }
+>>>>>>> d8aa7eea78a1 (x86/mm: Add Secure Encrypted Virtualization (SEV) support)
 
 #endif	/* CONFIG_AMD_MEM_ENCRYPT */
 
