@@ -840,9 +840,9 @@ void iscsi_post_login_handler(
 	iscsit_dec_conn_usage_count(conn);
 }
 
-static void iscsi_handle_login_thread_timeout(unsigned long data)
+void iscsi_handle_login_thread_timeout(struct timer_list *t)
 {
-	struct iscsi_np *np = (struct iscsi_np *) data;
+	struct iscsi_np *np = from_timer(np, t, np_login_timer);
 
 	spin_lock_bh(&np->np_thread_lock);
 	pr_err("iSCSI Login timeout on Network Portal %pISpc\n",
@@ -1262,6 +1262,10 @@ static int __iscsi_target_login_thread(struct iscsi_np *np)
 	pr_debug("Moving to TARG_CONN_STATE_FREE.\n");
 	conn->conn_state = TARG_CONN_STATE_FREE;
 
+	timer_setup(&conn->nopin_response_timer,
+		    iscsit_handle_nopin_response_timeout, 0);
+	timer_setup(&conn->nopin_timer, iscsit_handle_nopin_timeout, 0);
+
 	if (iscsit_conn_set_transport(conn, np->np_transport) < 0) {
 		kfree(conn);
 		return 1;
@@ -1270,13 +1274,10 @@ static int __iscsi_target_login_thread(struct iscsi_np *np)
 	rc = np->np_transport->iscsit_accept_np(np, conn);
 	if (rc == -ENOSYS) {
 		complete(&np->np_restart_comp);
-		iscsit_put_transport(conn->conn_transport);
-		kfree(conn);
 		conn = NULL;
 		goto exit;
 	} else if (rc < 0) {
 		spin_lock_bh(&np->np_thread_lock);
-		if (atomic_dec_if_positive(&np->np_reset_count) >= 0) {
 			np->np_thread_state = ISCSI_NP_THREAD_ACTIVE;
 			spin_unlock_bh(&np->np_thread_lock);
 			complete(&np->np_restart_comp);
