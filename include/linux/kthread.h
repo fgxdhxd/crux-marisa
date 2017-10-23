@@ -79,7 +79,7 @@ extern int tsk_fork_get_node(struct task_struct *tsk);
  */
 struct kthread_work;
 typedef void (*kthread_work_func_t)(struct kthread_work *work);
-void kthread_delayed_work_timer_fn(unsigned long __data);
+void kthread_delayed_work_timer_fn(struct timer_list *t);
 
 enum {
 	KTW_FREEZABLE		= 1 << 0,	/* freeze during suspend */
@@ -120,9 +120,8 @@ struct kthread_delayed_work {
 
 #define KTHREAD_DELAYED_WORK_INIT(dwork, fn) {				\
 	.work = KTHREAD_WORK_INIT((dwork).work, (fn)),			\
-	.timer = __TIMER_INITIALIZER(kthread_delayed_work_timer_fn,	\
-				     0, (unsigned long)&(dwork),	\
-				     TIMER_IRQSAFE),			\
+	.timer = __TIMER_INITIALIZER((TIMER_FUNC_TYPE)kthread_delayed_work_timer_fn,\
+					 TIMER_IRQSAFE),			\
 	}
 
 #define DEFINE_KTHREAD_WORKER(worker)					\
@@ -168,9 +167,8 @@ extern void __kthread_init_worker(struct kthread_worker *worker,
 	do {								\
 		kthread_init_work(&(dwork)->work, (fn));		\
 		__setup_timer(&(dwork)->timer,				\
-			      kthread_delayed_work_timer_fn,		\
-			      (unsigned long)(dwork),			\
-			      TIMER_IRQSAFE);				\
+			      (TIMER_FUNC_TYPE)kthread_delayed_work_timer_fn,\
+				  TIMER_IRQSAFE);				\
 	} while (0)
 
 int kthread_worker_fn(void *worker_ptr);
