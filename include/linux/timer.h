@@ -86,34 +86,38 @@ void init_timer_key(struct timer_list *timer, unsigned int flags,
 
 #ifdef CONFIG_DEBUG_OBJECTS_TIMERS
 extern void init_timer_on_stack_key(struct timer_list *timer,
+				    void (*func)(struct timer_list *),
 				    unsigned int flags, const char *name,
 				    struct lock_class_key *key);
 #else
 static inline void init_timer_on_stack_key(struct timer_list *timer,
-					   unsigned int flags, const char *name,
+					   void (*func)(struct timer_list *),
+					   unsigned int flags,
+					   const char *name,
 					   struct lock_class_key *key)
 {
-	init_timer_key(timer, flags, name, key);
+	init_timer_key(timer, func, flags, name, key);
 }
 #endif
 
 #ifdef CONFIG_LOCKDEP
-#define __init_timer(_timer, _flags)					\
+#define __init_timer(_timer, _fn, _flags)				\
 	do {								\
 		static struct lock_class_key __key;			\
-		init_timer_key((_timer), (_flags), #_timer, &__key);	\
+		init_timer_key((_timer), (_fn), (_flags), #_timer, &__key);\
 	} while (0)
 
-#define __init_timer_on_stack(_timer, _flags)				\
+#define __init_timer_on_stack(_timer, _fn, _flags)			\
 	do {								\
 		static struct lock_class_key __key;			\
-		init_timer_on_stack_key((_timer), (_flags), #_timer, &__key); \
+		init_timer_on_stack_key((_timer), (_fn), (_flags),	\
+					#_timer, &__key);		 \
 	} while (0)
 #else
-#define __init_timer(_timer, _flags)					\
-	init_timer_key((_timer), (_flags), NULL, NULL)
-#define __init_timer_on_stack(_timer, _flags)				\
-	init_timer_on_stack_key((_timer), (_flags), NULL, NULL)
+#define __init_timer(_timer, _fn, _flags)				\
+	init_timer_key((_timer), (_fn), (_flags), NULL, NULL)
+#define __init_timer_on_stack(_timer, _fn, _flags)			\
+	init_timer_on_stack_key((_timer), (_fn), (_flags), NULL, NULL)
 #endif
 
 /**
