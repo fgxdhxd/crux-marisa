@@ -739,6 +739,12 @@ int wil_priv_init(struct wil6210_priv *wil)
 	init_completion(&wil->wmi_call);
 	init_completion(&wil->halp.comp);
 
+	wil->bcast_vring = -1;
+	timer_setup(&wil->connect_timer, wil_connect_timer_fn, 0);
+	timer_setup(&wil->scan_timer, wil_scan_timer_fn, 0);
+	timer_setup(&wil->p2p.discovery_timer, wil_p2p_discovery_timer_fn, 0);
+
+	INIT_WORK(&wil->disconnect_worker, wil_disconnect_worker);
 	INIT_WORK(&wil->wmi_event_worker, wmi_event_worker);
 	INIT_WORK(&wil->fw_error_worker, wil_fw_error_worker);
 	INIT_WORK(&wil->pci_linkdown_recovery_worker,
