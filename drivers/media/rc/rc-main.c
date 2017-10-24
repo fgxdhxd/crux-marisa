@@ -632,9 +632,9 @@ EXPORT_SYMBOL_GPL(rc_keyup);
  * This routine will generate a keyup event some time after a keydown event
  * is generated when no further activity has been detected.
  */
-static void ir_timer_keyup(unsigned long cookie)
+static void ir_timer_keyup(struct timer_list *t)
 {
-	struct rc_dev *dev = (struct rc_dev *)cookie;
+	struct rc_dev *dev = from_timer(dev, t, timer_keyup);
 	unsigned long flags;
 
 	/*
