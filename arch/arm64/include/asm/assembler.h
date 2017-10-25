@@ -28,6 +28,8 @@
 #include <asm/asm-offsets.h>
 #include <asm/cpufeature.h>
 #include <asm/cputype.h>
+#include <asm/debug-monitors.h>
+#include <asm/mmu_context.h>
 #include <asm/page.h>
 #include <asm/pgtable-hwdef.h>
 #include <asm/ptrace.h>
@@ -79,7 +81,7 @@
 	.macro	disable_step_tsk, flgs, tmp
 	tbz	\flgs, #TIF_SINGLESTEP, 9990f
 	mrs	\tmp, mdscr_el1
-	bic	\tmp, \tmp, #1
+	bic	\tmp, \tmp, #DBG_MDSCR_SS
 	msr	mdscr_el1, \tmp
 	isb	// Synchronise with enable_dbg
 9990:
@@ -89,7 +91,7 @@
 	tbz	\flgs, #TIF_SINGLESTEP, 9990f
 	disable_dbg
 	mrs	\tmp, mdscr_el1
-	orr	\tmp, \tmp, #1
+	orr	\tmp, \tmp, #DBG_MDSCR_SS
 	msr	mdscr_el1, \tmp
 9990:
 	.endm
