@@ -939,18 +939,17 @@ list_update_cgroup_event(struct perf_event *event,
 	 * this will always be called from the right CPU.
 	 */
 	cpuctx = __get_cpu_context(ctx);
-
-	/*
-	 * Since setting cpuctx->cgrp is conditional on the current @cgrp
-	 * matching the event's cgroup, we must do this for every new event,
-	 * because if the first would mismatch, the second would not try again
-	 * and we would leave cpuctx->cgrp unset.
-	 */
-	if (add && !cpuctx->cgrp) {
+	cpuctx_entry = &cpuctx->cgrp_cpuctx_entry;
+	/* cpuctx->cgrp is NULL unless a cgroup event is active in this CPU .*/
+	if (add) {
 		struct perf_cgroup *cgrp = perf_cgroup_from_task(current, ctx);
 
+		list_add(cpuctx_entry, this_cpu_ptr(&cgrp_cpuctx_list));
 		if (cgroup_is_descendant(cgrp->css.cgroup, event->cgrp->css.cgroup))
 			cpuctx->cgrp = cgrp;
+	} else {
+		list_del(cpuctx_entry);
+		cpuctx->cgrp = NULL;
 	}
 
 	if (add && ctx->nr_cgroups++)
