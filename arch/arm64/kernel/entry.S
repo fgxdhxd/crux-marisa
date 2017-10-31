@@ -804,6 +804,8 @@ el0_sync:
 	b.eq	el0_ia
 	cmp	x24, #ESR_ELx_EC_FP_ASIMD	// FP/ASIMD access
 	b.eq	el0_fpsimd_acc
+	cmp	x24, #ESR_ELx_EC_SVE		// SVE access
+	b.eq	el0_sve_acc
 	cmp	x24, #ESR_ELx_EC_FP_EXC64	// FP/ASIMD exception
 	b.eq	el0_fpsimd_exc
 	cmp	x24, #ESR_ELx_EC_SYS64		// configurable trap
@@ -924,9 +926,19 @@ el0_fpsimd_acc:
 	mov	x1, sp
 	bl	do_fpsimd_acc
 	b	ret_to_user
+el0_sve_acc:
+	/*
+	 * Scalable Vector Extension access
+	 */
+	enable_daif
+	ct_user_exit
+	mov	x0, x25
+	mov	x1, sp
+	bl	do_sve_acc
+	b	ret_to_user
 el0_fpsimd_exc:
 	/*
-	 * Floating Point or Advanced SIMD exception
+	 * Floating Point, Advanced SIMD or SVE exception
 	 */
 	enable_daif
 	ct_user_exit
@@ -1097,10 +1109,9 @@ el0_svc:
 	mov	wscno, w8			// syscall number in w8
 	mov	wsc_nr, #__NR_syscalls
 
-#ifdef CONFIG_ARM64_SVE
-alternative_if_not ARM64_SVE
+#ifndef CONFIG_ARM64_SVE
 	b	el0_svc_naked
-alternative_else_nop_endif
+#else
 	tbz	x16, #TIF_SVE, el0_svc_naked	// Skip unless TIF_SVE set:
 	bic	x16, x16, #_TIF_SVE		// discard SVE state
 	str	x16, [tsk, #TSK_TI_FLAGS]
@@ -1115,7 +1126,7 @@ alternative_else_nop_endif
 	mrs	x9, cpacr_el1
 	bic	x9, x9, #CPACR_EL1_ZEN_EL0EN	// disable SVE for el0
 	msr	cpacr_el1, x9			// synchronised by eret to el0
-#endif
+#endif /* CONFIG_ARM64_SVE */
 
 el0_svc_naked:					// compat entry point
 	mov	x0, sp
