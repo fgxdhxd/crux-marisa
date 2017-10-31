@@ -454,6 +454,7 @@ static inline int kvm_arm_have_ssbd(void)
 static inline enum mitigation_state kvm_arm_get_spectre_bhb_state(void)
 {
 	return arm64_get_spectre_bhb_state();
+}
 /*
  * All host FP/SIMD state is restored on guest exit, so nothing needs
  * doing here except in the SVE case:
