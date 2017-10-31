@@ -130,6 +130,11 @@ static inline void sve_setup(void) { }
 
 #endif /* ! CONFIG_ARM64_SVE */
 
+extern void sve_save_state(void *state, u32 *pfpsr);
+extern void sve_load_state(void const *state, u32 const *pfpsr,
+			   unsigned long vq_minus_1);
+extern unsigned int sve_get_vl(void);
+
 /* For use by EFI runtime services calls only */
 extern void __efi_fpsimd_begin(void);
 extern void __efi_fpsimd_end(void);
