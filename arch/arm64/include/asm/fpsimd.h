@@ -20,6 +20,7 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/cache.h>
 #include <linux/stddef.h>
 
 /*
@@ -133,10 +134,15 @@ static inline void sve_setup(void) { }
 
 #endif /* ! CONFIG_ARM64_SVE */
 
+/* Maximum VL that SVE VL-agnostic software can transparently support */
+#define SVE_VL_ARCH_MAX 0x100
+
 extern void sve_save_state(void *state, u32 *pfpsr);
 extern void sve_load_state(void const *state, u32 const *pfpsr,
 			   unsigned long vq_minus_1);
 extern unsigned int sve_get_vl(void);
+
+extern int __ro_after_init sve_max_vl;
 
 #ifdef CONFIG_ARM64_SVE
 
@@ -144,6 +150,8 @@ extern size_t sve_state_size(struct task_struct const *task);
 
 extern void sve_alloc(struct task_struct *task);
 extern void fpsimd_release_task(struct task_struct *task);
+extern int sve_set_vector_length(struct task_struct *task,
+				 unsigned long vl, unsigned long flags);
 
 #else /* ! CONFIG_ARM64_SVE */
 
