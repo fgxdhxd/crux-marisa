@@ -330,4 +330,7 @@ static inline int kvm_arm_get_spectre_bhb_state(void)
 	/* 32bit guests don't need firmware for this */
 	return SPECTRE_VULNERABLE; /* aka SMCCC_RET_NOT_SUPPORTED */
 }
+/* All host FP/SIMD state is restored on guest exit, so nothing to save: */
+static inline void kvm_fpsimd_flush_cpu_state(void) {}
+
 #endif /* __ARM_KVM_HOST_H__ */

@@ -25,6 +25,7 @@
 #include <linux/types.h>
 #include <linux/kvm_types.h>
 #include <asm/cpufeature.h>
+#include <asm/fpsimd.h>
 #include <asm/kvm.h>
 #include <asm/kvm_asm.h>
 #include <asm/kvm_mmio.h>
@@ -453,6 +454,14 @@ static inline int kvm_arm_have_ssbd(void)
 static inline enum mitigation_state kvm_arm_get_spectre_bhb_state(void)
 {
 	return arm64_get_spectre_bhb_state();
+/*
+ * All host FP/SIMD state is restored on guest exit, so nothing needs
+ * doing here except in the SVE case:
+*/
+static inline void kvm_fpsimd_flush_cpu_state(void)
+{
+	if (system_supports_sve())
+		sve_flush_cpu_state();
 }
 
 #endif /* __ARM64_KVM_HOST_H__ */
