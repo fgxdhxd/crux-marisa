@@ -259,5 +259,9 @@ long get_tagged_addr_ctrl(void);
 #define GET_TAGGED_ADDR_CTRL()		get_tagged_addr_ctrl()
 #endif
 
+/* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
+#define SVE_SET_VL(arg)	sve_set_current_vl(arg)
+#define SVE_GET_VL()	sve_get_current_vl()
+
 #endif /* __ASSEMBLY__ */
 #endif /* __ASM_PROCESSOR_H */
