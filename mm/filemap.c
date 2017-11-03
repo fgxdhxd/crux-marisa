@@ -130,8 +130,9 @@ static int page_cache_tree_insert(struct address_space *mapping,
 	if (*slot) {
 		void *p;
 
-		p = radix_tree_deref_slot_protected(slot, &mapping->tree_lock);
-		if (!radix_tree_exceptional_entry(p))
+		p = radix_tree_deref_slot_protected(slot,
+						    &mapping->i_pages.xa_lock);
+		if (!xa_is_value(p))
 			return -EEXIST;
 
 		mapping->nrexceptional--;
@@ -341,8 +342,8 @@ page_cache_tree_delete_batch(struct address_space *mapping,
 		if (i >= pagevec_count(pvec) && !tail_pages)
 			break;
 		page = radix_tree_deref_slot_protected(slot,
-						       &mapping->tree_lock);
-		if (radix_tree_exceptional_entry(page))
+						       &mapping->i_pages.xa_lock);
+		if (xa_is_value(page))
 			continue;
 		if (!tail_pages) {
 			/*
@@ -1395,8 +1396,8 @@ pgoff_t page_cache_next_hole(struct address_space *mapping,
 	for (i = 0; i < max_scan; i++) {
 		struct page *page;
 
-		page = radix_tree_lookup(&mapping->page_tree, index);
-		if (!page || radix_tree_exceptional_entry(page))
+		page = radix_tree_lookup(&mapping->i_pages, index);
+		if (!page || xa_is_value(page))
 			break;
 		index++;
 		if (index == 0)
@@ -1436,8 +1437,8 @@ pgoff_t page_cache_prev_hole(struct address_space *mapping,
 	for (i = 0; i < max_scan; i++) {
 		struct page *page;
 
-		page = radix_tree_lookup(&mapping->page_tree, index);
-		if (!page || radix_tree_exceptional_entry(page))
+		page = radix_tree_lookup(&mapping->i_pages, index);
+		if (!page || xa_is_value(page))
 			break;
 		index--;
 		if (index == ULONG_MAX)
@@ -1583,7 +1584,7 @@ struct page *pagecache_get_page(struct address_space *mapping, pgoff_t offset,
 
 repeat:
 	page = find_get_entry(mapping, offset);
-	if (radix_tree_exceptional_entry(page))
+	if (xa_is_value(page))
 		page = NULL;
 	if (!page)
 		goto no_page;

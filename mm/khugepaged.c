@@ -1416,9 +1416,9 @@ static void collapse_shmem(struct mm_struct *mm,
 			break;
 
 		page = radix_tree_deref_slot_protected(slot,
-				&mapping->tree_lock);
-		if (radix_tree_exceptional_entry(page) || !PageUptodate(page)) {
-			spin_unlock_irq(&mapping->tree_lock);
+				&mapping->i_pages.xa_lock);
+		if (xa_is_value(page) || !PageUptodate(page)) {
+			xa_unlock_irq(&mapping->i_pages);
 			/* swap in or instantiate fallocated page */
 			if (shmem_getpage(mapping->host, index, &page,
 						SGP_NOHUGE)) {
