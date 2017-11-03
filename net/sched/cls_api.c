@@ -195,17 +195,23 @@ static struct tcf_chain *tcf_chain_create(struct tcf_block *block,
 	return chain;
 }
 
+static void tcf_chain_head_change(struct tcf_chain *chain,
+				  struct tcf_proto *tp_head)
+{
+	if (chain->chain_head_change)
+		chain->chain_head_change(tp_head,
+					 chain->chain_head_change_priv);
+}
+
 static void tcf_chain_flush(struct tcf_chain *chain)
 {
-	struct tcf_proto *tp = rtnl_dereference(chain->filter_chain);
+	struct tcf_proto *tp
 
-	if (chain->p_filter_chain)
-		RCU_INIT_POINTER(*chain->p_filter_chain, NULL);
-	while (tp) {
+	tcf_chain_head_change(chain, NULL);
+	while ((tp = rtnl_dereference(chain->filter_chain)) != NULL) {
 		RCU_INIT_POINTER(chain->filter_chain, tp->next);
-		tcf_proto_destroy(tp);
-		tp = rtnl_dereference(chain->filter_chain);
 		tcf_chain_put(chain);
+		tcf_proto_destroy(tp);
 	}
 }
 
@@ -247,13 +253,6 @@ void tcf_chain_put(struct tcf_chain *chain)
 }
 EXPORT_SYMBOL(tcf_chain_put);
 
-static void
-tcf_chain_filter_chain_ptr_set(struct tcf_chain *chain,
-			       struct tcf_proto __rcu **p_filter_chain)
-{
-	chain->p_filter_chain = p_filter_chain;
-}
-
 int tcf_block_get(struct tcf_block **p_block,
 		  struct tcf_proto __rcu **p_filter_chain)
 {
@@ -278,11 +277,51 @@ err_chain_create:
 	kfree(block);
 	return err;
 }
+EXPORT_SYMBOL(tcf_block_get_ext);
+
+static void tcf_chain_head_change_dflt(struct tcf_proto *tp_head, void *priv)
+{
+	struct tcf_proto __rcu **p_filter_chain = priv;
+
+	rcu_assign_pointer(*p_filter_chain, tp_head);
+}
+
+int tcf_block_get(struct tcf_block **p_block,
+		  struct tcf_proto __rcu **p_filter_chain, struct Qdisc *q)
+{
+	struct tcf_block_ext_info ei = {
+		.chain_head_change = tcf_chain_head_change_dflt,
+		.chain_head_change_priv = p_filter_chain,
+	};
+
+	WARN_ON(!p_filter_chain);
+	return tcf_block_get_ext(p_block, q, &ei);
+}
 EXPORT_SYMBOL(tcf_block_get);
 
 /* XXX: Standalone actions are not allowed to jump to any chain, and bound
  * actions should be all removed after flushing.
  */
+void tcf_block_put_ext(struct tcf_block *block, struct Qdisc *q,
+		       struct tcf_block_ext_info *ei)
+{
+	struct tcf_chain *chain, *tmp;
+
+	list_for_each_entry_safe(chain, tmp, &block->chain_list, list)
+		tcf_chain_flush(chain);
+
+	tcf_block_offload_unbind(block, q, ei);
+
+	INIT_WORK(&block->work, tcf_block_put_final);
+	/* Wait for existing RCU callbacks to cool down, make sure their works
+	 * have been queued before this. We can not flush pending works here
+	 * because we are holding the RTNL lock.
+	 */
+	rcu_barrier();
+	tcf_queue_work(&block->work);
+}
+EXPORT_SYMBOL(tcf_block_put_ext);
+
 void tcf_block_put(struct tcf_block *block)
 {
 	struct tcf_chain *chain, *tmp;
@@ -376,9 +415,8 @@ static void tcf_chain_tp_insert(struct tcf_chain *chain,
 				struct tcf_chain_info *chain_info,
 				struct tcf_proto *tp)
 {
-	if (chain->p_filter_chain &&
-	    *chain_info->pprev == chain->filter_chain)
-		rcu_assign_pointer(*chain->p_filter_chain, tp);
+	if (*chain_info->pprev == chain->filter_chain)
+		tcf_chain_head_change(chain, tp);
 	RCU_INIT_POINTER(tp->next, tcf_chain_tp_prev(chain_info));
 	rcu_assign_pointer(*chain_info->pprev, tp);
 	tcf_chain_hold(chain);
@@ -390,8 +428,8 @@ static void tcf_chain_tp_remove(struct tcf_chain *chain,
 {
 	struct tcf_proto *next = rtnl_dereference(chain_info->next);
 
-	if (chain->p_filter_chain && tp == chain->filter_chain)
-		RCU_INIT_POINTER(*chain->p_filter_chain, next);
+	if (tp == chain->filter_chain)
+		tcf_chain_head_change(chain, next);
 	RCU_INIT_POINTER(*chain_info->pprev, next);
 	tcf_chain_put(chain);
 }

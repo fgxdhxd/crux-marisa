@@ -19,6 +19,19 @@ struct tcf_walker {
 int register_tcf_proto_ops(struct tcf_proto_ops *ops);
 int unregister_tcf_proto_ops(struct tcf_proto_ops *ops);
 
+enum tcf_block_binder_type {
+	TCF_BLOCK_BINDER_TYPE_UNSPEC,
+	TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS,
+	TCF_BLOCK_BINDER_TYPE_CLSACT_EGRESS,
+};
+
+struct tcf_block_ext_info {
+	enum tcf_block_binder_type binder_type;
+	tcf_chain_head_change_t *chain_head_change;
+	void *chain_head_change_priv;
+};
+
+struct tcf_block_cb;
 bool tcf_queue_work(struct work_struct *work);
 
 #ifdef CONFIG_NET_CLS
@@ -26,20 +39,137 @@ struct tcf_chain *tcf_chain_get(struct tcf_block *block, u32 chain_index,
 				bool create);
 void tcf_chain_put(struct tcf_chain *chain);
 int tcf_block_get(struct tcf_block **p_block,
-		  struct tcf_proto __rcu **p_filter_chain);
+		  struct tcf_proto __rcu **p_filter_chain, struct Qdisc *q);
+int tcf_block_get_ext(struct tcf_block **p_block, struct Qdisc *q,
+		      struct tcf_block_ext_info *ei);
 void tcf_block_put(struct tcf_block *block);
+void tcf_block_put_ext(struct tcf_block *block, struct Qdisc *q,
+		       struct tcf_block_ext_info *ei);
+
+static inline struct Qdisc *tcf_block_q(struct tcf_block *block)
+{
+	return block->q;
+}
+
+static inline struct net_device *tcf_block_dev(struct tcf_block *block)
+{
+	return tcf_block_q(block)->dev_queue->dev;
+}
+
+void *tcf_block_cb_priv(struct tcf_block_cb *block_cb);
+struct tcf_block_cb *tcf_block_cb_lookup(struct tcf_block *block,
+					 tc_setup_cb_t *cb, void *cb_ident);
+void tcf_block_cb_incref(struct tcf_block_cb *block_cb);
+unsigned int tcf_block_cb_decref(struct tcf_block_cb *block_cb);
+struct tcf_block_cb *__tcf_block_cb_register(struct tcf_block *block,
+					     tc_setup_cb_t *cb, void *cb_ident,
+					     void *cb_priv);
+int tcf_block_cb_register(struct tcf_block *block,
+			  tc_setup_cb_t *cb, void *cb_ident,
+			  void *cb_priv);
+void __tcf_block_cb_unregister(struct tcf_block_cb *block_cb);
+void tcf_block_cb_unregister(struct tcf_block *block,
+			     tc_setup_cb_t *cb, void *cb_ident);
+
 int tcf_classify(struct sk_buff *skb, const struct tcf_proto *tp,
 		 struct tcf_result *res, bool compat_mode);
 
 #else
 static inline
 int tcf_block_get(struct tcf_block **p_block,
-		  struct tcf_proto __rcu **p_filter_chain)
+		  struct tcf_proto __rcu **p_filter_chain, struct Qdisc *q)
+{
+	return 0;
+}
+
+static inline
+int tcf_block_get_ext(struct tcf_block **p_block, struct Qdisc *q,
+		      struct tcf_block_ext_info *ei)
 {
 	return 0;
 }
 
 static inline void tcf_block_put(struct tcf_block *block)
+{
+}
+
+static inline
+void tcf_block_put_ext(struct tcf_block *block, struct Qdisc *q,
+		       struct tcf_block_ext_info *ei)
+{
+}
+
+static inline struct Qdisc *tcf_block_q(struct tcf_block *block)
+{
+	return NULL;
+}
+
+static inline struct net_device *tcf_block_dev(struct tcf_block *block)
+{
+	return NULL;
+}
+
+static inline
+int tc_setup_cb_block_register(struct tcf_block *block, tc_setup_cb_t *cb,
+			       void *cb_priv)
+{
+	return 0;
+}
+
+static inline
+void tc_setup_cb_block_unregister(struct tcf_block *block, tc_setup_cb_t *cb,
+				  void *cb_priv)
+{
+}
+
+static inline
+void *tcf_block_cb_priv(struct tcf_block_cb *block_cb)
+{
+	return NULL;
+}
+
+static inline
+struct tcf_block_cb *tcf_block_cb_lookup(struct tcf_block *block,
+					 tc_setup_cb_t *cb, void *cb_ident)
+{
+	return NULL;
+}
+
+static inline
+void tcf_block_cb_incref(struct tcf_block_cb *block_cb)
+{
+}
+
+static inline
+unsigned int tcf_block_cb_decref(struct tcf_block_cb *block_cb)
+{
+	return 0;
+}
+
+static inline
+struct tcf_block_cb *__tcf_block_cb_register(struct tcf_block *block,
+					     tc_setup_cb_t *cb, void *cb_ident,
+					     void *cb_priv)
+{
+	return NULL;
+}
+
+static inline
+int tcf_block_cb_register(struct tcf_block *block,
+			  tc_setup_cb_t *cb, void *cb_ident,
+			  void *cb_priv)
+{
+	return 0;
+}
+
+static inline
+void __tcf_block_cb_unregister(struct tcf_block_cb *block_cb)
+{
+}
+
+static inline
+void tcf_block_cb_unregister(struct tcf_block *block,
+			     tc_setup_cb_t *cb, void *cb_ident)
 {
 }
 
