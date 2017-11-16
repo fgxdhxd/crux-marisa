@@ -489,7 +489,7 @@ static void prandom_reseed(struct timer_list *timer);
 
 static DEFINE_TIMER(seed_timer, prandom_reseed);
 
-static void prandom_reseed(unsigned long dontcare)
+static void prandom_reseed(struct timer_list *timer)
 {
 	unsigned long expires;
 	int i;

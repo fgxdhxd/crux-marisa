@@ -1885,7 +1885,7 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
 	struct pagevec pvec;
 	int nr_pages;
 
-	pagevec_init(&pvec, 0);
+	pagevec_init(&pvec);
 
 	while ((nr_pages = pagevec_lookup_tag(&pvec,
 			NODE_MAPPING(sbi), &index, PAGECACHE_TAG_DIRTY))) {
