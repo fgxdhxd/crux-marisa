@@ -80,13 +80,11 @@ static void pcpu_free_pages(struct pcpu_chunk *chunk,
  * content of @pages and will pass it verbatim to pcpu_map_pages().
  */
 static int pcpu_alloc_pages(struct pcpu_chunk *chunk,
-			    struct page **pages, int page_start, int page_end,
-			    gfp_t gfp)
+			    struct page **pages, int page_start, int page_end, int page_end)
 {
+	const gfp_t gfp = GFP_KERNEL | __GFP_HIGHMEM;
 	unsigned int cpu, tcpu;
 	int i;
-
-	gfp |= GFP_KERNEL | __GFP_HIGHMEM | __GFP_COLD;
 
 	for_each_possible_cpu(cpu) {
 		for (i = page_start; i < page_end; i++) {
