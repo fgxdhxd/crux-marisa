@@ -118,6 +118,7 @@ static void basic_destroy(struct tcf_proto *tp)
 	list_for_each_entry_safe(f, n, &head->flist, link) {
 		list_del_rcu(&f->link);
 		tcf_unbind_filter(tp, &f->res);
+		idr_remove(&head->handle_idr, f->handle);
 		if (tcf_exts_get_net(&f->exts))
 			call_rcu(&f->rcu, basic_delete_filter);
 		else
@@ -133,6 +134,7 @@ static int basic_delete(struct tcf_proto *tp, void *arg, bool *last)
 
 	list_del_rcu(&f->link);
 	tcf_unbind_filter(tp, &f->res);
+	idr_remove(&head->handle_idr, f->handle);
 	tcf_exts_get_net(&f->exts);
 	call_rcu(&f->rcu, basic_delete_filter);
 	*last = list_empty(&head->flist);
@@ -219,8 +221,11 @@ static int basic_change(struct net *net, struct sk_buff *in_skb,
 		fnew->handle = head->hgenerator;
 	}
 
-	err = basic_set_parms(net, tp, fnew, base, tb, tca[TCA_RATE], ovr);
-	if (err < 0)
+	err = basic_set_parms(net, tp, fnew, base, tb, tca[TCA_RATE], ovr,
+			      extack);
+	if (err < 0) {
+		if (!fold)
+			idr_remove(&head->handle_idr, fnew->handle);
 		goto errout;
 
 	*arg = fnew;

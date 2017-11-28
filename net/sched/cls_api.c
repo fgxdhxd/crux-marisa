@@ -256,7 +256,136 @@ EXPORT_SYMBOL(tcf_chain_put);
 int tcf_block_get(struct tcf_block **p_block,
 		  struct tcf_proto __rcu **p_filter_chain)
 {
-	struct tcf_block *block = kzalloc(sizeof(*block), GFP_KERNEL);
+	return block->offloadcnt;
+}
+
+static int tcf_block_offload_cmd(struct tcf_block *block,
+				 struct net_device *dev,
+				 struct tcf_block_ext_info *ei,
+				 enum tc_block_command command)
+{
+	struct tc_block_offload bo = {};
+
+	bo.command = command;
+	bo.binder_type = ei->binder_type;
+	bo.block = block;
+	return dev->netdev_ops->ndo_setup_tc(dev, TC_SETUP_BLOCK, &bo);
+}
+
+static int tcf_block_offload_bind(struct tcf_block *block, struct Qdisc *q,
+				  struct tcf_block_ext_info *ei)
+{
+	struct net_device *dev = q->dev_queue->dev;
+	int err;
+
+	if (!dev->netdev_ops->ndo_setup_tc)
+		goto no_offload_dev_inc;
+
+	/* If tc offload feature is disabled and the block we try to bind
+	 * to already has some offloaded filters, forbid to bind.
+	 */
+	if (!tc_can_offload(dev) && tcf_block_offload_in_use(block))
+		return -EOPNOTSUPP;
+
+	err = tcf_block_offload_cmd(block, dev, ei, TC_BLOCK_BIND);
+	if (err == -EOPNOTSUPP)
+		goto no_offload_dev_inc;
+	return err;
+
+no_offload_dev_inc:
+	if (tcf_block_offload_in_use(block))
+		return -EOPNOTSUPP;
+	block->nooffloaddevcnt++;
+	return 0;
+}
+
+static void tcf_block_offload_unbind(struct tcf_block *block, struct Qdisc *q,
+				     struct tcf_block_ext_info *ei)
+{
+	struct net_device *dev = q->dev_queue->dev;
+	int err;
+
+	if (!dev->netdev_ops->ndo_setup_tc)
+		goto no_offload_dev_dec;
+	err = tcf_block_offload_cmd(block, dev, ei, TC_BLOCK_UNBIND);
+	if (err == -EOPNOTSUPP)
+		goto no_offload_dev_dec;
+	return;
+
+no_offload_dev_dec:
+	WARN_ON(block->nooffloaddevcnt-- == 0);
+}
+
+static int
+tcf_chain_head_change_cb_add(struct tcf_chain *chain,
+			     struct tcf_block_ext_info *ei,
+			     struct netlink_ext_ack *extack)
+{
+	struct tcf_filter_chain_list_item *item;
+
+	item = kmalloc(sizeof(*item), GFP_KERNEL);
+	if (!item) {
+		NL_SET_ERR_MSG(extack, "Memory allocation for head change callback item failed");
+		return -ENOMEM;
+	}
+	item->chain_head_change = ei->chain_head_change;
+	item->chain_head_change_priv = ei->chain_head_change_priv;
+	if (chain->filter_chain)
+		tcf_chain_head_change_item(item, chain->filter_chain);
+	list_add(&item->list, &chain->filter_chain_list);
+	return 0;
+}
+
+static void
+tcf_chain_head_change_cb_del(struct tcf_chain *chain,
+			     struct tcf_block_ext_info *ei)
+{
+	struct tcf_filter_chain_list_item *item;
+
+	list_for_each_entry(item, &chain->filter_chain_list, list) {
+		if ((!ei->chain_head_change && !ei->chain_head_change_priv) ||
+		    (item->chain_head_change == ei->chain_head_change &&
+		     item->chain_head_change_priv == ei->chain_head_change_priv)) {
+			tcf_chain_head_change_item(item, NULL);
+			list_del(&item->list);
+			kfree(item);
+			return;
+		}
+	}
+	WARN_ON(1);
+}
+
+struct tcf_net {
+	struct idr idr;
+};
+
+static unsigned int tcf_net_id;
+
+static int tcf_block_insert(struct tcf_block *block, struct net *net,
+			    u32 block_index, struct netlink_ext_ack *extack)
+{
+	struct tcf_net *tn = net_generic(net, tcf_net_id);
+	int err;
+
+	err = idr_alloc_ext(&tn->idr, block, NULL, block_index,
+			    block_index + 1, GFP_KERNEL);
+	if (err)
+		return err;
+	block->index = block_index;
+	return 0;
+}
+
+static void tcf_block_remove(struct tcf_block *block, struct net *net)
+{
+	struct tcf_net *tn = net_generic(net, tcf_net_id);
+
+	idr_remove(&tn->idr, block->index);
+}
+
+static struct tcf_block *tcf_block_create(struct net *net, struct Qdisc *q,
+					  struct netlink_ext_ack *extack)
+{
+	struct tcf_block *block;
 	struct tcf_chain *chain;
 	int err;
 

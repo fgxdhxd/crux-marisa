@@ -285,7 +285,10 @@ static void cls_bpf_delete_prog_rcu(struct rcu_head *rcu)
 
 static void __cls_bpf_delete(struct tcf_proto *tp, struct cls_bpf_prog *prog)
 {
-	cls_bpf_stop_offload(tp, prog);
+	struct cls_bpf_head *head = rtnl_dereference(tp->root);
+
+	idr_remove(&head->handle_idr, prog->handle);
+	cls_bpf_stop_offload(tp, prog, extack);
 	list_del_rcu(&prog->link);
 	tcf_unbind_filter(tp, &prog->res);
 	if (tcf_exts_get_net(&prog->exts))
@@ -534,6 +537,9 @@ static int cls_bpf_change(struct net *net, struct sk_buff *in_skb,
 
 errout_parms:
 	cls_bpf_free_parms(prog);
+errout_idr:
+	if (!oldprog)
+		idr_remove(&head->handle_idr, prog->handle);
 errout:
 	tcf_exts_destroy(&prog->exts);
 	kfree(prog);
