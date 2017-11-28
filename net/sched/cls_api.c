@@ -398,7 +398,132 @@ static struct tcf_block *tcf_block_create(struct net *net, struct Qdisc *q,
 		err = -ENOMEM;
 		goto err_chain_create;
 	}
-	tcf_chain_filter_chain_ptr_set(chain, p_filter_chain);
+	block->net = qdisc_net(q);
+	block->refcnt = 1;
+	block->net = net;
+	block->q = q;
+	return block;
+
+err_chain_create:
+	kfree(block);
+	return ERR_PTR(err);
+}
+
+static struct tcf_block *tcf_block_lookup(struct net *net, u32 block_index)
+{
+	struct tcf_net *tn = net_generic(net, tcf_net_id);
+
+	return idr_find(&tn->idr, block_index);
+}
+
+static struct tcf_chain *tcf_block_chain_zero(struct tcf_block *block)
+{
+	return list_first_entry(&block->chain_list, struct tcf_chain, list);
+}
+
+struct tcf_block_owner_item {
+	struct list_head list;
+	struct Qdisc *q;
+	enum tcf_block_binder_type binder_type;
+};
+
+static void
+tcf_block_owner_netif_keep_dst(struct tcf_block *block,
+			       struct Qdisc *q,
+			       enum tcf_block_binder_type binder_type)
+{
+	if (block->keep_dst &&
+	    binder_type != TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS &&
+	    binder_type != TCF_BLOCK_BINDER_TYPE_CLSACT_EGRESS)
+		netif_keep_dst(qdisc_dev(q));
+}
+
+void tcf_block_netif_keep_dst(struct tcf_block *block)
+{
+	struct tcf_block_owner_item *item;
+
+	block->keep_dst = true;
+	list_for_each_entry(item, &block->owner_list, list)
+		tcf_block_owner_netif_keep_dst(block, item->q,
+					       item->binder_type);
+}
+EXPORT_SYMBOL(tcf_block_netif_keep_dst);
+
+static int tcf_block_owner_add(struct tcf_block *block,
+			       struct Qdisc *q,
+			       enum tcf_block_binder_type binder_type)
+{
+	struct tcf_block_owner_item *item;
+
+	item = kmalloc(sizeof(*item), GFP_KERNEL);
+	if (!item)
+		return -ENOMEM;
+	item->q = q;
+	item->binder_type = binder_type;
+	list_add(&item->list, &block->owner_list);
+	return 0;
+}
+
+static void tcf_block_owner_del(struct tcf_block *block,
+				struct Qdisc *q,
+				enum tcf_block_binder_type binder_type)
+{
+	struct tcf_block_owner_item *item;
+
+	list_for_each_entry(item, &block->owner_list, list) {
+		if (item->q == q && item->binder_type == binder_type) {
+			list_del(&item->list);
+			kfree(item);
+			return;
+		}
+	}
+	WARN_ON(1);
+}
+
+int tcf_block_get_ext(struct tcf_block **p_block, struct Qdisc *q,
+		      struct tcf_block_ext_info *ei,
+		      struct netlink_ext_ack *extack)
+{
+	struct net *net = qdisc_net(q);
+	struct tcf_block *block = NULL;
+	bool created = false;
+	int err;
+
+	if (ei->block_index) {
+		/* block_index not 0 means the shared block is requested */
+		block = tcf_block_lookup(net, ei->block_index);
+		if (block)
+			block->refcnt++;
+	}
+
+	if (!block) {
+		block = tcf_block_create(net, q, extack);
+		if (IS_ERR(block))
+			return PTR_ERR(block);
+		created = true;
+		if (ei->block_index) {
+			err = tcf_block_insert(block, net,
+					       ei->block_index, extack);
+			if (err)
+				goto err_block_insert;
+		}
+	}
+
+	err = tcf_block_owner_add(block, q, ei->binder_type);
+	if (err)
+		goto err_block_owner_add;
+
+	tcf_block_owner_netif_keep_dst(block, q, ei->binder_type);
+
+	err = tcf_chain_head_change_cb_add(tcf_block_chain_zero(block),
+					   ei, extack);
+	if (err)
+		goto err_chain_head_change_cb_add;
+
+	err = tcf_block_offload_bind(block, q, ei);
+	if (err)
+		goto err_block_offload_bind;
+
 	*p_block = block;
 	return 0;
 
