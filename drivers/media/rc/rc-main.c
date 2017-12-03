@@ -1005,6 +1005,7 @@ static const struct {
 	  RC_PROTO_BIT_MCIR2_MSE, "mce_kbd",	"ir-mce_kbd-decoder"	},
 	{ RC_PROTO_BIT_XMP,	"xmp",		"ir-xmp-decoder"	},
 	{ RC_PROTO_BIT_CEC,	"cec",		NULL			},
+	{ RC_PROTO_BIT_IMON,	"imon",		"ir-imon-decoder"	},
 };
 
 /**
