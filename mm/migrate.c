@@ -325,7 +325,7 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 
 	/*
 	 * Once page cache replacement of page migration started, page_count
- 	 * *must* be zero. And, we don't want to call wait_on_page_locked()
+	 * *must* be zero. And, we don't want to call wait_on_page_locked()
 	 * against a page without get_page().
 	 * So, we use get_page_unless_zero(), here. Even failed, page fault
 	 * will occur again.
@@ -467,14 +467,28 @@ int migrate_page_move_mapping(struct address_space *mapping,
 	newzone = page_zone(newpage);
 
 	xas_lock_irq(&xas);
-	
-	expected_count += 1 + page_has_private(page);
+
+	expected_count += hpage_nr_pages(page) + page_has_private(page);
 	if (page_count(page) != expected_count || xas_load(&xas) != page) {
 		xas_unlock_irq(&xas);
 		return -EAGAIN;
 	}
 
 	if (!page_ref_freeze(page, expected_count)) {
+		xas_unlock_irq(&xas);
+		return -EAGAIN;
+	}
+
+	/*
+	 * In the async migration case of moving a page with buffers, lock the
+	 * buffers using trylock before the mapping is moved. If the mapping
+	 * was moved, we later failed to lock the buffers and could not move
+	 * the mapping back due to an elevated page count, we would have to
+	 * block waiting on other references to be dropped.
+	 */
+	if (mode == MIGRATE_ASYNC && head &&
+			!buffer_migrate_lock_buffers(head, mode)) {
+		page_ref_unfreeze(page, expected_count);
 		xas_unlock_irq(&xas);
 		return -EAGAIN;
 	}
@@ -506,7 +520,7 @@ int migrate_page_move_mapping(struct address_space *mapping,
 	xas_store(&xas, newpage);
 	if (PageTransHuge(page)) {
 		int i;
-	
+
 		for (i = 1; i < HPAGE_PMD_NR; i++) {
 			xas_next(&xas);
 			xas_store(&xas, newpage + i);
@@ -581,11 +595,11 @@ int migrate_huge_page_move_mapping(struct address_space *mapping,
 	get_page(newpage);
 
 	xas_store(&xas, newpage);
-	
+
 	page_ref_unfreeze(page, expected_count - 1);
 
 	xas_unlock_irq(&xas);
-	
+
 	return MIGRATEPAGE_SUCCESS;
 }
 
