@@ -5228,13 +5228,11 @@ void clear_extent_buffer_dirty(struct extent_buffer *eb)
 		WARN_ON(!PagePrivate(page));
 
 		clear_page_dirty_for_io(page);
-		spin_lock_irq(&page->mapping->tree_lock);
-		if (!PageDirty(page)) {
-			radix_tree_tag_clear(&page->mapping->page_tree,
-						page_index(page),
-						PAGECACHE_TAG_DIRTY);
-		}
-		spin_unlock_irq(&page->mapping->tree_lock);
+		xa_lock_irq(&page->mapping->i_pages);
+		if (!PageDirty(page))
+			__xa_clear_mark(&page->mapping->i_pages,
+					page_index(page), PAGECACHE_TAG_DIRTY);
+		xa_unlock_irq(&page->mapping->i_pages);
 		ClearPageError(page);
 		unlock_page(page);
 	}
