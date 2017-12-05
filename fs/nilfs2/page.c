@@ -298,7 +298,7 @@ repeat:
  * @dmap: destination page cache
  * @smap: source page cache
  *
- * No pages must no be added to the cache during this process.
+ * No pages must be added to the cache during this process.
  * This must be ensured by the caller.
  */
 void nilfs_copy_back_pages(struct address_space *dmap,
@@ -307,7 +307,6 @@ void nilfs_copy_back_pages(struct address_space *dmap,
 	struct pagevec pvec;
 	unsigned int i, n;
 	pgoff_t index = 0;
-	int err;
 
 	pagevec_init(&pvec);
 repeat:
@@ -322,35 +321,34 @@ repeat:
 		lock_page(page);
 		dpage = find_lock_page(dmap, offset);
 		if (dpage) {
-			/* override existing page on the destination cache */
+			/* overwrite existing page in the destination cache */
 			WARN_ON(PageDirty(dpage));
 			nilfs_copy_page(dpage, page, 0);
 			unlock_page(dpage);
 			put_page(dpage);
+			/* Do we not need to remove page from smap here? */
 		} else {
-			struct page *page2;
+			struct page *p;
 
 			/* move the page to the destination cache */
-			spin_lock_irq(&smap->tree_lock);
-			page2 = radix_tree_delete(&smap->page_tree, offset);
-			WARN_ON(page2 != page);
-
+			xa_lock_irq(&smap->i_pages);
+			p = __xa_erase(&smap->i_pages, offset);
+			WARN_ON(page != p);
 			smap->nrpages--;
 			spin_unlock_irq(&smap->tree_lock);
 
-			spin_lock_irq(&dmap->tree_lock);
-			err = radix_tree_insert(&dmap->page_tree, offset, page);
-			if (unlikely(err < 0)) {
-				WARN_ON(err == -EEXIST);
+			xa_lock_irq(&dmap->i_pages);
+			p = __xa_store(&dmap->i_pages, offset, page, GFP_NOFS);
+			if (unlikely(p)) {
+				/* Probably -ENOMEM */
 				page->mapping = NULL;
-				put_page(page); /* for cache */
+				put_page(page);
 			} else {
 				page->mapping = dmap;
 				dmap->nrpages++;
 				if (PageDirty(page))
-					radix_tree_tag_set(&dmap->page_tree,
-							   offset,
-							   PAGECACHE_TAG_DIRTY);
+					__xa_set_mark(&dmap->i_pages, offset,
+							PAGECACHE_TAG_DIRTY);
 			}
 			spin_unlock_irq(&dmap->tree_lock);
 		}
@@ -483,8 +481,7 @@ int __nilfs_clear_page_dirty(struct page *page)
 	if (mapping) {
 		spin_lock_irq(&mapping->tree_lock);
 		if (test_bit(PG_dirty, &page->flags)) {
-			radix_tree_tag_clear(&mapping->page_tree,
-					     page_index(page),
+			__xa_clear_mark(&mapping->i_pages, page_index(page),
 					     PAGECACHE_TAG_DIRTY);
 			spin_unlock_irq(&mapping->tree_lock);
 			return clear_page_dirty_for_io(page);
