@@ -4298,15 +4298,15 @@ const struct address_space_operations f2fs_dblock_aops = {
 #endif
 };
 
-void f2fs_clear_radix_tree_dirty_tag(struct page *page)
+void f2fs_clear_page_cache_dirty_tag(struct page *page)
 {
 	struct address_space *mapping = page_mapping(page);
 	unsigned long flags;
 
-	spin_lock_irqsave(&mapping->tree_lock, flags);
-	radix_tree_tag_clear(&mapping->page_tree, page_index(page),
-					PAGECACHE_TAG_DIRTY);
-	spin_unlock_irqrestore(&mapping->tree_lock, flags);
+	xa_lock_irqsave(&mapping->i_pages, flags);
+	__xa_clear_mark(&mapping->i_pages, page_index(page),
+						PAGECACHE_TAG_DIRTY);
+	xa_unlock_irqrestore(&mapping->i_pages, flags);
 }
 
 int __init f2fs_init_post_read_processing(void)
