@@ -611,11 +611,7 @@ static int exfat_fill_inode(struct inode *inode, struct exfat_dir_entry *info)
 
 	inode->i_uid = sbi->options.fs_uid;
 	inode->i_gid = sbi->options.fs_gid;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 	inode_inc_iversion(inode);
-#else
-	inode->i_version++;
-#endif
 	inode->i_generation = prandom_u32();
 
 	if (info->attr & ATTR_SUBDIR) { /* directory */
@@ -671,11 +667,7 @@ struct inode *exfat_build_inode(struct super_block *sb,
 		goto out;
 	}
 	inode->i_ino = iunique(sb, EXFAT_ROOT_INO);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 	inode_set_iversion(inode, 1);
-#else
-	inode->i_version = 1;
-#endif
 	err = exfat_fill_inode(inode, info);
 	if (err) {
 		iput(inode);
