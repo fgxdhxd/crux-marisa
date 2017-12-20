@@ -4447,35 +4447,24 @@ static void css_task_iter_skip(struct css_task_iter *it,
 
 static void css_task_iter_advance(struct css_task_iter *it)
 {
-	struct task_struct *task;
+	struct list_head *next;
 
 	lockdep_assert_held(&css_set_lock);
 repeat:
-	if (it->task_pos) {
-		/*
-		 * Advance iterator to find next entry.  cset->tasks is
-		 * consumed first and then ->mg_tasks.  After ->mg_tasks,
-		 * we move onto the next cset.
-		 */
-		if (it->flags & CSS_TASK_ITER_SKIPPED)
-			it->flags &= ~CSS_TASK_ITER_SKIPPED;
-		else
-			it->task_pos = it->task_pos->next;
+	/*
+	 * Advance iterator to find next entry.  cset->tasks is consumed
+	 * first and then ->mg_tasks.  After ->mg_tasks, we move onto the
+	 * next cset.
+	 */
+	next = it->task_pos->next;
 
-		if (it->task_pos == it->tasks_head) {
-			it->task_pos = it->mg_tasks_head->next;
-			it->cur_tasks_head = it->mg_tasks_head;
-		}
-		if (it->task_pos == it->mg_tasks_head) {
-			it->task_pos = it->dying_tasks_head->next;
-			it->cur_tasks_head = it->dying_tasks_head;
-		}
-		if (it->task_pos == it->dying_tasks_head)
-			css_task_iter_advance_css_set(it);
-	} else {
-		/* called from start, proceed to the first cset */
+	if (next == it->tasks_head)
+		next = it->mg_tasks_head->next;
+
+	if (next == it->mg_tasks_head)
 		css_task_iter_advance_css_set(it);
-	}
+	else
+		it->task_pos = next;
 
 	if (!it->task_pos)
 		return;
