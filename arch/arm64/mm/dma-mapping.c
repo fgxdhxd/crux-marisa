@@ -154,62 +154,6 @@ static void __dma_remap(struct page *page, size_t size, pgprot_t prot,
 	flush_tlb_kernel_range(start, end);
 }
 
-static void *__dma_alloc_coherent(struct device *dev, size_t size,
-				  dma_addr_t *dma_handle, gfp_t flags,
-				  unsigned long attrs)
-{
-	void *addr;
-
-	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
-	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
-		flags |= GFP_DMA32;
-	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
-		struct page *page;
-
-		page = dma_alloc_from_contiguous(dev, size >> PAGE_SHIFT,
-						 get_order(size), flags);
-		if (!page)
-			return NULL;
-
-		*dma_handle = phys_to_dma(dev, page_to_phys(page));
-		addr = page_address(page);
-		memset(addr, 0, size);
-	} else {
-		addr = swiotlb_alloc_coherent(dev, size, dma_handle, flags);
-	}
-
-	if (addr && ((attrs & DMA_ATTR_NO_KERNEL_MAPPING) ||
-			(attrs & DMA_ATTR_STRONGLY_ORDERED))) {
-		/*
-		 * flush the caches here because we can't later
-		 */
-		__dma_flush_area(addr, size);
-		__dma_remap(virt_to_page(addr), size, __pgprot(0), true);
-	}
-
-	return addr;
-}
-
-static void __dma_free_coherent(struct device *dev, size_t size,
-				void *vaddr, dma_addr_t dma_handle,
-				unsigned long attrs)
-{
-	bool freed;
-	phys_addr_t paddr = dma_to_phys(dev, dma_handle);
-
-	size = PAGE_ALIGN(size);
-
-	if ((attrs & DMA_ATTR_NO_KERNEL_MAPPING) ||
-	    (attrs & DMA_ATTR_STRONGLY_ORDERED))
-		__dma_remap(phys_to_page(paddr), size, PAGE_KERNEL, false);
-
-	freed = dma_release_from_contiguous(dev,
-					phys_to_page(paddr),
-					size >> PAGE_SHIFT);
-	if (!freed)
-		swiotlb_free_coherent(dev, size, vaddr, dma_handle);
-}
-
 static void *__dma_alloc(struct device *dev, size_t size,
 			 dma_addr_t *dma_handle, gfp_t flags,
 			 unsigned long attrs)
@@ -231,7 +175,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
 		return addr;
 	}
 
-	ptr = __dma_alloc_coherent(dev, size, dma_handle, flags, attrs);
+	ptr = swiotlb_alloc(dev, size, dma_handle, flags, attrs);
 	if (!ptr)
 		goto no_mem;
 
@@ -257,7 +201,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
 	return coherent_ptr;
 
 no_map:
-	__dma_free_coherent(dev, size, ptr, *dma_handle, attrs);
+	swiotlb_free(dev, size, ptr, *dma_handle, attrs);
 no_mem:
 	return NULL;
 }
@@ -276,7 +220,7 @@ static void __dma_free(struct device *dev, size_t size,
 		if (!(attrs & DMA_ATTR_NO_KERNEL_MAPPING))
 			vunmap(vaddr);
 	}
-	__dma_free_coherent(dev, size, swiotlb_addr, dma_handle, attrs);
+	swiotlb_free(dev, size, swiotlb_addr, dma_handle, attrs);
 }
 
 static dma_addr_t __swiotlb_map_page(struct device *dev, struct page *page,
