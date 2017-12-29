@@ -301,7 +301,7 @@ static void devm_memremap_pages_release(void *data)
 		- align_start;
 
 	mem_hotplug_begin();
-	arch_remove_memory(align_start, align_size);
+	arch_remove_memory(align_start, align_size, pgmap->altmap);
 	kasan_remove_zero_shadow(__va(align_start), align_size);
 	mem_hotplug_done();
 
