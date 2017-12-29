@@ -797,7 +797,8 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
 		return ret;
 }
 #endif	/* CONFIG_ARM64_64K_PAGES */
-void vmemmap_free(unsigned long start, unsigned long end)
+void vmemmap_free(unsigned long start, unsigned long end,
+		struct vmem_altmap *altmap)
 {
 #ifdef CONFIG_MEMORY_HOTREMOVE
 	remove_pagetable(start, end, false);

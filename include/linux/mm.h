@@ -2770,7 +2770,8 @@ int vmemmap_populate_basepages(unsigned long start, unsigned long end,
 int vmemmap_populate(unsigned long start, unsigned long end, int node);
 void vmemmap_populate_print_last(void);
 #ifdef CONFIG_MEMORY_HOTPLUG
-void vmemmap_free(unsigned long start, unsigned long end);
+void vmemmap_free(unsigned long start, unsigned long end,
+		struct vmem_altmap *altmap);
 #endif
 void register_page_bootmem_memmap(unsigned long section_nr, struct page *map,
 				  unsigned long nr_pages);

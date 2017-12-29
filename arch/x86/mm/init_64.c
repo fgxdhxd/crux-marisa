@@ -794,11 +794,11 @@ int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap,
 
 #define PAGE_INUSE 0xFD
 
-static void __meminit free_pagetable(struct page *page, int order)
+static void __meminit free_pagetable(struct page *page, int order,
+		struct vmem_altmap *altmap)
 {
 	unsigned long magic;
 	unsigned int nr_pages = 1 << order;
-	struct vmem_altmap *altmap = to_vmem_altmap((unsigned long) page);
 
 	if (altmap) {
 		vmem_altmap_free(altmap, nr_pages);
@@ -820,7 +820,8 @@ static void __meminit free_pagetable(struct page *page, int order)
 		free_pages((unsigned long)page_address(page), order);
 }
 
-static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd)
+static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd,
+		struct vmem_altmap *altmap)
 {
 	pte_t *pte;
 	int i;
@@ -832,13 +833,14 @@ static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd)
 	}
 
 	/* free a pte talbe */
-	free_pagetable(pmd_page(*pmd), 0);
+	free_pagetable(pmd_page(*pmd), 0, altmap);
 	spin_lock(&init_mm.page_table_lock);
 	pmd_clear(pmd);
 	spin_unlock(&init_mm.page_table_lock);
 }
 
-static void __meminit free_pmd_table(pmd_t *pmd_start, pud_t *pud)
+static void __meminit free_pmd_table(pmd_t *pmd_start, pud_t *pud,
+		struct vmem_altmap *altmap)
 {
 	pmd_t *pmd;
 	int i;
@@ -850,13 +852,14 @@ static void __meminit free_pmd_table(pmd_t *pmd_start, pud_t *pud)
 	}
 
 	/* free a pmd talbe */
-	free_pagetable(pud_page(*pud), 0);
+	free_pagetable(pud_page(*pud), 0, altmap);
 	spin_lock(&init_mm.page_table_lock);
 	pud_clear(pud);
 	spin_unlock(&init_mm.page_table_lock);
 }
 
-static void __meminit free_pud_table(pud_t *pud_start, p4d_t *p4d)
+static void __meminit free_pud_table(pud_t *pud_start, p4d_t *p4d,
+		struct vmem_altmap *altmap)
 {
 	pud_t *pud;
 	int i;
@@ -868,7 +871,7 @@ static void __meminit free_pud_table(pud_t *pud_start, p4d_t *p4d)
 	}
 
 	/* free a pud talbe */
-	free_pagetable(p4d_page(*p4d), 0);
+	free_pagetable(p4d_page(*p4d), 0, altmap);
 	spin_lock(&init_mm.page_table_lock);
 	p4d_clear(p4d);
 	spin_unlock(&init_mm.page_table_lock);
@@ -876,7 +879,7 @@ static void __meminit free_pud_table(pud_t *pud_start, p4d_t *p4d)
 
 static void __meminit
 remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
-		 bool direct)
+		 struct vmem_altmap *altmap, bool direct)
 {
 	unsigned long next, pages = 0;
 	pte_t *pte;
@@ -907,7 +910,7 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 			 * freed when offlining, or simplely not in use.
 			 */
 			if (!direct)
-				free_pagetable(pte_page(*pte), 0);
+				free_pagetable(pte_page(*pte), 0, altmap);
 
 			spin_lock(&init_mm.page_table_lock);
 			pte_clear(&init_mm, addr, pte);
@@ -930,7 +933,7 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 
 			page_addr = page_address(pte_page(*pte));
 			if (!memchr_inv(page_addr, PAGE_INUSE, PAGE_SIZE)) {
-				free_pagetable(pte_page(*pte), 0);
+				free_pagetable(pte_page(*pte), 0, altmap);
 
 				spin_lock(&init_mm.page_table_lock);
 				pte_clear(&init_mm, addr, pte);
@@ -947,7 +950,7 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 
 static void __meminit
 remove_pmd_table(pmd_t *pmd_start, unsigned long addr, unsigned long end,
-		 bool direct)
+		 bool direct, struct vmem_altmap *altmap)
 {
 	unsigned long next, pages = 0;
 	pte_t *pte_base;
@@ -966,7 +969,8 @@ remove_pmd_table(pmd_t *pmd_start, unsigned long addr, unsigned long end,
 			    IS_ALIGNED(next, PMD_SIZE)) {
 				if (!direct)
 					free_pagetable(pmd_page(*pmd),
-						       get_order(PMD_SIZE));
+						       get_order(PMD_SIZE),
+						       altmap);
 
 				spin_lock(&init_mm.page_table_lock);
 				pmd_clear(pmd);
@@ -980,7 +984,8 @@ remove_pmd_table(pmd_t *pmd_start, unsigned long addr, unsigned long end,
 				if (!memchr_inv(page_addr, PAGE_INUSE,
 						PMD_SIZE)) {
 					free_pagetable(pmd_page(*pmd),
-						       get_order(PMD_SIZE));
+						       get_order(PMD_SIZE),
+						       altmap);
 
 					spin_lock(&init_mm.page_table_lock);
 					pmd_clear(pmd);
@@ -992,8 +997,8 @@ remove_pmd_table(pmd_t *pmd_start, unsigned long addr, unsigned long end,
 		}
 
 		pte_base = (pte_t *)pmd_page_vaddr(*pmd);
-		remove_pte_table(pte_base, addr, next, direct);
-		free_pte_table(pte_base, pmd);
+		remove_pte_table(pte_base, addr, next, altmap, direct);
+		free_pte_table(pte_base, pmd, altmap);
 	}
 
 	/* Call free_pmd_table() in remove_pud_table(). */
@@ -1003,7 +1008,7 @@ remove_pmd_table(pmd_t *pmd_start, unsigned long addr, unsigned long end,
 
 static void __meminit
 remove_pud_table(pud_t *pud_start, unsigned long addr, unsigned long end,
-		 bool direct)
+		 struct vmem_altmap *altmap, bool direct)
 {
 	unsigned long next, pages = 0;
 	pmd_t *pmd_base;
@@ -1022,7 +1027,8 @@ remove_pud_table(pud_t *pud_start, unsigned long addr, unsigned long end,
 			    IS_ALIGNED(next, PUD_SIZE)) {
 				if (!direct)
 					free_pagetable(pud_page(*pud),
-						       get_order(PUD_SIZE));
+						       get_order(PUD_SIZE),
+						       altmap);
 
 				spin_lock(&init_mm.page_table_lock);
 				pud_clear(pud);
@@ -1036,7 +1042,8 @@ remove_pud_table(pud_t *pud_start, unsigned long addr, unsigned long end,
 				if (!memchr_inv(page_addr, PAGE_INUSE,
 						PUD_SIZE)) {
 					free_pagetable(pud_page(*pud),
-						       get_order(PUD_SIZE));
+						       get_order(PUD_SIZE),
+						       altmap);
 
 					spin_lock(&init_mm.page_table_lock);
 					pud_clear(pud);
@@ -1048,8 +1055,8 @@ remove_pud_table(pud_t *pud_start, unsigned long addr, unsigned long end,
 		}
 
 		pmd_base = pmd_offset(pud, 0);
-		remove_pmd_table(pmd_base, addr, next, direct);
-		free_pmd_table(pmd_base, pud);
+		remove_pmd_table(pmd_base, addr, next, direct, altmap);
+		free_pmd_table(pmd_base, pud, altmap);
 	}
 
 	if (direct)
@@ -1058,7 +1065,7 @@ remove_pud_table(pud_t *pud_start, unsigned long addr, unsigned long end,
 
 static void __meminit
 remove_p4d_table(p4d_t *p4d_start, unsigned long addr, unsigned long end,
-		 bool direct)
+		 struct vmem_altmap *altmap, bool direct)
 {
 	unsigned long next, pages = 0;
 	pud_t *pud_base;
@@ -1074,14 +1081,14 @@ remove_p4d_table(p4d_t *p4d_start, unsigned long addr, unsigned long end,
 		BUILD_BUG_ON(p4d_large(*p4d));
 
 		pud_base = pud_offset(p4d, 0);
-		remove_pud_table(pud_base, addr, next, direct);
+		remove_pud_table(pud_base, addr, next, altmap, direct);
 		/*
 		 * For 4-level page tables we do not want to free PUDs, but in the
 		 * 5-level case we should free them. This code will have to change
 		 * to adapt for boot-time switching between 4 and 5 level page tables.
 		 */
 		if (CONFIG_PGTABLE_LEVELS == 5)
-			free_pud_table(pud_base, p4d);
+			free_pud_table(pud_base, p4d, altmap);
 	}
 
 	if (direct)
@@ -1090,7 +1097,8 @@ remove_p4d_table(p4d_t *p4d_start, unsigned long addr, unsigned long end,
 
 /* start and end are both virtual address. */
 static void __meminit
-remove_pagetable(unsigned long start, unsigned long end, bool direct)
+remove_pagetable(unsigned long start, unsigned long end, bool direct,
+		struct vmem_altmap *altmap)
 {
 	unsigned long next;
 	unsigned long addr;
@@ -1105,15 +1113,16 @@ remove_pagetable(unsigned long start, unsigned long end, bool direct)
 			continue;
 
 		p4d = p4d_offset(pgd, 0);
-		remove_p4d_table(p4d, addr, next, direct);
+		remove_p4d_table(p4d, addr, next, altmap, direct);
 	}
 
 	flush_tlb_all();
 }
 
-void __ref vmemmap_free(unsigned long start, unsigned long end)
+void __ref vmemmap_free(unsigned long start, unsigned long end,
+		struct vmem_altmap *altmap)
 {
-	remove_pagetable(start, end, false);
+	remove_pagetable(start, end, false, altmap);
 }
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
@@ -1123,7 +1132,7 @@ kernel_physical_mapping_remove(unsigned long start, unsigned long end)
 	start = (unsigned long)__va(start);
 	end = (unsigned long)__va(end);
 
-	remove_pagetable(start, end, true);
+	remove_pagetable(start, end, true, NULL);
 }
 
 int __ref arch_remove_memory(u64 start, u64 size)
