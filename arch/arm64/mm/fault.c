@@ -777,7 +777,7 @@ asmlinkage void __exception do_el0_ia_bp_hardening(unsigned long addr,
 	 * re-enabled IRQs. If the address is a kernel address, apply
 	 * BP hardening prior to enabling IRQs and pre-emption.
 	 */
-	if (!is_ttbr0_addr(addr))
+	if (addr > TASK_SIZE)
 		arm64_apply_bp_hardening();
 
 	local_irq_enable();

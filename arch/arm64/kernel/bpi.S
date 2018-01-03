@@ -56,7 +56,6 @@ ENTRY(__bp_harden_hyp_vecs_start)
 ENTRY(__bp_harden_hyp_vecs_end)
 
 
-ENTRY(__smccc_workaround_1_smc_start)
 	sub	sp, sp, #(8 * 4)
 	stp	x2, x3, [sp, #(8 * 0)]
 	stp	x0, x1, [sp, #(8 * 2)]
