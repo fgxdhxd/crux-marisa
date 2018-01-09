@@ -28,6 +28,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return &swiotlb_dma_map_ops;
 }
 
+<<<<<<< HEAD
 static inline void dma_mark_clean(void *addr, size_t size) {}
 
 static inline void dma_cache_sync(struct device *dev, void *vaddr,
@@ -49,5 +50,7 @@ static inline void dma_cache_sync(struct device *dev, void *vaddr,
 	}
 }
 
+=======
+>>>>>>> b49efd762482 (dma-mapping: move dma_mark_clean to dma-direct.h)
 #endif /* __KERNEL__ */
 #endif

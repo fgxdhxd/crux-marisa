@@ -50,10 +50,6 @@ static inline bool is_device_dma_coherent(struct device *dev)
 	return dev->archdata.dma_coherent;
 }
 
-static inline void dma_mark_clean(void *addr, size_t size)
-{
-}
-
 /* Override for dma_max_pfn() */
 static inline unsigned long dma_max_pfn(struct device *dev)
 {
