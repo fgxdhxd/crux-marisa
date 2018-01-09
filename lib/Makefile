@@ -37,10 +37,10 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
 	 earlycpio.o seq_buf.o siphash.o \
 	 nmi_backtrace.o nodemask.o win_minmax.o
 
-obj-$(CONFIG_MMU) += ioremap.o
-obj-$(CONFIG_SMP) += cpumask.o
-obj-$(CONFIG_DMA_NOOP_OPS) += dma-noop.o
-obj-$(CONFIG_DMA_VIRT_OPS) += dma-virt.o
+lib-$(CONFIG_MMU) += ioremap.o
+lib-$(CONFIG_SMP) += cpumask.o
+lib-$(CONFIG_DMA_DIRECT_OPS) += dma-direct.o
+lib-$(CONFIG_DMA_VIRT_OPS) += dma-virt.o
 
 lib-y	+= kobject.o klist.o
 obj-y	+= lockref.o
