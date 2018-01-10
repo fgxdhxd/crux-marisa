@@ -27,6 +27,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return platform_dma_get_ops(NULL);
 }
 
+<<<<<<< HEAD
 static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 {
 	if (!dev->dma_mask)
@@ -56,4 +57,6 @@ dma_cache_sync (struct device *dev, void *vaddr, size_t size,
 	mb();
 }
 
+=======
+>>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
 #endif /* _ASM_IA64_DMA_MAPPING_H */

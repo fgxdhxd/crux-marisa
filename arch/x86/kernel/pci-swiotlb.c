@@ -5,8 +5,13 @@
 #include <linux/cache.h>
 #include <linux/init.h>
 #include <linux/swiotlb.h>
+<<<<<<< HEAD
 #include <linux/memblock.h>
 #include <linux/dma-mapping.h>
+=======
+#include <linux/bootmem.h>
+#include <linux/dma-direct.h>
+>>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
 #include <linux/mem_encrypt.h>
 
 #include <asm/iommu.h>

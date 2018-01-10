@@ -23,6 +23,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return &xtensa_dma_map_ops;
 }
 
+<<<<<<< HEAD
 void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
 		    enum dma_data_direction direction);
 
@@ -36,4 +37,6 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
 	return (phys_addr_t)daddr;
 }
 
+=======
+>>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
 #endif	/* _XTENSA_DMA_MAPPING_H */

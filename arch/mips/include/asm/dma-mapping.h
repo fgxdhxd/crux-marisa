@@ -17,6 +17,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return mips_dma_map_ops;
 }
 
+<<<<<<< HEAD
 static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 {
 	if (!dev->dma_mask)
@@ -25,6 +26,8 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 	return addr + size <= *dev->dma_mask;
 }
 
+=======
+>>>>>>> ea8c64ace866 (dma-mapping: move swiotlb arch helpers to a new header)
 static inline void dma_mark_clean(void *addr, size_t size) {}
 
 extern void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
