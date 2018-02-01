@@ -208,9 +208,6 @@ static void register_page_bootmem_info_section(unsigned long start_pfn)
 	struct page *page, *memmap;
 	struct mem_section_usage *usage;
 
-	if (!pfn_valid(start_pfn))
-		return;
-
 	section_nr = pfn_to_section_nr(start_pfn);
 	ms = __nr_to_section(section_nr);
 
