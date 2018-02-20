@@ -48,16 +48,7 @@ extern char* (*arch_read_hardware_id)(void);
 
 const char * __init arch_read_machine_name(void);
 
-#define show_unhandled_signals_ratelimited()				\
-({									\
-	static DEFINE_RATELIMIT_STATE(_rs,				\
-				      DEFAULT_RATELIMIT_INTERVAL,	\
-				      DEFAULT_RATELIMIT_BURST);		\
-	bool __show_ratelimited = false;				\
-	if (show_unhandled_signals && __ratelimit(&_rs))		\
-		__show_ratelimited = true;				\
-	__show_ratelimited;						\
-})
+int handle_guest_sea(phys_addr_t addr, unsigned int esr);
 
 #endif	/* __ASSEMBLY__ */
 
