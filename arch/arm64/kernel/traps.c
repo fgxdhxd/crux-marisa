@@ -399,7 +399,12 @@ void force_signal_inject(int signal, int code, unsigned long address,
 		signal = SIGKILL;
 	}
 
-	arm64_notify_die(desc, regs, signal, code, (void __user *)address, err);
+	info.si_signo = signal;
+	info.si_errno = 0;
+	info.si_code  = code;
+	info.si_addr  = (void __user *)address;
+
+	arm64_notify_die(desc, regs, &info, 0);
 }
 
 /*
