@@ -100,7 +100,7 @@ static int __sbitmap_get_word(unsigned long *word, unsigned long depth,
 			return -1;
 		}
 
-		if (!test_and_set_bit(nr, word))
+		if (!test_and_set_bit_lock(nr, word))
 			break;
 
 		hint = nr + 1;
