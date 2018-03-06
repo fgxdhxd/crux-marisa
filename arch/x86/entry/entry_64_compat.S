@@ -360,7 +360,7 @@ ENTRY(entry_INT80_compat)
 	/* switch to thread stack expects orig_ax to be pushed */
 	call	switch_to_thread_stack
 
-	pushq	%rdi			/* pt_regs->di */
+	pushq	(%rdi)			/* pt_regs->di */
 	pushq	%rsi			/* pt_regs->si */
 	pushq	%rdx			/* pt_regs->dx */
 	pushq	%rcx			/* pt_regs->cx */
