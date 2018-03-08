@@ -74,6 +74,78 @@ struct kmem_cache *blk_requestq_cachep;
  */
 static struct workqueue_struct *kblockd_workqueue;
 
+/**
+ * blk_queue_flag_set - atomically set a queue flag
+ * @flag: flag to be set
+ * @q: request queue
+ */
+void blk_queue_flag_set(unsigned int flag, struct request_queue *q)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(q->queue_lock, flags);
+	queue_flag_set(flag, q);
+	spin_unlock_irqrestore(q->queue_lock, flags);
+}
+EXPORT_SYMBOL(blk_queue_flag_set);
+
+/**
+ * blk_queue_flag_clear - atomically clear a queue flag
+ * @flag: flag to be cleared
+ * @q: request queue
+ */
+void blk_queue_flag_clear(unsigned int flag, struct request_queue *q)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(q->queue_lock, flags);
+	queue_flag_clear(flag, q);
+	spin_unlock_irqrestore(q->queue_lock, flags);
+}
+EXPORT_SYMBOL(blk_queue_flag_clear);
+
+/**
+ * blk_queue_flag_test_and_set - atomically test and set a queue flag
+ * @flag: flag to be set
+ * @q: request queue
+ *
+ * Returns the previous value of @flag - 0 if the flag was not set and 1 if
+ * the flag was already set.
+ */
+bool blk_queue_flag_test_and_set(unsigned int flag, struct request_queue *q)
+{
+	unsigned long flags;
+	bool res;
+
+	spin_lock_irqsave(q->queue_lock, flags);
+	res = queue_flag_test_and_set(flag, q);
+	spin_unlock_irqrestore(q->queue_lock, flags);
+
+	return res;
+}
+EXPORT_SYMBOL_GPL(blk_queue_flag_test_and_set);
+
+/**
+ * blk_queue_flag_test_and_clear - atomically test and clear a queue flag
+ * @flag: flag to be cleared
+ * @q: request queue
+ *
+ * Returns the previous value of @flag - 0 if the flag was not set and 1 if
+ * the flag was set.
+ */
+bool blk_queue_flag_test_and_clear(unsigned int flag, struct request_queue *q)
+{
+	unsigned long flags;
+	bool res;
+
+	spin_lock_irqsave(q->queue_lock, flags);
+	res = queue_flag_test_and_clear(flag, q);
+	spin_unlock_irqrestore(q->queue_lock, flags);
+
+	return res;
+}
+EXPORT_SYMBOL_GPL(blk_queue_flag_test_and_clear);
+
 static void blk_clear_congested(struct request_list *rl, int sync)
 {
 #ifdef CONFIG_CGROUP_WRITEBACK
@@ -351,31 +423,23 @@ void blk_sync_queue(struct request_queue *q)
 }
 EXPORT_SYMBOL(blk_sync_queue);
 
-void blk_set_preempt_only(struct request_queue *q, bool preempt_only)
+/**
+ * blk_set_preempt_only - set QUEUE_FLAG_PREEMPT_ONLY
+ * @q: request queue pointer
+ *
+ * Returns the previous value of the PREEMPT_ONLY flag - 0 if the flag was not
+ * set and 1 if the flag was already set.
+ */
+int blk_set_preempt_only(struct request_queue *q)
 {
-	unsigned long flags;
+	return blk_queue_flag_test_and_set(QUEUE_FLAG_PREEMPT_ONLY, q);
+}
+EXPORT_SYMBOL_GPL(blk_set_preempt_only);
 
-	spin_lock_irqsave(q->queue_lock, flags);
-	if (preempt_only)
-		queue_flag_set(QUEUE_FLAG_PREEMPT_ONLY, q);
-	else
-		queue_flag_clear(QUEUE_FLAG_PREEMPT_ONLY, q);
-	spin_unlock_irqrestore(q->queue_lock, flags);
-
-	/*
-	 * The synchronize_rcu() implicied in blk_mq_freeze_queue()
-	 * or the explicit one will make sure the above write on
-	 * PREEMPT_ONLY is observed in blk_queue_enter() before
-	 * running blk_mq_unfreeze_queue().
-	 *
-	 * blk_mq_freeze_queue() also drains up any request in queue,
-	 * so blk_queue_enter() will see the above updated value of
-	 * PREEMPT flag before any new allocation.
-	 */
-	if (!blk_mq_freeze_queue(q))
-		synchronize_rcu();
-
-	blk_mq_unfreeze_queue(q);
+void blk_clear_preempt_only(struct request_queue *q)
+{
+	blk_queue_flag_clear(QUEUE_FLAG_PREEMPT_ONLY, q);
+	wake_up_all(&q->mq_freeze_wq);
 }
 EXPORT_SYMBOL(blk_set_preempt_only);
 
@@ -625,9 +689,7 @@ EXPORT_SYMBOL_GPL(blk_queue_bypass_end);
 
 void blk_set_queue_dying(struct request_queue *q)
 {
-	spin_lock_irq(q->queue_lock);
-	queue_flag_set(QUEUE_FLAG_DYING, q);
-	spin_unlock_irq(q->queue_lock);
+	blk_queue_flag_set(QUEUE_FLAG_DYING, q);
 
 	/*
 	 * When queue DYING flag is set, we need to block new req
