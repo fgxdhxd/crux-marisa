@@ -1169,18 +1169,12 @@ static void nvme_config_discard(struct nvme_ns *ns)
 	BUILD_BUG_ON(PAGE_SIZE / sizeof(struct nvme_dsm_range) <
 			NVME_DSM_MAX_RANGES);
 
-	if (ctrl->nr_streams && ns->sws && ns->sgs) {
-		unsigned int sz = logical_block_size * ns->sws * ns->sgs;
+	queue->limits.discard_alignment = 0;
+	queue->limits.discard_granularity = size;
 
-		ns->queue->limits.discard_alignment = sz;
-		ns->queue->limits.discard_granularity = sz;
-	} else {
-		ns->queue->limits.discard_alignment = logical_block_size;
-		ns->queue->limits.discard_granularity = logical_block_size;
-	}
-	blk_queue_max_discard_sectors(ns->queue, UINT_MAX);
-	blk_queue_max_discard_segments(ns->queue, NVME_DSM_MAX_RANGES);
-	queue_flag_set_unlocked(QUEUE_FLAG_DISCARD, ns->queue);
+	blk_queue_max_discard_sectors(queue, UINT_MAX);
+	blk_queue_max_discard_segments(queue, NVME_DSM_MAX_RANGES);
+	blk_queue_flag_set(QUEUE_FLAG_DISCARD, queue);
 
 	if (ctrl->quirks & NVME_QUIRK_DEALLOCATE_ZEROES)
 		blk_queue_max_write_zeroes_sectors(ns->queue, UINT_MAX);
@@ -2377,8 +2371,8 @@ static void nvme_alloc_ns(struct nvme_ctrl *ctrl, unsigned nsid)
 
 	ns->queue = blk_mq_init_queue(ctrl->tagset);
 	if (IS_ERR(ns->queue))
-		goto out_release_instance;
-	queue_flag_set_unlocked(QUEUE_FLAG_NONROT, ns->queue);
+		goto out_free_ns;
+	blk_queue_flag_set(QUEUE_FLAG_NONROT, ns->queue);
 	ns->queue->queuedata = ns;
 	ns->ctrl = ctrl;
 

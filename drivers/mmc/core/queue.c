@@ -183,14 +183,14 @@ static void mmc_queue_setup_discard(struct request_queue *q,
 	if (!max_discard)
 		return;
 
-	queue_flag_set_unlocked(QUEUE_FLAG_DISCARD, q);
+	blk_queue_flag_set(QUEUE_FLAG_DISCARD, q);
 	blk_queue_max_discard_sectors(q, max_discard);
 	q->limits.discard_granularity = card->pref_erase << 9;
 	/* granularity must not be greater than max. discard */
 	if (card->pref_erase > max_discard)
 		q->limits.discard_granularity = 0;
 	if (mmc_can_secure_erase_trim(card))
-		queue_flag_set_unlocked(QUEUE_FLAG_SECERASE, q);
+		blk_queue_flag_set(QUEUE_FLAG_SECERASE, q);
 }
 
 /**
@@ -408,73 +408,8 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card,
 	if (mmc_dev(host)->dma_mask && *mmc_dev(host)->dma_mask)
 		limit = (u64)dma_max_pfn(mmc_dev(host)) << PAGE_SHIFT;
 
-	mq->card = card;
-	if (card->ext_csd.cmdq_support &&
-	    (area_type == MMC_BLK_DATA_AREA_MAIN)) {
-		mq->queue = blk_alloc_queue(GFP_KERNEL);
-		if (!mq->queue)
-			return -ENOMEM;
-		if (lock)
-			mq->queue->queue_lock = lock;
-		mq->queue->request_fn = mmc_cmdq_dispatch_req;
-		mq->queue->init_rq_fn = mmc_init_request;
-		mq->queue->exit_rq_fn = mmc_exit_request;
-		mq->queue->cmd_size = sizeof(struct mmc_queue_req);
-		mq->queue->queuedata = mq;
-		ret = blk_init_allocated_queue(mq->queue);
-		if (ret) {
-			blk_cleanup_queue(mq->queue);
-			return ret;
-		}
-
-		mmc_cmdq_setup_queue(mq, card);
-		ret = mmc_cmdq_init(mq, card);
-		if (ret) {
-			pr_err("%s: %d: cmdq: unable to set-up\n",
-			       mmc_hostname(card->host), ret);
-			blk_cleanup_queue(mq->queue);
-		} else {
-			sema_init(&mq->thread_sem, 1);
-			/* hook for pm qos cmdq init */
-			if (card->host->cmdq_ops->init)
-				card->host->cmdq_ops->init(card->host);
-			if (host->cmdq_ops->cqe_crypto_update_queue)
-				host->cmdq_ops->cqe_crypto_update_queue(host,
-								mq->queue);
-			mq->thread = kthread_run(mmc_cmdq_thread, mq,
-						 "mmc-cmdqd/%d%s",
-						 host->index,
-						 subname ? subname : "");
-			if (IS_ERR(mq->thread)) {
-				pr_err("%s: %d: cmdq: failed to start mmc-cmdqd thread\n",
-					mmc_hostname(card->host), ret);
-				ret = PTR_ERR(mq->thread);
-			}
-
-			return ret;
-		}
-	}
-
-	mq->queue = blk_alloc_queue(GFP_KERNEL);
-	if (!mq->queue)
-		return -ENOMEM;
-	if (lock)
-		mq->queue->queue_lock = lock;
-	mq->queue->request_fn = mmc_request_fn;
-	mq->queue->init_rq_fn = mmc_init_request;
-	mq->queue->exit_rq_fn = mmc_exit_request;
-	mq->queue->cmd_size = sizeof(struct mmc_queue_req);
-	mq->queue->queuedata = mq;
-	mq->qcnt = 0;
-	ret = blk_init_allocated_queue(mq->queue);
-	if (ret) {
-		blk_cleanup_queue(mq->queue);
-		return ret;
-	}
-
-	blk_queue_prep_rq(mq->queue, mmc_prep_request);
-	queue_flag_set_unlocked(QUEUE_FLAG_NONROT, mq->queue);
-	queue_flag_clear_unlocked(QUEUE_FLAG_ADD_RANDOM, mq->queue);
+	blk_queue_flag_set(QUEUE_FLAG_NONROT, mq->queue);
+	blk_queue_flag_clear(QUEUE_FLAG_ADD_RANDOM, mq->queue);
 	if (mmc_can_erase(card))
 		mmc_queue_setup_discard(mq->queue, card);
 
