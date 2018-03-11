@@ -961,23 +961,10 @@ int ksys_chroot(const char __user *filename);
 ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
 int ksys_chdir(const char __user *filename);
 int ksys_fchmod(unsigned int fd, umode_t mode);
+int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
 off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
 ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
 int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
-
-extern int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
-
-static inline int ksys_chmod(const char __user *filename, umode_t mode)
-{
-	return do_fchmodat(AT_FDCWD, filename, mode);
-}
-
-long do_faccessat(int dfd, const char __user *filename, int mode, int flags);
-
-static inline long ksys_access(const char __user *filename, int mode)
-{
-	return do_faccessat(AT_FDCWD, filename, mode, 0);
-}
 
 extern int __close_fd(struct files_struct *files, unsigned int fd);
 
@@ -1052,6 +1039,36 @@ static inline long ksys_link(const char __user *oldname,
 			     const char __user *newname)
 {
 	return do_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+}
+
+extern int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
+
+static inline int ksys_chmod(const char __user *filename, umode_t mode)
+{
+	return do_fchmodat(AT_FDCWD, filename, mode);
+}
+
+long do_faccessat(int dfd, const char __user *filename, int mode, int flags);
+
+static inline long ksys_access(const char __user *filename, int mode)
+{
+	return do_faccessat(AT_FDCWD, filename, mode, 0);
+}
+
+extern int do_fchownat(int dfd, const char __user *filename, uid_t user,
+		       gid_t group, int flag);
+
+static inline long ksys_chown(const char __user *filename, uid_t user,
+			      gid_t group)
+{
+	return do_fchownat(AT_FDCWD, filename, user, group, 0);
+}
+
+static inline long ksys_lchown(const char __user *filename, uid_t user,
+			       gid_t group)
+{
+	return do_fchownat(AT_FDCWD, filename, user, group,
+			     AT_SYMLINK_NOFOLLOW);
 }
 
 #endif
