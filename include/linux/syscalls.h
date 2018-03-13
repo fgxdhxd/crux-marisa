@@ -963,6 +963,7 @@ int ksys_chdir(const char __user *filename);
 int ksys_fchmod(unsigned int fd, umode_t mode);
 off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
 ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
+int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 
 extern int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
 
