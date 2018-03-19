@@ -193,6 +193,7 @@ void __init sme_early_init(void)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 static void *sev_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
 		       gfp_t gfp, unsigned long attrs)
@@ -246,6 +247,8 @@ static void sev_free(struct device *dev, size_t size, void *vaddr,
 	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
 }
 
+=======
+>>>>>>> c10f07aa27da (dma/direct: Handle force decryption for DMA coherent buffers in common code)
 static void __init __set_clr_pte_enc(pte_t *kpte, int level, bool enc)
 {
 	pgprot_t old_prot, new_prot;
@@ -398,6 +401,7 @@ bool sev_active(void)
 }
 EXPORT_SYMBOL(sev_active);
 
+<<<<<<< HEAD
 static const struct dma_map_ops sev_dma_ops = {
 	.alloc                  = sev_alloc,
 	.free                   = sev_free,
@@ -413,6 +417,8 @@ static const struct dma_map_ops sev_dma_ops = {
 };
 
 >>>>>>> 038d07a283d6 (x86/dma: Remove dma_alloc_coherent_mask())
+=======
+>>>>>>> c10f07aa27da (dma/direct: Handle force decryption for DMA coherent buffers in common code)
 /* Architecture __weak replacement functions */
 void __init mem_encrypt_init(void)
 {
@@ -422,7 +428,26 @@ void __init mem_encrypt_init(void)
 	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
 	swiotlb_update_mem_attributes();
 
+<<<<<<< HEAD
 	pr_info("AMD Secure Memory Encryption (SME) active\n");
+=======
+	/*
+	 * With SEV, DMA operations cannot use encryption, we need to use
+	 * SWIOTLB to bounce buffer DMA operation.
+	 */
+	if (sev_active())
+		dma_ops = &swiotlb_dma_ops;
+
+	/*
+	 * With SEV, we need to unroll the rep string I/O instructions.
+	 */
+	if (sev_active())
+		static_branch_enable(&sev_enable_key);
+
+	pr_info("AMD %s active\n",
+		sev_active() ? "Secure Encrypted Virtualization (SEV)"
+			     : "Secure Memory Encryption (SME)");
+>>>>>>> c10f07aa27da (dma/direct: Handle force decryption for DMA coherent buffers in common code)
 }
 
 <<<<<<< HEAD
