@@ -37,6 +37,7 @@ bool arch_dma_alloc_attrs(struct device **dev, gfp_t *gfp);
 #define arch_dma_alloc_attrs arch_dma_alloc_attrs
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 extern void *dma_generic_alloc_coherent(struct device *dev, size_t size,
 					dma_addr_t *dma_addr, gfp_t flag,
 					unsigned long attrs);
@@ -108,4 +109,6 @@ static inline gfp_t dma_alloc_coherent_gfp_flags(struct device *dev, gfp_t gfp)
        return gfp;
 }
 
+=======
+>>>>>>> 178c5682447a (x86/dma: Remove dma_alloc_coherent_gfp_flags())
 #endif
