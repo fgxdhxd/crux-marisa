@@ -192,6 +192,234 @@ void __init sme_early_init(void)
 		protection_map[i] = pgprot_encrypted(protection_map[i]);
 }
 
+<<<<<<< HEAD
+=======
+static void *sev_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
+		       gfp_t gfp, unsigned long attrs)
+{
+	unsigned int order;
+	struct page *page;
+	void *vaddr = NULL;
+
+	order = get_order(size);
+
+	/*
+	 * Memory will be memset to zero after marking decrypted, so don't
+	 * bother clearing it before.
+	 */
+	gfp &= ~__GFP_ZERO;
+
+	page = alloc_pages_node(dev_to_node(dev), gfp, order);
+	if (page) {
+		dma_addr_t addr;
+
+		/*
+		 * Since we will be clearing the encryption bit, check the
+		 * mask with it already cleared.
+		 */
+		addr = __sme_clr(phys_to_dma(dev, page_to_phys(page)));
+		if ((addr + size) > dev->coherent_dma_mask) {
+			__free_pages(page, get_order(size));
+		} else {
+			vaddr = page_address(page);
+			*dma_handle = addr;
+		}
+	}
+
+	if (!vaddr)
+		vaddr = swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
+
+	if (!vaddr)
+		return NULL;
+
+	/* Clear the SME encryption bit for DMA use if not swiotlb area */
+	if (!is_swiotlb_buffer(dma_to_phys(dev, *dma_handle))) {
+		set_memory_decrypted((unsigned long)vaddr, 1 << order);
+		memset(vaddr, 0, PAGE_SIZE << order);
+		*dma_handle = __sme_clr(*dma_handle);
+	}
+
+	return vaddr;
+}
+
+static void sev_free(struct device *dev, size_t size, void *vaddr,
+		     dma_addr_t dma_handle, unsigned long attrs)
+{
+	/* Set the SME encryption bit for re-use if not swiotlb area */
+	if (!is_swiotlb_buffer(dma_to_phys(dev, dma_handle)))
+		set_memory_encrypted((unsigned long)vaddr,
+				     1 << get_order(size));
+
+	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+}
+
+static void __init __set_clr_pte_enc(pte_t *kpte, int level, bool enc)
+{
+	pgprot_t old_prot, new_prot;
+	unsigned long pfn, pa, size;
+	pte_t new_pte;
+
+	switch (level) {
+	case PG_LEVEL_4K:
+		pfn = pte_pfn(*kpte);
+		old_prot = pte_pgprot(*kpte);
+		break;
+	case PG_LEVEL_2M:
+		pfn = pmd_pfn(*(pmd_t *)kpte);
+		old_prot = pmd_pgprot(*(pmd_t *)kpte);
+		break;
+	case PG_LEVEL_1G:
+		pfn = pud_pfn(*(pud_t *)kpte);
+		old_prot = pud_pgprot(*(pud_t *)kpte);
+		break;
+	default:
+		return;
+	}
+
+	new_prot = old_prot;
+	if (enc)
+		pgprot_val(new_prot) |= _PAGE_ENC;
+	else
+		pgprot_val(new_prot) &= ~_PAGE_ENC;
+
+	/* If prot is same then do nothing. */
+	if (pgprot_val(old_prot) == pgprot_val(new_prot))
+		return;
+
+	pa = pfn << page_level_shift(level);
+	size = page_level_size(level);
+
+	/*
+	 * We are going to perform in-place en-/decryption and change the
+	 * physical page attribute from C=1 to C=0 or vice versa. Flush the
+	 * caches to ensure that data gets accessed with the correct C-bit.
+	 */
+	clflush_cache_range(__va(pa), size);
+
+	/* Encrypt/decrypt the contents in-place */
+	if (enc)
+		sme_early_encrypt(pa, size);
+	else
+		sme_early_decrypt(pa, size);
+
+	/* Change the page encryption mask. */
+	new_pte = pfn_pte(pfn, new_prot);
+	set_pte_atomic(kpte, new_pte);
+}
+
+static int __init early_set_memory_enc_dec(unsigned long vaddr,
+					   unsigned long size, bool enc)
+{
+	unsigned long vaddr_end, vaddr_next;
+	unsigned long psize, pmask;
+	int split_page_size_mask;
+	int level, ret;
+	pte_t *kpte;
+
+	vaddr_next = vaddr;
+	vaddr_end = vaddr + size;
+
+	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
+		kpte = lookup_address(vaddr, &level);
+		if (!kpte || pte_none(*kpte)) {
+			ret = 1;
+			goto out;
+		}
+
+		if (level == PG_LEVEL_4K) {
+			__set_clr_pte_enc(kpte, level, enc);
+			vaddr_next = (vaddr & PAGE_MASK) + PAGE_SIZE;
+			continue;
+		}
+
+		psize = page_level_size(level);
+		pmask = page_level_mask(level);
+
+		/*
+		 * Check whether we can change the large page in one go.
+		 * We request a split when the address is not aligned and
+		 * the number of pages to set/clear encryption bit is smaller
+		 * than the number of pages in the large page.
+		 */
+		if (vaddr == (vaddr & pmask) &&
+		    ((vaddr_end - vaddr) >= psize)) {
+			__set_clr_pte_enc(kpte, level, enc);
+			vaddr_next = (vaddr & pmask) + psize;
+			continue;
+		}
+
+		/*
+		 * The virtual address is part of a larger page, create the next
+		 * level page table mapping (4K or 2M). If it is part of a 2M
+		 * page then we request a split of the large page into 4K
+		 * chunks. A 1GB large page is split into 2M pages, resp.
+		 */
+		if (level == PG_LEVEL_2M)
+			split_page_size_mask = 0;
+		else
+			split_page_size_mask = 1 << PG_LEVEL_2M;
+
+		kernel_physical_mapping_init(__pa(vaddr & pmask),
+					     __pa((vaddr_end & pmask) + psize),
+					     split_page_size_mask);
+	}
+
+	ret = 0;
+
+out:
+	__flush_tlb_all();
+	return ret;
+}
+
+int __init early_set_memory_decrypted(unsigned long vaddr, unsigned long size)
+{
+	return early_set_memory_enc_dec(vaddr, size, false);
+}
+
+int __init early_set_memory_encrypted(unsigned long vaddr, unsigned long size)
+{
+	return early_set_memory_enc_dec(vaddr, size, true);
+}
+
+/*
+ * SME and SEV are very similar but they are not the same, so there are
+ * times that the kernel will need to distinguish between SME and SEV. The
+ * sme_active() and sev_active() functions are used for this.  When a
+ * distinction isn't needed, the mem_encrypt_active() function can be used.
+ *
+ * The trampoline code is a good example for this requirement.  Before
+ * paging is activated, SME will access all memory as decrypted, but SEV
+ * will access all memory as encrypted.  So, when APs are being brought
+ * up under SME the trampoline area cannot be encrypted, whereas under SEV
+ * the trampoline area must be encrypted.
+ */
+bool sme_active(void)
+{
+	return sme_me_mask && !sev_enabled;
+}
+EXPORT_SYMBOL(sme_active);
+
+bool sev_active(void)
+{
+	return sme_me_mask && sev_enabled;
+}
+EXPORT_SYMBOL(sev_active);
+
+static const struct dma_map_ops sev_dma_ops = {
+	.alloc                  = sev_alloc,
+	.free                   = sev_free,
+	.map_page               = swiotlb_map_page,
+	.unmap_page             = swiotlb_unmap_page,
+	.map_sg                 = swiotlb_map_sg_attrs,
+	.unmap_sg               = swiotlb_unmap_sg_attrs,
+	.sync_single_for_cpu    = swiotlb_sync_single_for_cpu,
+	.sync_single_for_device = swiotlb_sync_single_for_device,
+	.sync_sg_for_cpu        = swiotlb_sync_sg_for_cpu,
+	.sync_sg_for_device     = swiotlb_sync_sg_for_device,
+	.mapping_error          = swiotlb_dma_mapping_error,
+};
+
+>>>>>>> 038d07a283d6 (x86/dma: Remove dma_alloc_coherent_mask())
 /* Architecture __weak replacement functions */
 void __init mem_encrypt_init(void)
 {

@@ -45,6 +45,7 @@ extern void dma_generic_free_coherent(struct device *dev, size_t size,
 				      unsigned long attrs);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #ifdef CONFIG_X86_DMA_REMAP /* Platform code defines bridge-specific code */
 extern bool dma_capable(struct device *dev, dma_addr_t addr, size_t size);
 extern dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr);
@@ -91,14 +92,14 @@ static inline unsigned long dma_alloc_coherent_mask(struct device *dev,
 	return dma_mask;
 }
 
+=======
+>>>>>>> 038d07a283d6 (x86/dma: Remove dma_alloc_coherent_mask())
 static inline gfp_t dma_alloc_coherent_gfp_flags(struct device *dev, gfp_t gfp)
 {
-	unsigned long dma_mask = dma_alloc_coherent_mask(dev, gfp);
-
-	if (dma_mask <= DMA_BIT_MASK(24))
+	if (dev->coherent_dma_mask <= DMA_BIT_MASK(24))
 		gfp |= GFP_DMA;
 #ifdef CONFIG_X86_64
-	if (dma_mask <= DMA_BIT_MASK(32) && !(gfp & GFP_DMA))
+	if (dev->coherent_dma_mask <= DMA_BIT_MASK(32) && !(gfp & GFP_DMA))
 		gfp |= GFP_DMA32;
 #endif
        return gfp;
