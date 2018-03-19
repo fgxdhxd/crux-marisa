@@ -36,6 +36,7 @@ int arch_dma_supported(struct device *dev, u64 mask);
 bool arch_dma_alloc_attrs(struct device **dev, gfp_t *gfp);
 #define arch_dma_alloc_attrs arch_dma_alloc_attrs
 
+<<<<<<< HEAD
 extern void *dma_generic_alloc_coherent(struct device *dev, size_t size,
 					dma_addr_t *dma_addr, gfp_t flag,
 					unsigned long attrs);
@@ -94,6 +95,8 @@ static inline unsigned long dma_alloc_coherent_mask(struct device *dev,
 
 =======
 >>>>>>> 038d07a283d6 (x86/dma: Remove dma_alloc_coherent_mask())
+=======
+>>>>>>> fec777c385b6 (x86/dma: Use DMA-direct (CONFIG_DMA_DIRECT_OPS=y))
 static inline gfp_t dma_alloc_coherent_gfp_flags(struct device *dev, gfp_t gfp)
 {
 	if (dev->coherent_dma_mask <= DMA_BIT_MASK(24))
