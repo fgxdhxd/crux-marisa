@@ -45,7 +45,12 @@ void __init sme_enable(struct boot_params *bp);
 /* Architecture __weak replacement functions */
 void __init mem_encrypt_init(void);
 
+<<<<<<< HEAD
 void swiotlb_set_mem_attributes(void *vaddr, unsigned long size);
+=======
+bool sme_active(void);
+bool sev_active(void);
+>>>>>>> e7de6c7cc207 (dma/swiotlb: Remove swiotlb_set_mem_attributes())
 
 #else	/* !CONFIG_AMD_MEM_ENCRYPT */
 

@@ -425,6 +425,7 @@ void __init mem_encrypt_init(void)
 	pr_info("AMD Secure Memory Encryption (SME) active\n");
 }
 
+<<<<<<< HEAD
 void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
 {
 	WARN(PAGE_ALIGN(size) != size,
@@ -978,3 +979,5 @@ void __init __nostackprotector sme_enable(struct boot_params *bp)
 	else
 		sme_me_mask = active_by_default ? me_mask : 0;
 }
+=======
+>>>>>>> e7de6c7cc207 (dma/swiotlb: Remove swiotlb_set_mem_attributes())
