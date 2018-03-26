@@ -21,6 +21,8 @@
 #include <linux/unistd.h>
 
 #include <asm/compat.h>
+
+#ifdef CONFIG_COMPAT
 #include <asm/siginfo.h>
 #include <asm/signal.h>
 
