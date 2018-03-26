@@ -902,9 +902,8 @@ static bool unmap_kernel_at_el0(const struct arm64_cpu_capabilities *entry,
 
 	return !meltdown_safe;
 }
-
 #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-static void __nocfi
+static void
 kpti_install_ng_mappings(const struct arm64_cpu_capabilities *__unused)
 {
 	typedef void (kpti_remap_fn)(int, int, phys_addr_t);
@@ -1442,14 +1441,11 @@ static void update_cpu_capabilities(u16 scope_mask)
 {
 	__update_cpu_capabilities(arm64_errata, scope_mask,
 				  "enabling workaround for");
-	__update_cpu_capabilities(arm64_features, scope_mask, "detected:");
 }
 
 static int __enable_cpu_capability(void *arg)
 {
 	const struct arm64_cpu_capabilities *cap = arg;
-
-	cap->cpu_enable(cap);
 	return 0;
 }
 
@@ -1607,6 +1603,43 @@ verify_local_elf_hwcaps(const struct arm64_cpu_capabilities *caps)
 		}
 }
 
+static void
+verify_local_cpu_features(const struct arm64_cpu_capabilities *caps_list)
+{
+	const struct arm64_cpu_capabilities *caps = caps_list;
+	for (; caps->matches; caps++) {
+		if (!cpus_have_cap(caps->capability))
+			continue;
+		/*
+		 * If the new CPU misses an advertised feature, we cannot proceed
+		 * further, park the cpu.
+		 */
+		if (!__this_cpu_has_cap(caps_list, caps->capability)) {
+			pr_crit("CPU%d: missing feature: %s\n",
+					smp_processor_id(), caps->desc);
+			cpu_die_early();
+		}
+		if (caps->cpu_enable)
+			caps->cpu_enable(caps);
+	}
+}
+
+static void verify_sve_features(void)
+{
+	u64 safe_zcr = read_sanitised_ftr_reg(SYS_ZCR_EL1);
+	u64 zcr = read_zcr_features();
+
+	unsigned int safe_len = safe_zcr & ZCR_ELx_LEN_MASK;
+	unsigned int len = zcr & ZCR_ELx_LEN_MASK;
+
+	if (len < safe_len || sve_verify_vq_map()) {
+		pr_crit("CPU%d: SVE: required vector length(s) missing\n",
+			smp_processor_id());
+		cpu_die_early();
+	}
+
+	/* Add checks on other ZCR bits here if necessary */
+}
 
 /*
  * Run through the enabled system capabilities and enable() it on this CPU.
@@ -1831,4 +1864,9 @@ ssize_t cpu_show_meltdown(struct device *dev, struct device_attribute *attr,
 		return sprintf(buf, "Mitigation: PTI\n");
 
 	return sprintf(buf, "Vulnerable\n");
+
+void cpu_clear_disr(const struct arm64_cpu_capabilities *__unused)
+{
+	/* Firmware may have left a deferred SError in this register. */
+	write_sysreg_s(0, SYS_DISR_EL1);
 }

@@ -66,6 +66,69 @@ extern void fpsimd_restore_current_state(void);
 extern void fpsimd_update_current_state(struct fpsimd_state *state);
 
 extern void fpsimd_flush_task_state(struct task_struct *target);
+extern void sve_flush_cpu_state(void);
+
+/* Maximum VL that SVE VL-agnostic software can transparently support */
+#define SVE_VL_ARCH_MAX 0x100
+
+extern void sve_save_state(void *state, u32 *pfpsr);
+extern void sve_load_state(void const *state, u32 const *pfpsr,
+			   unsigned long vq_minus_1);
+extern unsigned int sve_get_vl(void);
+
+struct arm64_cpu_capabilities;
+extern void sve_kernel_enable(const struct arm64_cpu_capabilities *__unused);
+
+extern int __ro_after_init sve_max_vl;
+
+#ifdef CONFIG_ARM64_SVE
+
+extern size_t sve_state_size(struct task_struct const *task);
+
+extern void sve_alloc(struct task_struct *task);
+extern void fpsimd_release_task(struct task_struct *task);
+extern void fpsimd_sync_to_sve(struct task_struct *task);
+extern void sve_sync_to_fpsimd(struct task_struct *task);
+extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
+
+extern int sve_set_vector_length(struct task_struct *task,
+				 unsigned long vl, unsigned long flags);
+
+extern int sve_set_current_vl(unsigned long arg);
+extern int sve_get_current_vl(void);
+
+/*
+ * Probing and setup functions.
+ * Calls to these functions must be serialised with one another.
+ */
+extern void __init sve_init_vq_map(void);
+extern void sve_update_vq_map(void);
+extern int sve_verify_vq_map(void);
+extern void __init sve_setup(void);
+
+#else /* ! CONFIG_ARM64_SVE */
+
+static inline void sve_alloc(struct task_struct *task) { }
+static inline void fpsimd_release_task(struct task_struct *task) { }
+static inline void sve_sync_to_fpsimd(struct task_struct *task) { }
+static inline void sve_sync_from_fpsimd_zeropad(struct task_struct *task) { }
+
+static inline int sve_set_current_vl(unsigned long arg)
+{
+	return -EINVAL;
+}
+
+static inline int sve_get_current_vl(void)
+{
+	return -EINVAL;
+}
+
+static inline void sve_init_vq_map(void) { }
+static inline void sve_update_vq_map(void) { }
+static inline int sve_verify_vq_map(void) { return 0; }
+static inline void sve_setup(void) { }
+
+#endif /* ! CONFIG_ARM64_SVE */
 
 /* For use by EFI runtime services calls only */
 extern void __efi_fpsimd_begin(void);
