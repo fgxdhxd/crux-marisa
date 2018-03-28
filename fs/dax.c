@@ -760,26 +760,28 @@ EXPORT_SYMBOL_GPL(dax_layout_busy_page);
 static int __dax_invalidate_entry(struct address_space *mapping,
 					  pgoff_t index, bool trunc)
 {
+	XA_STATE(xas, &mapping->i_pages, index);
 	int ret = 0;
 	void *entry;
-	struct radix_tree_root *page_tree = &mapping->page_tree;
 
-	spin_lock_irq(&mapping->tree_lock);
-	entry = get_unlocked_mapping_entry(mapping, index, NULL);
+	xas_lock_irq(&xas);
+	entry = get_unlocked_entry(&xas);
 	if (!entry || WARN_ON_ONCE(!xa_is_value(entry)))
 		goto out;
 	if (!trunc &&
-	    (radix_tree_tag_get(page_tree, index, PAGECACHE_TAG_DIRTY) ||
-	     radix_tree_tag_get(page_tree, index, PAGECACHE_TAG_TOWRITE)))
+	    (xas_get_mark(&xas, PAGECACHE_TAG_DIRTY) ||
+	     xas_get_mark(&xas, PAGECACHE_TAG_TOWRITE)))
 		goto out;
-	radix_tree_delete(page_tree, index);
+	dax_disassociate_entry(entry, mapping, trunc);
+	xas_store(&xas, NULL);
 	mapping->nrexceptional--;
 	ret = 1;
 out:
-	put_unlocked_mapping_entry(mapping, index, entry);
-	spin_unlock_irq(&mapping->tree_lock);
+	put_unlocked_entry(&xas, entry);
+	xas_unlock_irq(&xas);
 	return ret;
 }
+
 /*
  * Delete DAX entry at @index from @mapping.  Wait for it
  * to be unlocked before deleting it.
