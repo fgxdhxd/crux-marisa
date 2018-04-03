@@ -268,9 +268,6 @@ config HOTPLUG_SIZE_BITS
 config SWIOTLB
 	def_bool y
 
-config IOMMU_HELPER
-	def_bool SWIOTLB
-
 config KERNEL_MODE_NEON
 	def_bool y
 
