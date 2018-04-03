@@ -467,12 +467,15 @@ config ARC_HAS_PAE40
 	  Enable access to physical memory beyond 4G, only supported on
 	  ARC cores with 40 bit Physical Addressing support
 
+<<<<<<< HEAD
 config ARCH_DMA_ADDR_T_64BIT
 	bool
 
 config ARC_PLAT_NEEDS_PHYS_TO_DMA
 	bool
 
+=======
+>>>>>>> 4965a68780c5 (arch: define the ARCH_DMA_ADDR_T_64BIT config symbol in lib/Kconfig)
 config ARC_KVADDR_SIZE
 	int "Kernel Virtaul Address Space size (MB)"
 	range 0 512
