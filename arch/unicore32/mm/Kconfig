@@ -42,7 +42,12 @@ config CPU_TLB_SINGLE_ENTRY_DISABLE
 
 config SWIOTLB
 	def_bool y
+<<<<<<< HEAD
 
 config NEED_SG_DMA_LENGTH
 	def_bool SWIOTLB
 
+=======
+	select DMA_DIRECT_OPS
+	select NEED_SG_DMA_LENGTH
+>>>>>>> 86596f0a2833 (scatterlist: move the NEED_SG_DMA_LENGTH config symbol to lib/Kconfig)

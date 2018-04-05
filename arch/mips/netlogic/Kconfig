@@ -83,6 +83,7 @@ endif
 config NLM_COMMON
 	bool
 
+<<<<<<< HEAD
 config NEED_SG_DMA_LENGTH
 	bool
 
@@ -91,4 +92,6 @@ config SWIOTLB
 	select NEED_SG_DMA_LENGTH
 	select IOMMU_HELPER
 
+=======
+>>>>>>> 86596f0a2833 (scatterlist: move the NEED_SG_DMA_LENGTH config symbol to lib/Kconfig)
 endif
