@@ -289,9 +289,13 @@ __nocfi __visible void do_syscall_64(struct pt_regs *regs)
 	 */
 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
 		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
+#ifdef CONFIG_SYSCALL_PTREGS
+		regs->ax = sys_call_table[nr](regs);
+#else
 		regs->ax = sys_call_table[nr](
 			regs->di, regs->si, regs->dx,
 			regs->r10, regs->r8, regs->r9);
+#endif
 	}
 
 	syscall_return_slowpath(regs);
