@@ -289,13 +289,7 @@ __nocfi __visible void do_syscall_64(struct pt_regs *regs)
 	 */
 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
 		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
-#ifdef CONFIG_SYSCALL_PTREGS
 		regs->ax = sys_call_table[nr](regs);
-#else
-		regs->ax = sys_call_table[nr](
-			regs->di, regs->si, regs->dx,
-			regs->r10, regs->r8, regs->r9);
-#endif
 	}
 
 	syscall_return_slowpath(regs);
@@ -330,7 +324,7 @@ static __nocfi __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
 
 	if (likely(nr < IA32_NR_syscalls)) {
 		nr = array_index_nospec(nr, IA32_NR_syscalls);
-#ifdef CONFIG_SYSCALL_PTREGS
+#ifdef CONFIG_IA32_EMULATION
 		regs->ax = ia32_sys_call_table[nr](regs);
 #else
 		/*
@@ -343,7 +337,7 @@ static __nocfi __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
 			(unsigned int)regs->bx, (unsigned int)regs->cx,
 			(unsigned int)regs->dx, (unsigned int)regs->si,
 			(unsigned int)regs->di, (unsigned int)regs->bp);
-#endif /* CONFIG_SYSCALL_PTREGS */
+#endif /* CONFIG_IA32_EMULATION */
 	}
 
 	syscall_return_slowpath(regs);
