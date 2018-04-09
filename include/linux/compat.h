@@ -17,11 +17,32 @@
 #include <linux/if.h>
 #include <linux/fs.h>
 #include <linux/aio_abi.h>	/* for aio_context_t */
+#include <linux/uaccess.h>
 #include <linux/unistd.h>
 
 #include <asm/compat.h>
 #include <asm/siginfo.h>
 #include <asm/signal.h>
+
+#ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
+
+/*
+
+ * It may be useful for an architecture to override the definitions of the
+
+ * COMPAT_SYSCALL_DEFINE0 and COMPAT_SYSCALL_DEFINEx() macros, in particular
+
+ * to use a different calling convention for syscalls. To allow for that,
+
+ + the prototypes for the compat_sys_*() functions below will *not* be included
+
+ * if CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
+
+ */
+
+#include <asm/syscall_wrapper.h>
+
+#endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 #ifndef COMPAT_USE_64BIT_TIME
 #define COMPAT_USE_64BIT_TIME 0
@@ -31,10 +52,12 @@
 #define __SC_DELOUSE(t,v) ((__force t)(unsigned long)(v))
 #endif
 
+#ifndef COMPAT_SYSCALL_DEFINE0
 #define COMPAT_SYSCALL_DEFINE0(name) \
 	asmlinkage long compat_sys_##name(void); \
 	ALLOW_ERROR_INJECTION(compat_sys_##name, ERRNO); \
 	asmlinkage long compat_sys_##name(void)
+#endif /* COMPAT_SYSCALL_DEFINE0 */
 
 #define COMPAT_SYSCALL_DEFINE1(name, ...) \
         COMPAT_SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
@@ -49,18 +72,25 @@
 #define COMPAT_SYSCALL_DEFINE6(name, ...) \
 	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
 
-#define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
-	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
-		__attribute__((alias(__stringify(compat_SyS##name))));  \
-	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);	\
-	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
-	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
-	{								\
-		return C_SYSC##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));	\
-	}								\
-	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__))
+/*
+ * The asmlinkage stub is aliased to a function named __se_compat_sys_*() which
+ * sign-extends 32-bit ints to longs whenever needed. The actual work is
+ * done within __do_compat_sys_*().
+ */
+#ifndef COMPAT_SYSCALL_DEFINEx
+#define COMPAT_SYSCALL_DEFINEx(x, name, ...)					\
+	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
+	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
+		__attribute__((alias(__stringify(__se_compat_sys##name))));	\
+	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);				\
+	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
+	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
+	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+	{									\
+		return __do_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
+	}									\
+	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
+#endif /* COMPAT_SYSCALL_DEFINEx */
 
 #ifndef compat_user_stack_pointer
 #define compat_user_stack_pointer() current_user_stack_pointer()
