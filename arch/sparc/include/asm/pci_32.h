@@ -17,12 +17,15 @@
 
 #define PCI_IRQ_NONE		0xffffffff
 
+<<<<<<< HEAD
 /* Dynamic DMA mapping stuff.
  */
 #define PCI_DMA_BUS_IS_PHYS	(0)
 
 struct pci_dev;
 
+=======
+>>>>>>> 325ef1857fff (PCI: remove PCI_DMA_BUS_IS_PHYS)
 #endif /* __KERNEL__ */
 
 #ifndef CONFIG_LEON_PCI

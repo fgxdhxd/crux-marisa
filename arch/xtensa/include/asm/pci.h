@@ -44,11 +44,18 @@ struct pci_dev;
  * decisions.
  */
 
+<<<<<<< HEAD
 #define PCI_DMA_BUS_IS_PHYS	(1)
 
 /* Tell drivers/pci/proc.c that we have pci_mmap_page_range() */
 #define HAVE_PCI_MMAP		1
 #define arch_can_pci_mmap_io()	1
+=======
+/* Tell PCI code what kind of PCI resource mappings we support */
+#define HAVE_PCI_MMAP			1
+#define ARCH_GENERIC_PCI_MMAP_RESOURCE	1
+#define arch_can_pci_mmap_io()		1
+>>>>>>> 325ef1857fff (PCI: remove PCI_DMA_BUS_IS_PHYS)
 
 #endif /* __KERNEL__ */
 

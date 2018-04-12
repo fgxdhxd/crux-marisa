@@ -123,6 +123,7 @@ extern void pcibios_set_master(struct pci_dev *dev);
 #include <linux/string.h>
 #include <asm/io.h>
 
+<<<<<<< HEAD
 struct pci_dev;
 
 /*
@@ -132,6 +133,8 @@ struct pci_dev;
  */
 #define PCI_DMA_BUS_IS_PHYS     (1)
 
+=======
+>>>>>>> 325ef1857fff (PCI: remove PCI_DMA_BUS_IS_PHYS)
 #ifdef CONFIG_PCI_DOMAINS_GENERIC
 static inline int pci_proc_domain(struct pci_bus *bus)
 {

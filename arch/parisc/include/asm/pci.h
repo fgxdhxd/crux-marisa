@@ -88,6 +88,7 @@ struct pci_hba_data {
 #endif /* !CONFIG_64BIT */
 
 /*
+<<<<<<< HEAD
 ** KLUGE: linux/pci.h include asm/pci.h BEFORE declaring struct pci_bus
 ** (This eliminates some of the warnings).
 */
@@ -118,6 +119,8 @@ extern int parisc_bus_is_phys; 	/* in arch/parisc/kernel/setup.c */
 
 
 /*
+=======
+>>>>>>> 325ef1857fff (PCI: remove PCI_DMA_BUS_IS_PHYS)
 ** Most PCI devices (eg Tulip, NCR720) also export the same registers
 ** to both MMIO and I/O port space.  Due to poor performance of I/O Port
 ** access under HP PCI bus adapters, strongly recommend the use of MMIO

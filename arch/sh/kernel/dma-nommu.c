@@ -74,7 +74,6 @@ const struct dma_map_ops nommu_dma_ops = {
 	.sync_single_for_device	= nommu_sync_single,
 	.sync_sg_for_device	= nommu_sync_sg,
 #endif
-	.is_phys		= 1,
 };
 
 void __init no_iommu_init(void)

@@ -1601,8 +1601,6 @@ static int __init ccio_probe(struct parisc_device *dev)
 	}
 #endif
 	ioc_count++;
-
-	parisc_has_iommu();
 	return 0;
 }
 

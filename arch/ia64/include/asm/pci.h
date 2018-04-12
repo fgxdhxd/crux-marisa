@@ -30,6 +30,7 @@ struct pci_vector_struct {
 #define PCIBIOS_MIN_IO		0x1000
 #define PCIBIOS_MIN_MEM		0x10000000
 
+<<<<<<< HEAD
 void pcibios_config_init(void);
 
 struct pci_dev;
@@ -51,6 +52,8 @@ struct pci_dev;
 extern unsigned long ia64_max_iommu_merge_mask;
 #define PCI_DMA_BUS_IS_PHYS	(ia64_max_iommu_merge_mask == ~0UL)
 
+=======
+>>>>>>> 325ef1857fff (PCI: remove PCI_DMA_BUS_IS_PHYS)
 #define HAVE_PCI_MMAP
 #define ARCH_GENERIC_PCI_MMAP_RESOURCE
 #define arch_can_pci_mmap_wc()	1
