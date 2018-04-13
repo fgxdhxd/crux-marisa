@@ -31,6 +31,20 @@ struct mempolicy;
  * subdir_node is used to build the rb tree "subdir" of the parent.
  */
 struct proc_dir_entry {
+	/*
+	 * number of callers into module in progress;
+	 * negative -> it's going away RSN
+	 */
+	atomic_t in_use;
+	refcount_t refcnt;
+	struct list_head pde_openers;	/* who did ->open, but not ->release */
+	/* protects ->pde_openers and all struct pde_opener instances */
+	spinlock_t pde_unload_lock;
+	struct completion *pde_unload_completion;
+	const struct inode_operations *proc_iops;
+	const struct file_operations *proc_fops;
+	const struct seq_operations *seq_ops;
+	void *data;
 	unsigned int low_ino;
 	umode_t mode;
 	nlink_t nlink;
