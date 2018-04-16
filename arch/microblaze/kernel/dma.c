@@ -200,6 +200,7 @@ const struct dma_map_ops dma_direct_ops = {
 	.sync_sg_for_cpu		= dma_direct_sync_sg_for_cpu,
 	.sync_sg_for_device		= dma_direct_sync_sg_for_device,
 };
+<<<<<<< HEAD
 EXPORT_SYMBOL(dma_direct_ops);
 
 /* Number of entries preallocated for DMA-API debugging */
@@ -212,3 +213,6 @@ static int __init dma_init(void)
 	return 0;
 }
 fs_initcall(dma_init);
+=======
+EXPORT_SYMBOL(dma_nommu_ops);
+>>>>>>> 15b28bbcd567 (dma-debug: move initialization to common code)
