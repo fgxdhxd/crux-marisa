@@ -43,6 +43,7 @@
 #define __ARCH_WANT_SYS_IPC
 #else
 #define __ARCH_WANT_COMPAT_SYS_TIME
+#define __ARCH_WANT_SYS_UTIME32
 #define __ARCH_WANT_COMPAT_SYS_SENDFILE
 #endif
 

@@ -32,6 +32,11 @@ struct old_itimerspec32 {
 	struct old_timespec32 it_value;
 };
 
+struct old_utimbuf32 {
+	old_time32_t	actime;
+	old_time32_t	modtime;
+};
+
 struct old_timex32 {
 	u32 modes;
 	s32 offset;
