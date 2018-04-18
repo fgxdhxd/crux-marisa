@@ -14,6 +14,7 @@
 #define __ARCH_SIGEV_PREAMBLE_SIZE (sizeof(long) + 2*sizeof(int))
 #undef __ARCH_SI_TRAPNO /* exception code needs to fill this ...  */
 
+<<<<<<< HEAD
 #define HAVE_ARCH_SIGINFO_T
 
 /*
@@ -28,6 +29,9 @@
 #endif
 
 #define __ARCH_SIGSYS
+=======
+#define __ARCH_HAS_SWAPPED_SIGINFO
+>>>>>>> f28380185193 (signal: Remove the need for __ARCH_SI_PREABLE_SIZE and SI_PAD_SIZE)
 
 #include <asm-generic/siginfo.h>
 

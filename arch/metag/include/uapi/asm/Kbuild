@@ -27,4 +27,8 @@ generic-y += statfs.h
 generic-y += termbits.h
 generic-y += termios.h
 generic-y += types.h
+<<<<<<< HEAD:arch/metag/include/uapi/asm/Kbuild
 generic-y += ucontext.h
+=======
+generic-y += siginfo.h
+>>>>>>> f28380185193 (signal: Remove the need for __ARCH_SI_PREABLE_SIZE and SI_PAD_SIZE):arch/riscv/include/uapi/asm/Kbuild

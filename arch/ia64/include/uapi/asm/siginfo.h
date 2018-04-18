@@ -9,11 +9,14 @@
 #define _UAPI_ASM_IA64_SIGINFO_H
 
 
+<<<<<<< HEAD
 #define __ARCH_SI_PREAMBLE_SIZE	(4 * sizeof(int))
 
 #define HAVE_ARCH_SIGINFO_T
 #define HAVE_ARCH_COPY_SIGINFO_TO_USER
 
+=======
+>>>>>>> f28380185193 (signal: Remove the need for __ARCH_SI_PREABLE_SIZE and SI_PAD_SIZE)
 #include <asm-generic/siginfo.h>
 
 typedef struct siginfo {
