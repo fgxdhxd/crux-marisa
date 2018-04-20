@@ -375,7 +375,7 @@ unlocked_inode_to_wb_begin(struct inode *inode, struct wb_lock_cookie *cookie)
 	cookie->locked = smp_load_acquire(&inode->i_state) & I_WB_SWITCH;
 
 	if (unlikely(cookie->locked))
-		spin_lock_irqsave(&inode->i_mapping->tree_lock, cookie->flags);
+		xa_lock_irqsave(&inode->i_mapping->i_pages, cookie->flags);
 
 	/*
 	 * Protected by either !I_WB_SWITCH + rcu_read_lock() or tree_lock.
@@ -393,7 +393,7 @@ static inline void unlocked_inode_to_wb_end(struct inode *inode,
 					    struct wb_lock_cookie *cookie)
 {
 	if (unlikely(cookie->locked))
-		spin_unlock_irqrestore(&inode->i_mapping->tree_lock, cookie->flags);
+		xa_unlock_irqrestore(&inode->i_mapping->i_pages, cookie->flags);
 
 	rcu_read_unlock();
 }
