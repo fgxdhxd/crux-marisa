@@ -39,6 +39,7 @@ config CPU_TLB_SINGLE_ENTRY_DISABLE
 	default y
 	help
 	  Say Y here to disable the TLB single entry operations.
+<<<<<<< HEAD
 
 config SWIOTLB
 	def_bool y
@@ -54,3 +55,5 @@ config NEED_SG_DMA_LENGTH
 >>>>>>> 86596f0a2833 (scatterlist: move the NEED_SG_DMA_LENGTH config symbol to lib/Kconfig)
 =======
 >>>>>>> 8d9b409b1a42 (mips,unicore32: swiotlb doesn't need sg->dma_length)
+=======
+>>>>>>> 09230cbc1bab (swiotlb: move the SWIOTLB config symbol to lib/Kconfig)

@@ -483,6 +483,11 @@ config DMA_VIRT_OPS
 	bool
 	depends on HAS_DMA
 
+config SWIOTLB
+	bool
+	select DMA_DIRECT_OPS
+	select NEED_DMA_MAP_STATE
+
 config CHECK_SIGNATURE
 	bool
 
