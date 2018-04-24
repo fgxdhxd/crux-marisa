@@ -49,5 +49,8 @@ config NEED_SG_DMA_LENGTH
 
 =======
 	select DMA_DIRECT_OPS
+<<<<<<< HEAD
 	select NEED_SG_DMA_LENGTH
 >>>>>>> 86596f0a2833 (scatterlist: move the NEED_SG_DMA_LENGTH config symbol to lib/Kconfig)
+=======
+>>>>>>> 8d9b409b1a42 (mips,unicore32: swiotlb doesn't need sg->dma_length)
