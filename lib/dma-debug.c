@@ -1064,7 +1064,7 @@ static __init int dma_debug_entries_cmdline(char *str)
 	if (!str)
 		return -EINVAL;
 
-	if (!get_option(&str, &nr_prealloc_entries))
+		if (!get_option(&str, &nr_prealloc_entries))
 		nr_prealloc_entries = PREALLOC_DMA_DEBUG_ENTRIES;
 	return 0;
 }
