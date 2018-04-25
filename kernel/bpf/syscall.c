@@ -2006,6 +2006,7 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 
 	info.type = prog->type;
 	info.id = prog->aux->id;
+	info.gpl_compatible = prog->gpl_compatible;
 
 	memcpy(info.tag, prog->tag, sizeof(prog->tag));
 
