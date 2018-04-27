@@ -1740,7 +1740,6 @@
 		nopanic
 		merge
 		nomerge
-		forcesac
 		soft
 		pt		[x86, IA-64]
 		nobypass	[PPC/POWERNV]
