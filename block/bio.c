@@ -257,7 +257,7 @@ static void bio_free(struct bio *bio)
 	bio_uninit(bio);
 
 	if (bs) {
-		bvec_free(bs->bvec_pool, bio->bi_io_vec, BVEC_POOL_IDX(bio));
+		bvec_free(&bs->bvec_pool, bio->bi_io_vec, BVEC_POOL_IDX(bio));
 
 		/*
 		 * If we have front padding, adjust the bio pointer before freeing
@@ -265,7 +265,7 @@ static void bio_free(struct bio *bio)
 		p = bio;
 		p -= bs->front_pad;
 
-		mempool_free(p, bs->bio_pool);
+		mempool_free(p, &bs->bio_pool);
 	} else {
 		/* Bio was allocated by bio_kmalloc() */
 		kfree(bio);
@@ -457,7 +457,8 @@ struct bio *bio_alloc_bioset(gfp_t gfp_mask, unsigned int nr_iovecs,
 		inline_vecs = nr_iovecs;
 	} else {
 		/* should not use nobvec bioset for nr_iovecs > 0 */
-		if (WARN_ON_ONCE(!bs->bvec_pool && nr_iovecs > 0))
+		if (WARN_ON_ONCE(!mempool_initialized(&bs->bvec_pool) &&
+				 nr_iovecs > 0))
 			return NULL;
 		/*
 		 * generic_make_request() converts recursion to iteration; this
@@ -486,11 +487,11 @@ struct bio *bio_alloc_bioset(gfp_t gfp_mask, unsigned int nr_iovecs,
 		    bs->rescue_workqueue)
 			gfp_mask &= ~__GFP_DIRECT_RECLAIM;
 
-		p = mempool_alloc(bs->bio_pool, gfp_mask);
+		p = mempool_alloc(&bs->bio_pool, gfp_mask);
 		if (!p && gfp_mask != saved_gfp) {
 			punt_bios_to_rescuer(bs);
 			gfp_mask = saved_gfp;
-			p = mempool_alloc(bs->bio_pool, gfp_mask);
+			p = mempool_alloc(&bs->bio_pool, gfp_mask);
 		}
 
 		front_pad = bs->front_pad;
@@ -506,11 +507,11 @@ struct bio *bio_alloc_bioset(gfp_t gfp_mask, unsigned int nr_iovecs,
 	if (nr_iovecs > inline_vecs) {
 		unsigned long idx = 0;
 
-		bvl = bvec_alloc(gfp_mask, nr_iovecs, &idx, bs->bvec_pool);
+		bvl = bvec_alloc(gfp_mask, nr_iovecs, &idx, &bs->bvec_pool);
 		if (!bvl && gfp_mask != saved_gfp) {
 			punt_bios_to_rescuer(bs);
 			gfp_mask = saved_gfp;
-			bvl = bvec_alloc(gfp_mask, nr_iovecs, &idx, bs->bvec_pool);
+			bvl = bvec_alloc(gfp_mask, nr_iovecs, &idx, &bs->bvec_pool);
 		}
 
 		if (unlikely(!bvl))
@@ -527,7 +528,7 @@ struct bio *bio_alloc_bioset(gfp_t gfp_mask, unsigned int nr_iovecs,
 	return bio;
 
 err_free:
-	mempool_free(p, bs->bio_pool);
+	mempool_free(p, &bs->bio_pool);
 	return NULL;
 }
 EXPORT_SYMBOL(bio_alloc_bioset);
@@ -1985,11 +1986,11 @@ EXPORT_SYMBOL_GPL(bio_trim);
  * create memory pools for biovec's in a bio_set.
  * use the global biovec slabs created for general use.
  */
-mempool_t *biovec_create_pool(int pool_entries)
+int biovec_init_pool(mempool_t *pool, int pool_entries)
 {
 	struct biovec_slab *bp = bvec_slabs + BVEC_POOL_MAX;
 
-	return mempool_create_slab_pool(pool_entries, bp->slab);
+	return mempool_init_slab_pool(pool, pool_entries, bp->slab);
 }
 
 /*
@@ -2004,11 +2005,8 @@ void bioset_exit(struct bio_set *bs)
 		destroy_workqueue(bs->rescue_workqueue);
 	bs->rescue_workqueue = NULL;
 
-	if (bs->bio_pool)
-		mempool_destroy(bs->bio_pool);
-
-	if (bs->bvec_pool)
-		mempool_destroy(bs->bvec_pool);
+	mempool_exit(&bs->bio_pool);
+	mempool_exit(&bs->bvec_pool);
 
 	bioset_integrity_free(bs);
 	if (bs->bio_slab)
