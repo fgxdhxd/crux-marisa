@@ -100,9 +100,9 @@ static inline int bpf_prog_attach_check_attach_type(struct bpf_prog *prog,
     return 0;
 }
 
-static int check_uarg_tail_zero(void __user *uaddr,
-				size_t expected_size,
-				size_t actual_size)
+int bpf_check_uarg_tail_zero(void __user *uaddr,
+			     size_t expected_size,
+			     size_t actual_size)
 {
 	unsigned char __user *addr;
 	unsigned char __user *end;
@@ -1995,7 +1995,7 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 	u32 ulen;
 	int err;
 
-	err = check_uarg_tail_zero(uinfo, sizeof(info), info_len);
+	err = bpf_check_uarg_tail_zero(uinfo, sizeof(info), info_len);
 	if (err)
 		return err;
 	info_len = min_t(u32, sizeof(info), info_len);
@@ -2118,7 +2118,7 @@ static int bpf_map_get_info_by_fd(struct bpf_map *map,
 	u32 info_len = attr->info.info_len;
 	int err;
 
-	err = check_uarg_tail_zero(uinfo, sizeof(info), info_len);
+	err = bpf_check_uarg_tail_zero(uinfo, sizeof(info), info_len);
 	if (err)
 		return err;
 	info_len = min_t(u32, sizeof(info), info_len);
@@ -2216,7 +2216,7 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf_attr __user *, uattr, unsigned int, siz
 	if (sysctl_unprivileged_bpf_disabled && !capable(CAP_SYS_ADMIN))
 		return -EPERM;
 
-	err = check_uarg_tail_zero(uattr, sizeof(attr), size);
+	err = bpf_check_uarg_tail_zero(uattr, sizeof(attr), size);
 	if (err)
 		return err;
 	size = min_t(u32, size, sizeof(attr));
