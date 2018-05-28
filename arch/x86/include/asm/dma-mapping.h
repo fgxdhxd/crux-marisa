@@ -30,10 +30,14 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	return dma_ops;
 }
 
+<<<<<<< HEAD
 int arch_dma_supported(struct device *dev, u64 mask);
 #define arch_dma_supported arch_dma_supported
 
 bool arch_dma_alloc_attrs(struct device **dev, gfp_t *gfp);
+=======
+bool arch_dma_alloc_attrs(struct device **dev);
+>>>>>>> 0ead51c3fbd1 (x86/pci-dma: switch the VIA 32-bit DMA quirk to use the struct device flag)
 #define arch_dma_alloc_attrs arch_dma_alloc_attrs
 
 <<<<<<< HEAD
