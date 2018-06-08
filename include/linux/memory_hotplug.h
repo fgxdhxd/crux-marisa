@@ -141,7 +141,6 @@ static inline bool movable_node_is_enabled(void)
 	return movable_node_enabled;
 }
 
-extern bool is_pageblock_removable_nolock(struct page *page);
 extern void arch_remove_memory(int nid, u64 start, u64 size,
 			       struct vmem_altmap *altmap);
 extern void __remove_pages(struct zone *zone, unsigned long start_pfn,
