@@ -431,24 +431,14 @@ config HAS_IOPORT_MAP
 	depends on HAS_IOMEM && !NO_IOPORT_MAP
 	default y
 
-config HAS_DMA
-	bool
-	depends on !NO_DMA
-	default y
+source "kernel/dma/Kconfig"
 
 config SGL_ALLOC
 	bool
 	default n
 
-config DMA_NOOP_OPS
+config IOMMU_HELPER
 	bool
-	depends on HAS_DMA && (!64BIT || ARCH_DMA_ADDR_T_64BIT)
-	default n
-
-config DMA_VIRT_OPS
-	bool
-	depends on HAS_DMA && (!64BIT || ARCH_DMA_ADDR_T_64BIT)
-	default n
 
 config CHECK_SIGNATURE
 	bool

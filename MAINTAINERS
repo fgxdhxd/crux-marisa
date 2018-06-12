@@ -4238,11 +4238,9 @@ L:	iommu@lists.linux-foundation.org
 T:	git git://git.infradead.org/users/hch/dma-mapping.git
 W:	http://git.infradead.org/users/hch/dma-mapping.git
 S:	Supported
-F:	lib/dma-debug.c
-F:	lib/dma-noop.c
-F:	lib/dma-virt.c
-F:	drivers/base/dma-mapping.c
-F:	drivers/base/dma-coherent.c
+F:	kernel/dma/
+F:	include/asm-generic/dma-mapping.h
+F:	include/linux/dma-direct.h
 F:	include/linux/dma-mapping.h
 
 DME1737 HARDWARE MONITOR DRIVER
@@ -7716,12 +7714,8 @@ M:	Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 M:	"David S. Miller" <davem@davemloft.net>
 M:	Masami Hiramatsu <mhiramat@kernel.org>
 S:	Maintained
-<<<<<<< HEAD
-F:	Documentation/kprobes.txt
-=======
 F:	Documentation/staging/kprobes.rst
 F:	include/asm-generic/kprobes.h
->>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	include/linux/kprobes.h
 F:	include/asm-generic/kprobes.h
 F:	kernel/kprobes.c
@@ -11488,12 +11482,9 @@ M:	Bjorn Andersson <bjorn.andersson@linaro.org>
 L:	linux-remoteproc@vger.kernel.org
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ohad/rpmsg.git
 S:	Maintained
-<<<<<<< HEAD
-=======
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/andersson/remoteproc.git rpmsg-next
 F:	Documentation/ABI/testing/sysfs-bus-rpmsg
 F:	Documentation/staging/rpmsg.rst
->>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	drivers/rpmsg/
 F:	Documentation/rpmsg.txt
 F:	include/linux/rpmsg.h
@@ -12903,7 +12894,7 @@ M:	Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 L:	linux-kernel@vger.kernel.org
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/konrad/swiotlb.git
 S:	Supported
-F:	lib/swiotlb.c
+F:	kernel/dma/swiotlb.c
 F:	arch/*/kernel/pci-swiotlb.c
 F:	include/linux/swiotlb.h
 
@@ -13201,11 +13192,8 @@ F:	drivers/media/rc/ttusbir.c
 TEE SUBSYSTEM
 M:	Jens Wiklander <jens.wiklander@linaro.org>
 S:	Maintained
-<<<<<<< HEAD
-=======
 F:	Documentation/staging/tee.rst
 F:	drivers/tee/
->>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	include/linux/tee_drv.h
 F:	include/uapi/linux/tee.h
 F:	drivers/tee/
