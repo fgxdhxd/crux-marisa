@@ -22,6 +22,7 @@ targets: mapshift $(TARGETS)
 
 main:	$(OFILES)
 
+idr-test.o: ../../../lib/test_ida.c
 idr-test: idr-test.o $(CORE_OFILES)
 
 multiorder: multiorder.o $(CORE_OFILES)
