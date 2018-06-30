@@ -20,7 +20,7 @@
 #define INIT_PHYSMEM_REGIONS	4
 
 /* Definition of memblock flags. */
-enum {
+enum memblock_flags {
 	MEMBLOCK_NONE		= 0x0,	/* No special request */
 	MEMBLOCK_HOTPLUG	= 0x1,	/* hotpluggable region */
 	MEMBLOCK_MIRROR		= 0x2,	/* mirrored region */
@@ -30,7 +30,7 @@ enum {
 struct memblock_region {
 	phys_addr_t base;
 	phys_addr_t size;
-	unsigned long flags;
+	enum memblock_flags flags;
 #ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
 	int nid;
 #endif
@@ -71,7 +71,7 @@ void memblock_discard(void);
 
 phys_addr_t memblock_find_in_range_node(phys_addr_t size, phys_addr_t align,
 					phys_addr_t start, phys_addr_t end,
-					int nid, ulong flags);
+					int nid, enum memblock_flags flags);
 phys_addr_t memblock_find_in_range(phys_addr_t start, phys_addr_t end,
 				   phys_addr_t size, phys_addr_t align);
 void memblock_allow_resize(void);
@@ -93,18 +93,19 @@ int memblock_dump_aligned_blocks_addr(char *buf);
 int memblock_dump_aligned_blocks_num(char *buf);
 #endif
 ulong choose_memblock_flags(void);
+enum memblock_flags choose_memblock_flags(void);
 
 /* Low level functions */
 int memblock_add_range(struct memblock_type *type,
 		       phys_addr_t base, phys_addr_t size,
-		       int nid, unsigned long flags);
+		       int nid, enum memblock_flags flags);
 
-void __next_mem_range(u64 *idx, int nid, ulong flags,
+void __next_mem_range(u64 *idx, int nid, enum memblock_flags flags,
 		      struct memblock_type *type_a,
 		      struct memblock_type *type_b, phys_addr_t *out_start,
 		      phys_addr_t *out_end, int *out_nid);
 
-void __next_mem_range_rev(u64 *idx, int nid, ulong flags,
+void __next_mem_range_rev(u64 *idx, int nid, enum memblock_flags flags,
 			  struct memblock_type *type_a,
 			  struct memblock_type *type_b, phys_addr_t *out_start,
 			  phys_addr_t *out_end, int *out_nid);
@@ -240,13 +241,13 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
 			       nid, flags, p_start, p_end, p_nid)
 
 static inline void memblock_set_region_flags(struct memblock_region *r,
-					     unsigned long flags)
+					     enum memblock_flags flags)
 {
 	r->flags |= flags;
 }
 
 static inline void memblock_clear_region_flags(struct memblock_region *r,
-					       unsigned long flags)
+					       enum memblock_flags flags)
 {
 	r->flags &= ~flags;
 }
@@ -412,7 +413,10 @@ static inline bool memblock_bottom_up(void)
 
 phys_addr_t __init memblock_alloc_range(phys_addr_t size, phys_addr_t align,
 					phys_addr_t start, phys_addr_t end,
-					ulong flags);
+					enum memblock_flags flags);
+phys_addr_t memblock_alloc_base_nid(phys_addr_t size,
+					phys_addr_t align, phys_addr_t max_addr,
+					int nid, enum memblock_flags flags);
 phys_addr_t memblock_alloc_base(phys_addr_t size, phys_addr_t align,
 				phys_addr_t max_addr);
 phys_addr_t __memblock_alloc_base(phys_addr_t size, phys_addr_t align,
