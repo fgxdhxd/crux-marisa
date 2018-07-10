@@ -20,6 +20,7 @@
  * License along with this program; if not,  see <http://www.gnu.org/licenses>
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -38,6 +39,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
+#include <tools/libc_compat.h>
 #include <libelf.h>
 #include <gelf.h>
 
@@ -343,7 +345,7 @@ bpf_object__add_program(struct bpf_object *obj, void *data, size_t size,
 	progs = obj->programs;
 	nr_progs = obj->nr_programs;
 
-	progs = realloc(progs, sizeof(progs[0]) * (nr_progs + 1));
+	progs = reallocarray(progs, nr_progs + 1, sizeof(progs[0]));
 	if (!progs) {
 		/*
 		 * In this case the original obj->programs
@@ -769,8 +771,8 @@ static int bpf_object__elf_collect(struct bpf_object *obj)
 				continue;
 			}
 
-			reloc = realloc(reloc,
-					sizeof(*obj->efile.reloc) * nr_reloc);
+			reloc = reallocarray(reloc, nr_reloc,
+					     sizeof(*obj->efile.reloc));
 			if (!reloc) {
 				pr_warning("realloc failed\n");
 				err = -ENOMEM;
@@ -915,6 +917,49 @@ bpf_object__create_maps(struct bpf_object *obj)
 		pr_debug("create map %s: fd=%d\n", obj->maps[i].name, *pfd);
 	}
 
+	return 0;
+}
+
+static int
+bpf_program__reloc_text(struct bpf_program *prog, struct bpf_object *obj,
+			struct reloc_desc *relo)
+{
+	struct bpf_insn *insn, *new_insn;
+	struct bpf_program *text;
+	size_t new_cnt;
+
+	if (relo->type != RELO_CALL)
+		return -LIBBPF_ERRNO__RELOC;
+
+	if (prog->idx == obj->efile.text_shndx) {
+		pr_warning("relo in .text insn %d into off %d\n",
+			   relo->insn_idx, relo->text_off);
+		return -LIBBPF_ERRNO__RELOC;
+	}
+
+	if (prog->main_prog_cnt == 0) {
+		text = bpf_object__find_prog_by_idx(obj, obj->efile.text_shndx);
+		if (!text) {
+			pr_warning("no .text section found yet relo into text exist\n");
+			return -LIBBPF_ERRNO__RELOC;
+		}
+		new_cnt = prog->insns_cnt + text->insns_cnt;
+		new_insn = reallocarray(prog->insns, new_cnt, sizeof(*insn));
+		if (!new_insn) {
+			pr_warning("oom in prog realloc\n");
+			return -ENOMEM;
+		}
+		memcpy(new_insn + prog->insns_cnt, text->insns,
+		       text->insns_cnt * sizeof(*insn));
+		prog->insns = new_insn;
+		prog->main_prog_cnt = prog->insns_cnt;
+		prog->insns_cnt = new_cnt;
+		pr_debug("added %zd insn from %s to prog %s\n",
+			 text->insns_cnt, text->section_name,
+			 prog->section_name);
+	}
+	insn = &prog->insns[relo->insn_idx];
+	insn->imm += prog->main_prog_cnt - relo->insn_idx;
 	return 0;
 }
 
