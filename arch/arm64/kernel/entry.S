@@ -749,7 +749,7 @@ el0_cp15_32_compat:
 	/*
 	 * AArch32 CP15 MRC/MCR trap handling
 	 */
-	enable_dbg_and_irq
+	enable_daif
 	ct_user_exit
 	mov	x0, x25
 	mov	x1, sp
@@ -760,7 +760,7 @@ el0_cp15_64_compat:
 	/*
 	 * AArch32 CP15 MRRC/MCRR trap handling
 	 */
-	enable_dbg_and_irq
+	enable_daif
 	ct_user_exit
 	mov	x0, x25
 	mov	x1, sp
@@ -899,23 +899,26 @@ el0_irq_naked:
 	b	ret_to_user
 ENDPROC(el0_irq)
 
-/*
- * This is the fast syscall return path.  We do as little as possible here,
- * and this includes saving x0 back into the kernel stack.
- */
-ret_fast_syscall:
-	disable_daif
-#ifndef CONFIG_DEBUG_RSEQ
-	ldr	x1, [tsk, #TSK_TI_FLAGS]	// re-check for syscall tracing
-	and	x2, x1, #_TIF_SYSCALL_WORK
-	cbnz	x2, ret_fast_syscall_trace
-	and	x2, x1, #_TIF_WORK_MASK
-	cbnz	x2, work_pending
-	enable_step_tsk x1, x2
-	kernel_exit 0
-ret_fast_syscall_trace:
+el1_error:
+	kernel_entry 1
+	mrs	x1, esr_el1
+	enable_dbg
+	mov	x0, sp
+	bl	do_serror
+	kernel_exit 1
+ENDPROC(el1_error)
+
+el0_error:
+	kernel_entry 0
+el0_error_naked:
+	mrs	x1, esr_el1
+	enable_dbg
+	mov	x0, sp
+	bl	do_serror
 	enable_daif
-	b	__sys_trace_return_skipped	// we already saved x0
+	ct_user_exit
+	b	ret_to_user
+ENDPROC(el0_error)
 
 /*
  * Ok, we need to do extra processing, enter the slow path.
@@ -946,8 +949,37 @@ ENDPROC(ret_to_user)
  */
 	.align	6
 el0_svc:
+	ldr	x16, [tsk, #TSK_TI_FLAGS]	// load thread flags
+	adrp	stbl, sys_call_table		// load syscall table pointer
+	mov	wscno, w8			// syscall number in w8
+	mov	wsc_nr, #__NR_syscalls
+
+#ifdef CONFIG_ARM64_SVE
+alternative_if_not ARM64_SVE
+	b	el0_svc_naked
+alternative_else_nop_endif
+	tbz	x16, #TIF_SVE, el0_svc_naked	// Skip unless TIF_SVE set:
+	bic	x16, x16, #_TIF_SVE		// discard SVE state
+	str	x16, [tsk, #TSK_TI_FLAGS]
+
+	/*
+	 * task_fpsimd_load() won't be called to update CPACR_EL1 in
+	 * ret_to_user unless TIF_FOREIGN_FPSTATE is still set, which only
+	 * happens if a context switch or kernel_neon_begin() or context
+	 * modification (sigreturn, ptrace) intervenes.
+	 * So, ensure that CPACR_EL1 is already correct for the fast-path case:
+	 */
+	mrs	x9, cpacr_el1
+	bic	x9, x9, #CPACR_EL1_ZEN_EL0EN	// disable SVE for el0
+	msr	cpacr_el1, x9			// synchronised by eret to el0
+#endif
+
+el0_svc_naked:					// compat entry point
 	mov	x0, sp
-	bl	el0_svc_handler
+	mov	w1, wscno
+	mov	w2, wsc_nr
+	mov	x3, stbl
+	bl	el0_svc_common
 	b	ret_to_user
 ENDPROC(el0_svc)
 
