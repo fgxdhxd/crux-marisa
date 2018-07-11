@@ -25,6 +25,8 @@
 #include <linux/compiler.h>
 #include <linux/syscalls.h>
 
+#include <asm/syscall.h>
+
 asmlinkage long compat_sys_sigreturn(void);
 asmlinkage long compat_sys_rt_sigreturn(void);
 asmlinkage long compat_sys_statfs64_wrapper(void);
