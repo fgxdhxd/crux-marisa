@@ -40,13 +40,13 @@ asmlinkage long compat_sys_fallocate_wrapper(void);
 asmlinkage long compat_sys_mmap2_wrapper(void);
 
 #undef __SYSCALL
-#define __SYSCALL(nr, sym)	[nr] = sym,
+#define __SYSCALL(nr, sym)	[nr] = (syscall_fn_t)sym,
 
 /*
  * The sys_call_table array must be 4K aligned to be accessible from
  * kernel/entry.S.
  */
-void * const compat_sys_call_table[__NR_compat_syscalls] __aligned(4096) = {
-	[0 ... __NR_compat_syscalls - 1] = sys_ni_syscall,
+const syscall_fn_t compat_sys_call_table[__NR_compat_syscalls] __aligned(4096) = {
+	[0 ... __NR_compat_syscalls - 1] = (syscall_fn_t)sys_ni_syscall,
 #include <asm/unistd32.h>
 };
