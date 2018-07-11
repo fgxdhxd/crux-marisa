@@ -757,14 +757,6 @@ el0_sync_compat:
 	cmp	x24, #ESR_ELx_EC_BREAKPT_LOW	// debug exception in EL0
 	b.ge	el0_dbg
 	b	el0_inv
-el0_svc_compat:
-	/*
-	 * AArch32 syscall handling
-	 */
-	adrp	stbl, compat_sys_call_table	// load compat syscall table pointer
-	mov	wscno, w7			// syscall number in w7 (r7)
-	mov     wsc_nr, #__NR_compat_syscalls
-	b	el0_svc_naked
 
 el0_cp15_32_compat:
 	/*
@@ -786,6 +778,12 @@ el0_cp15_64_compat:
 	mov	x0, x25
 	mov	x1, sp
 	bl	do_cp15_64_instr_compat
+	b	ret_to_user
+
+	.align	6
+el0_svc_compat:
+	mov	x0, sp
+	bl	el0_svc_compat_handler
 	b	ret_to_user
 
 	.align	6
@@ -969,15 +967,8 @@ ENDPROC(ret_to_user)
  */
 	.align	6
 el0_svc:
-	adrp	stbl, sys_call_table		// load syscall table pointer
-	mov	wscno, w8			// syscall number in w8
-	mov	wsc_nr, #__NR_syscalls
-el0_svc_naked:					// compat entry point
 	mov	x0, sp
-	mov	w1, wscno
-	mov	w2, wsc_nr
-	mov	x3, stbl
-	bl	el0_svc_common
+	bl	el0_svc_handler
 	b	ret_to_user
 ENDPROC(el0_svc)
 
