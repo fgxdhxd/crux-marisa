@@ -186,7 +186,10 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 	might_sleep();
 	if (vma->vm_ops && vma->vm_ops->close)
 		vma->vm_ops->close(vma);
-	put_vma(vma);
+	if (vma->vm_file)
+		fput(vma->vm_file);
+	mpol_put(vma_policy(vma));
+	vm_area_free(vma);
 	return next;
 }
 
@@ -962,8 +965,8 @@ again:
 		if (next->anon_vma)
 			anon_vma_merge(vma, next);
 		mm->map_count--;
-		vm_raw_write_end(next);
-		put_vma(next);
+		mpol_put(vma_policy(next));
+		vm_area_free(next);
 		/*
 		 * In mprotect's case 6 (see comments on vma_merge),
 		 * we must remove another next too. It would clutter
@@ -1782,7 +1785,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 	 * specific mapper. the address has already been validated, but
 	 * not unmapped, but the maps are removed from the list.
 	 */
-	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+	vma = vm_area_alloc();
 	if (!vma) {
 		error = -ENOMEM;
 		goto unacct_error;
@@ -1887,7 +1890,7 @@ allow_write_and_free_vma:
 	if (vm_flags & VM_DENYWRITE)
 		allow_write_access(file);
 free_vma:
-	kmem_cache_free(vm_area_cachep, vma);
+	vm_area_free(vma);
 unacct_error:
 	if (charged)
 		vm_unacct_memory(charged);
@@ -2734,7 +2737,7 @@ int __split_vma(struct mm_struct *mm, struct vm_area_struct *vma,
 			return err;
 	}
 
-	new = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
+	new = vm_area_dup(vma);
 	if (!new)
 		return -ENOMEM;
 
@@ -2783,7 +2786,7 @@ int __split_vma(struct mm_struct *mm, struct vm_area_struct *vma,
  out_free_mpol:
 	mpol_put(vma_policy(new));
  out_free_vma:
-	kmem_cache_free(vm_area_cachep, new);
+	vm_area_free(new);
 	return err;
 }
 
@@ -3100,7 +3103,7 @@ static int do_brk_flags(unsigned long addr, unsigned long len, unsigned long fla
 	/*
 	 * create a vma struct for an anonymous mapping
 	 */
-	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+	vma = vm_area_alloc();
 	if (!vma) {
 		vm_unacct_memory(len >> PAGE_SHIFT);
 		return -ENOMEM;
@@ -3329,7 +3332,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
 		}
 		*need_rmap_locks = (new_vma->vm_pgoff <= vma->vm_pgoff);
 	} else {
-		new_vma = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
+		new_vma = vm_area_dup(vma);
 		if (!new_vma)
 			goto out;
 		*new_vma = *vma;
@@ -3362,7 +3365,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
 out_free_mempol:
 	mpol_put(vma_policy(new_vma));
 out_free_vma:
-	kmem_cache_free(vm_area_cachep, new_vma);
+	vm_area_free(new_vma);
 out:
 	return NULL;
 }
@@ -3484,7 +3487,7 @@ static struct vm_area_struct *__install_special_mapping(
 	int ret;
 	struct vm_area_struct *vma;
 
-	vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+	vma = vm_area_alloc();
 	if (unlikely(vma == NULL))
 		return ERR_PTR(-ENOMEM);
 
@@ -3510,7 +3513,7 @@ static struct vm_area_struct *__install_special_mapping(
 	return vma;
 
 out:
-	kmem_cache_free(vm_area_cachep, vma);
+	vm_area_free(vma);
 	return ERR_PTR(ret);
 }
 
