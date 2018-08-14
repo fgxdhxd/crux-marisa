@@ -353,6 +353,8 @@ void force_signal_inject(int signal, int code, unsigned long address,
 	if (WARN_ON(!user_mode(regs)))
 		return;
 
+	clear_siginfo(&info);
+
 	switch (signal) {
 	case SIGILL:
 		desc = "undefined instruction";
@@ -404,8 +406,8 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
 
 	trace_undef_instr(regs, pc);
 
-	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
 	BUG_ON(!user_mode(regs));
+	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
 }
 
 #define __user_cache_maint(insn, address, res)			\
