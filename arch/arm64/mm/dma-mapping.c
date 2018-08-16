@@ -444,7 +444,7 @@ static void arm64_dma_unremap(struct device *dev, void *remapped_addr,
 static int __swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t addr)
 {
 	if (swiotlb)
-		return swiotlb_dma_mapping_error(hwdev, addr);
+		return dma_direct_mapping_error(hwdev, addr);
 	return 0;
 }
 
