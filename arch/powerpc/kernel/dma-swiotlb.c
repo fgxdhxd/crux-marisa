@@ -61,6 +61,7 @@ const struct dma_map_ops swiotlb_dma_ops = {
 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
 	.mapping_error = dma_direct_mapping_error,
+<<<<<<< HEAD
 =======
 const struct dma_map_ops powerpc_swiotlb_dma_ops = {
 	.alloc = __dma_nommu_alloc_coherent,
@@ -76,6 +77,8 @@ const struct dma_map_ops powerpc_swiotlb_dma_ops = {
 	.sync_sg_for_cpu = dma_direct_sync_sg_for_cpu,
 	.sync_sg_for_device = dma_direct_sync_sg_for_device,
 >>>>>>> 55897af63091 (dma-direct: merge swiotlb_dma_ops into the dma_direct code)
+=======
+>>>>>>> dff8d6c1ed58 (swiotlb: remove the overflow buffer)
 	.get_required_mask = swiotlb_powerpc_get_required,
 };
 
