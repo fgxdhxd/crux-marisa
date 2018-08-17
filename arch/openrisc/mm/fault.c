@@ -53,8 +53,13 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	siginfo_t info;
 	int fault;
+=======
+	int si_code;
+	vm_fault_t fault;
+>>>>>>> 50a7ca3c6fc8 (mm: convert return type of handle_mm_fault() caller to vm_fault_t)
 =======
 	int si_code;
 	vm_fault_t fault;

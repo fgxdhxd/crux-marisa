@@ -88,8 +88,13 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
 	struct mm_struct *mm = current->mm;
 	const struct exception_table_entry *fixup;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	int fault, si_code = SEGV_MAPERR;
 	siginfo_t info;
+=======
+	int si_code = SEGV_MAPERR;
+	vm_fault_t fault;
+>>>>>>> 50a7ca3c6fc8 (mm: convert return type of handle_mm_fault() caller to vm_fault_t)
 =======
 	int si_code = SEGV_MAPERR;
 	vm_fault_t fault;

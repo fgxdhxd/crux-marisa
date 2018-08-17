@@ -43,8 +43,13 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
 	struct mm_struct *mm = tsk->mm;
 	const int field = sizeof(unsigned long) * 2;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	siginfo_t info;
 	int fault;
+=======
+	int si_code;
+	vm_fault_t fault;
+>>>>>>> 50a7ca3c6fc8 (mm: convert return type of handle_mm_fault() caller to vm_fault_t)
 =======
 	int si_code;
 	vm_fault_t fault;
