@@ -44,7 +44,7 @@ void do_page_fault(struct pt_regs *regs)
 	siginfo_t info;
 
 	int is_write, is_exec;
-	int fault;
+	vm_fault_t fault;
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 
 	info.si_code = SEGV_MAPERR;

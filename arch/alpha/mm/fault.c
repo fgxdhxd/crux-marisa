@@ -87,8 +87,13 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
 	struct vm_area_struct * vma;
 	struct mm_struct *mm = current->mm;
 	const struct exception_table_entry *fixup;
+<<<<<<< HEAD
 	int fault, si_code = SEGV_MAPERR;
 	siginfo_t info;
+=======
+	int si_code = SEGV_MAPERR;
+	vm_fault_t fault;
+>>>>>>> 50a7ca3c6fc8 (mm: convert return type of handle_mm_fault() caller to vm_fault_t)
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 
 	/* As of EV6, a load into $31/$f31 is a prefetch, and never faults

@@ -250,15 +250,15 @@ static int hmm_vma_do_fault(struct mm_walk *walk,
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_REMOTE;
 	struct hmm_vma_walk *hmm_vma_walk = walk->private;
 	struct vm_area_struct *vma = walk->vma;
-	int r;
+	vm_fault_t ret;
 
 	flags |= hmm_vma_walk->block ? 0 : FAULT_FLAG_ALLOW_RETRY;
-	flags |= hmm_vma_walk->write ? FAULT_FLAG_WRITE : 0;
-	r = handle_mm_fault(vma, addr, flags);
-	if (r & VM_FAULT_RETRY)
+	flags |= write_fault ? FAULT_FLAG_WRITE : 0;
+	ret = handle_mm_fault(vma, addr, flags);
+	if (ret & VM_FAULT_RETRY)
 		return -EBUSY;
-	if (r & VM_FAULT_ERROR) {
-		*pfn = HMM_PFN_ERROR;
+	if (ret & VM_FAULT_ERROR) {
+		*pfn = range->values[HMM_PFN_ERROR];
 		return -EFAULT;
 	}
 

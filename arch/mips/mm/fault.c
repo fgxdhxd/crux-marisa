@@ -42,8 +42,13 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
 	struct task_struct *tsk = current;
 	struct mm_struct *mm = tsk->mm;
 	const int field = sizeof(unsigned long) * 2;
+<<<<<<< HEAD
 	siginfo_t info;
 	int fault;
+=======
+	int si_code;
+	vm_fault_t fault;
+>>>>>>> 50a7ca3c6fc8 (mm: convert return type of handle_mm_fault() caller to vm_fault_t)
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 
 	static DEFINE_RATELIMIT_STATE(ratelimit_state, 5 * HZ, 10);
