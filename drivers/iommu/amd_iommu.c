@@ -2661,8 +2661,33 @@ static void *alloc_coherent(struct device *dev, size_t size,
 	bool is_direct = false;
 	void *virt_addr;
 
+<<<<<<< HEAD
 	if (IS_ERR(domain)) {
 		if (PTR_ERR(domain) != -EINVAL)
+=======
+	domain = get_domain(dev);
+	if (PTR_ERR(domain) == -EINVAL) {
+		page = alloc_pages(flag, get_order(size));
+		*dma_addr = page_to_phys(page);
+		return page_address(page);
+	} else if (IS_ERR(domain))
+		return NULL;
+
+	dma_dom   = to_dma_ops_domain(domain);
+	size	  = PAGE_ALIGN(size);
+	dma_mask  = dev->coherent_dma_mask;
+	flag     &= ~(__GFP_DMA | __GFP_HIGHMEM | __GFP_DMA32);
+	flag     |= __GFP_ZERO;
+
+	page = alloc_pages(flag | __GFP_NOWARN,  get_order(size));
+	if (!page) {
+		if (!gfpflags_allow_blocking(flag))
+			return NULL;
+
+		page = dma_alloc_from_contiguous(dev, size >> PAGE_SHIFT,
+					get_order(size), flag & __GFP_NOWARN);
+		if (!page)
+>>>>>>> d834c5ab83fe (kernel/dma: remove unsupported gfp_mask parameter from dma_alloc_from_contiguous())
 			return NULL;
 		is_direct = true;
 	}
