@@ -2,6 +2,7 @@
 generic-(CONFIG_GENERIC_CSUM) += checksum.h
 generic-y += clkdev.h
 generic-y += current.h
+generic-y += device.h
 generic-y += dma-contiguous.h
 generic-y += emergency-restart.h
 generic-y += export.h
