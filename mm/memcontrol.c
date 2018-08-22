@@ -2953,29 +2953,34 @@ static int mem_cgroup_hierarchy_write(struct cgroup_subsys_state *css,
 	return retval;
 }
 
-static void tree_stat(struct mem_cgroup *memcg, unsigned long *stat)
+struct accumulated_stats {
+	unsigned long stat[MEMCG_NR_STAT];
+	unsigned long events[NR_VM_EVENT_ITEMS];
+	unsigned long lru_pages[NR_LRU_LISTS];
+	const unsigned int *stats_array;
+	const unsigned int *events_array;
+	int stats_size;
+	int events_size;
+};
+
+static void accumulate_memcg_tree(struct mem_cgroup *memcg,
+				  struct accumulated_stats *acc)
 {
-	struct mem_cgroup *iter;
+	struct mem_cgroup *mi;
 	int i;
 
-	memset(stat, 0, sizeof(*stat) * MEMCG_NR_STAT);
+	for_each_mem_cgroup_tree(mi, memcg) {
+		for (i = 0; i < acc->stats_size; i++)
+			acc->stat[i] += memcg_page_state(mi,
+				acc->stats_array ? acc->stats_array[i] : i);
 
-	for_each_mem_cgroup_tree(iter, memcg) {
-		for (i = 0; i < MEMCG_NR_STAT; i++)
-			stat[i] += memcg_page_state(iter, i);
-	}
-}
+		for (i = 0; i < acc->events_size; i++)
+			acc->events[i] += memcg_sum_events(mi,
+				acc->events_array ? acc->events_array[i] : i);
 
-static void tree_events(struct mem_cgroup *memcg, unsigned long *events)
-{
-	struct mem_cgroup *iter;
-	int i;
-
-	memset(events, 0, sizeof(*events) * NR_VM_EVENT_ITEMS);
-
-	for_each_mem_cgroup_tree(iter, memcg) {
-		for (i = 0; i < NR_VM_EVENT_ITEMS; i++)
-			events[i] += memcg_sum_events(iter, i);
+		for (i = 0; i < NR_LRU_LISTS; i++)
+			acc->lru_pages[i] +=
+				mem_cgroup_nr_lru_pages(mi, BIT(i));
 	}
 }
 
@@ -3382,6 +3387,7 @@ static int memcg_stat_show(struct seq_file *m, void *v)
 	unsigned long memory, memsw;
 	struct mem_cgroup *mi;
 	unsigned int i;
+	struct accumulated_stats acc;
 
 	BUILD_BUG_ON(ARRAY_SIZE(memcg1_stat_names) != ARRAY_SIZE(memcg1_stats));
 	BUILD_BUG_ON(ARRAY_SIZE(mem_cgroup_lru_names) != NR_LRU_LISTS);
@@ -3416,6 +3422,7 @@ static int memcg_stat_show(struct seq_file *m, void *v)
 
 	for (i = 0; i < ARRAY_SIZE(memcg1_stats); i++) {
 
+	for (i = 0; i < ARRAY_SIZE(memcg1_stats); i++) {
 		if (memcg1_stats[i] == MEMCG_SWAP && !do_memsw_account())
 			continue;
 		seq_printf(m, "total_%s %llu\n", memcg1_stat_names[i],
