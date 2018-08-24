@@ -843,14 +843,8 @@ static inline unsigned long dma_get_size(struct dma_coherent_mem *mem)
 #endif /* CONFIG_HAVE_GENERIC_DMA_COHERENT */
 
 #ifdef CONFIG_HAS_DMA
-int dma_configure(struct device *dev);
 void dma_deconfigure(struct device *dev);
 #else
-static inline int dma_configure(struct device *dev)
-{
-	return 0;
-}
-
 static inline void dma_deconfigure(struct device *dev) {}
 #endif
 
