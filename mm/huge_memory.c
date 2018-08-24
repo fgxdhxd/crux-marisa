@@ -562,14 +562,14 @@ out:
 }
 EXPORT_SYMBOL_GPL(thp_get_unmapped_area);
 
-static int __do_huge_pmd_anonymous_page(struct vm_fault *vmf, struct page *page,
-		gfp_t gfp)
+static vm_fault_t __do_huge_pmd_anonymous_page(struct vm_fault *vmf,
+			struct page *page, gfp_t gfp)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct mem_cgroup *memcg;
 	pgtable_t pgtable;
 	unsigned long haddr = vmf->address & HPAGE_PMD_MASK;
-	int ret = 0;
+	vm_fault_t ret = 0;
 
 	VM_BUG_ON_PAGE(!PageCompound(page), page);
 
@@ -606,15 +606,15 @@ static int __do_huge_pmd_anonymous_page(struct vm_fault *vmf, struct page *page,
 
 		/* Deliver the page fault to userland */
 		if (userfaultfd_missing(vma)) {
-			int ret;
+			vm_fault_t ret2;
 
 			spin_unlock(vmf->ptl);
 			mem_cgroup_cancel_charge(page, memcg, true);
 			put_page(page);
 			pte_free(vma->vm_mm, pgtable);
-			ret = handle_userfault(vmf, VM_UFFD_MISSING);
-			VM_BUG_ON(ret & VM_FAULT_FALLBACK);
-			return ret;
+			ret2 = handle_userfault(vmf, VM_UFFD_MISSING);
+			VM_BUG_ON(ret2 & VM_FAULT_FALLBACK);
+			return ret2;
 		}
 
 		entry = mk_huge_pmd(page, vma->vm_page_prot);
@@ -685,7 +685,7 @@ static bool set_huge_zero_page(pgtable_t pgtable, struct mm_struct *mm,
 	return true;
 }
 
-int do_huge_pmd_anonymous_page(struct vm_fault *vmf)
+vm_fault_t do_huge_pmd_anonymous_page(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	gfp_t gfp;
@@ -703,8 +703,9 @@ int do_huge_pmd_anonymous_page(struct vm_fault *vmf)
 			transparent_hugepage_use_zero_page()) {
 		pgtable_t pgtable;
 		struct page *zero_page;
-		int ret;
-		pgtable = pte_alloc_one(vma->vm_mm);
+		bool set;
+		vm_fault_t ret;
+		pgtable = pte_alloc_one(vma->vm_mm, haddr);
 		if (unlikely(!pgtable))
 			return VM_FAULT_OOM;
 		zero_page = mm_get_huge_zero_page(vma->vm_mm);
@@ -1139,15 +1140,16 @@ unlock:
 	spin_unlock(vmf->ptl);
 }
 
-static int do_huge_pmd_wp_page_fallback(struct vm_fault *vmf, pmd_t orig_pmd,
-		struct page *page)
+static vm_fault_t do_huge_pmd_wp_page_fallback(struct vm_fault *vmf,
+			pmd_t orig_pmd, struct page *page)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	unsigned long haddr = vmf->address & HPAGE_PMD_MASK;
 	struct mem_cgroup *memcg;
 	pgtable_t pgtable;
 	pmd_t _pmd;
-	int ret = 0, i;
+	int i;
+	vm_fault_t ret = 0;
 	struct page **pages;
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
@@ -1245,7 +1247,7 @@ out_free_pages:
 	goto out;
 }
 
-int do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
+vm_fault_t do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct page *page = NULL, *new_page;
@@ -1254,7 +1256,7 @@ int do_huge_pmd_wp_page(struct vm_fault *vmf, pmd_t orig_pmd)
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
 	gfp_t huge_gfp;			/* for allocation and charge */
-	int ret = 0;
+	vm_fault_t ret = 0;
 
 	vmf->ptl = pmd_lockptr(vma->vm_mm, vmf->pmd);
 	VM_BUG_ON_VMA(!vma->anon_vma, vma);
@@ -1459,7 +1461,7 @@ out:
 }
 
 /* NUMA hinting page fault entry point for trans huge pmds */
-int do_huge_pmd_numa_page(struct vm_fault *vmf, pmd_t pmd)
+vm_fault_t do_huge_pmd_numa_page(struct vm_fault *vmf, pmd_t pmd)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct anon_vma *anon_vma = NULL;
