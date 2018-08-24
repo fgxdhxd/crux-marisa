@@ -13,7 +13,11 @@ config XTENSA
 <<<<<<< HEAD
 =======
 	select DMA_DIRECT_OPS
+<<<<<<< HEAD
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
+=======
+	select DMA_REMAP if MMU
+>>>>>>> f0edfea8ef93 (dma-mapping: move the remap helpers to a separate file)
 	select GENERIC_ATOMIC64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_IRQ_SHOW
