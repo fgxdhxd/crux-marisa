@@ -472,6 +472,8 @@ re_probe:
 	goto done;
 
 probe_failed:
+	arch_teardown_dma_ops(dev);
+dma_failed:
 	if (dev->bus)
 		blocking_notifier_call_chain(&dev->bus->p->bus_notifier,
 					     BUS_NOTIFY_DRIVER_NOT_BOUND, dev);
@@ -929,6 +931,9 @@ static void __device_release_driver(struct device *dev, struct device *parent)
 			dev->bus->remove(dev);
 		else if (drv->remove)
 			drv->remove(dev);
+
+		device_links_driver_cleanup(dev);
+		arch_teardown_dma_ops(dev);
 
 		devres_release_all(dev);
 		dma_deconfigure(dev);
