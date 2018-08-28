@@ -355,25 +355,63 @@ void multiorder_tagged_iteration(void)
 	item_kill_tree(&tree);
 }
 
-static void multiorder_account(void)
+bool stop_iteration = false;
+
+static void *creator_func(void *ptr)
 {
-	RADIX_TREE(tree, GFP_KERNEL);
-	struct radix_tree_node *node;
+	/* 'order' is set up to ensure we have sibling entries */
+	unsigned int order = RADIX_TREE_MAP_SHIFT - 1;
+	struct radix_tree_root *tree = ptr;
+	int i;
+
+	for (i = 0; i < 10000; i++) {
+		item_insert_order(tree, 0, order);
+		item_delete_rcu(tree, 0);
+	}
+
+	stop_iteration = true;
+	return NULL;
+}
+
+static void *iterator_func(void *ptr)
+{
+	struct radix_tree_root *tree = ptr;
+	struct radix_tree_iter iter;
+	struct item *item;
 	void **slot;
 
-	item_insert_order(&tree, 0, 5);
+	while (!stop_iteration) {
+		rcu_read_lock();
+		radix_tree_for_each_slot(slot, tree, &iter, 0) {
+			item = radix_tree_deref_slot(slot);
 
-	__radix_tree_insert(&tree, 1 << 5, 5, xa_mk_value(5));
-	__radix_tree_lookup(&tree, 0, &node, NULL);
-	assert(node->count == node->nr_values * 2);
-	radix_tree_delete(&tree, 1 << 5);
-	assert(node->nr_values == 0);
+			if (!item)
+				continue;
+			if (radix_tree_deref_retry(item)) {
+				slot = radix_tree_iter_retry(&iter);
+				continue;
+			}
 
-	__radix_tree_insert(&tree, 1 << 5, 5, xa_mk_value(5));
-	__radix_tree_lookup(&tree, 1 << 5, &node, &slot);
-	assert(node->count == node->nr_values * 2);
-	__radix_tree_replace(&tree, node, slot, NULL);
-	assert(node->nr_values == 0);
+			item_sanity(item, iter.index);
+		}
+		rcu_read_unlock();
+	}
+	return NULL;
+}
+
+static void multiorder_iteration_race(void)
+{
+	const int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+	pthread_t worker_thread[num_threads];
+	RADIX_TREE(tree, GFP_KERNEL);
+	int i;
+
+	pthread_create(&worker_thread[0], NULL, &creator_func, &tree);
+	for (i = 1; i < num_threads; i++)
+		pthread_create(&worker_thread[i], NULL, &iterator_func, &tree);
+
+	for (i = 0; i < num_threads; i++)
+		pthread_join(worker_thread[i], NULL);
 
 	item_kill_tree(&tree);
 }
@@ -395,7 +433,7 @@ void multiorder_checks(void)
 	multiorder_tag_tests();
 	multiorder_iteration();
 	multiorder_tagged_iteration();
-	multiorder_account();
+	multiorder_iteration_race();
 
 	radix_tree_cpu_dead(0);
 }
