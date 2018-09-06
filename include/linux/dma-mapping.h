@@ -186,9 +186,7 @@ struct dma_map_ops {
 			size_t size, unsigned long attrs);
 	void (*unremap)(struct device *dev, void *remapped_address,
 			size_t size);
-#ifdef ARCH_HAS_DMA_GET_REQUIRED_MASK
 	u64 (*get_required_mask)(struct device *dev);
-#endif
 };
 
 extern const struct dma_map_ops dma_direct_ops;
