@@ -8,6 +8,11 @@ config MICROBLAZE
 	select TIMER_OF
 	select CLONE_BACKWARDS3
 	select COMMON_CLK
+<<<<<<< HEAD
+=======
+	select DMA_DIRECT_OPS
+	select DMA_NONCOHERENT_MMAP
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 	select GENERIC_ATOMIC64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES

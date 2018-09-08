@@ -6,6 +6,11 @@
 
 config OPENRISC
 	def_bool y
+<<<<<<< HEAD
+=======
+	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+	select DMA_DIRECT_OPS
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 	select OF
 	select OF_EARLY_FLATTREE
 	select IRQ_DOMAIN

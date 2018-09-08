@@ -154,6 +154,7 @@ static void _dma_cache_sync(phys_addr_t paddr, size_t size,
 }
 
 /*
+<<<<<<< HEAD
  * arc_dma_map_page - map a portion of a page for streaming DMA
  *
  * Ensure that any data held in the cache is appropriately discarded
@@ -165,17 +166,33 @@ static void _dma_cache_sync(phys_addr_t paddr, size_t size,
  * Note: while it takes struct page as arg, caller can "abuse" it to pass
  * a region larger than PAGE_SIZE, provided it is physically contiguous
  * and this still works correctly
+=======
+ * Plug in direct dma map ops.
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
  */
 static dma_addr_t arc_dma_map_page(struct device *dev, struct page *page,
 		unsigned long offset, size_t size, enum dma_data_direction dir,
 		unsigned long attrs)
 {
+<<<<<<< HEAD
 	phys_addr_t paddr = page_to_phys(page) + offset;
 
 	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
 		_dma_cache_sync(paddr, size, dir);
 
 	return plat_phys_to_dma(dev, paddr);
+=======
+	/*
+	 * IOC hardware snoops all DMA traffic keeping the caches consistent
+	 * with memory - eliding need for any explicit cache maintenance of
+	 * DMA buffers.
+	 */
+	if (is_isa_arcv2() && ioc_enable && coherent)
+		dev->dma_coherent = true;
+
+	dev_info(dev, "use %sncoherent DMA ops\n",
+		 dev->dma_coherent ? "" : "non");
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 }
 
 /*

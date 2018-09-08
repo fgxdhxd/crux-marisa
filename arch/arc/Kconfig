@@ -14,6 +14,11 @@ config ARC
 	select BUILDTIME_EXTABLE_SORT
 	select CLONE_BACKWARDS
 	select COMMON_CLK
+<<<<<<< HEAD
+=======
+	select DMA_DIRECT_OPS
+	select DMA_NONCOHERENT_MMAP
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 	select GENERIC_ATOMIC64 if !ISA_ARCV2 || !(ARC_HAS_LL64 && ARC_HAS_LLSC)
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_FIND_FIRST_BIT

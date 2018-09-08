@@ -10,6 +10,10 @@ config XTENSA
 	select BUILDTIME_EXTABLE_SORT
 	select CLONE_BACKWARDS
 	select COMMON_CLK
+<<<<<<< HEAD
+=======
+	select DMA_DIRECT_OPS
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 	select GENERIC_ATOMIC64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_IRQ_SHOW

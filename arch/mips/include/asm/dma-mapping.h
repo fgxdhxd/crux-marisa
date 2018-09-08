@@ -14,7 +14,17 @@ extern const struct dma_map_ops *mips_dma_map_ops;
 
 static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 {
+<<<<<<< HEAD
 	return mips_dma_map_ops;
+=======
+#if defined(CONFIG_MACH_JAZZ)
+	return &jazz_dma_ops;
+#elif defined(CONFIG_SWIOTLB)
+	return &swiotlb_dma_ops;
+#else
+	return &dma_direct_ops;
+#endif
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 }
 
 <<<<<<< HEAD

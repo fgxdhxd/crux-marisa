@@ -1135,6 +1135,11 @@ config DMA_COHERENT
 config DMA_NONCOHERENT
 	bool
 	select NEED_DMA_MAP_STATE
+<<<<<<< HEAD
+=======
+	select DMA_NONCOHERENT_MMAP
+	select DMA_NONCOHERENT_CACHE_SYNC
+>>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 
 config SYS_HAS_EARLY_PRINTK
 	bool
