@@ -1,5 +1,10 @@
 config MICROBLAZE
 	def_bool y
+<<<<<<< HEAD
+=======
+	select ARCH_NO_SWAP
+	select ARCH_HAS_DMA_COHERENT_TO_PFN if MMU
+>>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
 	select ARCH_HAS_GCOV_PROFILE_ALL
 	select ARCH_MIGHT_HAVE_PC_PARPORT
 	select ARCH_NO_COHERENT_DMA_MMAP if !MMU
@@ -11,8 +16,11 @@ config MICROBLAZE
 <<<<<<< HEAD
 =======
 	select DMA_DIRECT_OPS
+<<<<<<< HEAD
 	select DMA_NONCOHERENT_MMAP
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
+=======
+>>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
 	select GENERIC_ATOMIC64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES

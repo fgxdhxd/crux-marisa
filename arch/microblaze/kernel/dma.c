@@ -88,6 +88,7 @@ static inline dma_addr_t dma_direct_map_page(struct device *dev,
 		__dma_sync(page_to_phys(page) + offset, size, direction);
 	return page_to_phys(page) + offset;
 }
+<<<<<<< HEAD
 
 static inline void dma_direct_unmap_page(struct device *dev,
 					 dma_addr_t dma_address,
@@ -216,3 +217,5 @@ fs_initcall(dma_init);
 =======
 EXPORT_SYMBOL(dma_nommu_ops);
 >>>>>>> 15b28bbcd567 (dma-debug: move initialization to common code)
+=======
+>>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)

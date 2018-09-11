@@ -551,6 +551,7 @@ void __init *early_get_page(void);
 
 extern unsigned long ioremap_bot, ioremap_base;
 
+<<<<<<< HEAD
 void *consistent_alloc(gfp_t gfp, size_t size, dma_addr_t *dma_handle);
 void consistent_free(size_t size, void *vaddr);
 void consistent_sync(void *vaddr, size_t size, int direction);
@@ -558,6 +559,8 @@ void consistent_sync_page(struct page *page, unsigned long offset,
 	size_t size, int direction);
 unsigned long consistent_virt_to_pfn(void *vaddr);
 
+=======
+>>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
 void setup_memory(void);
 #endif /* __ASSEMBLY__ */
 

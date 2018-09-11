@@ -105,6 +105,7 @@ static void arc_dma_free(struct device *dev, size_t size, void *vaddr,
 	__free_pages(page, get_order(size));
 }
 
+<<<<<<< HEAD
 static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
 			void *cpu_addr, dma_addr_t dma_addr, size_t size,
 			unsigned long attrs)
@@ -128,6 +129,12 @@ static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
 	}
 
 	return ret;
+=======
+long arch_dma_coherent_to_pfn(struct device *dev, void *cpu_addr,
+		dma_addr_t dma_addr)
+{
+	return __phys_to_pfn(dma_addr);
+>>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
 }
 
 /*
