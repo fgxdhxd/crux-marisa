@@ -1950,7 +1950,12 @@ SYSCALL_DEFINE6(io_pgetevents,
 	if (ret)
 		return ret;
 
-	return do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &ts : NULL);
+	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &ts : NULL);
+	restore_user_sigmask(ksig.sigmask, &sigsaved);
+	if (signal_pending(current) && !ret)
+		ret = -ERESTARTNOHAND;
+
+	return ret;
 }
 
 #ifdef CONFIG_COMPAT
@@ -1993,6 +1998,11 @@ COMPAT_SYSCALL_DEFINE6(io_pgetevents,
 	if (ret)
 		return ret;
 
-	return do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
+	ret = do_io_getevents(ctx_id, min_nr, nr, events, timeout ? &t : NULL);
+	restore_user_sigmask(ksig.sigmask, &sigsaved);
+	if (signal_pending(current) && !ret)
+		ret = -ERESTARTNOHAND;
+
+	return ret;
 }
 #endif
