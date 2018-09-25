@@ -2253,8 +2253,8 @@ static int smack_task_movememory(struct task_struct *p)
  * The secid behavior is an artifact of an SELinux hack
  * in the USB code. Someday it may go away.
  */
-static int smack_task_kill(struct task_struct *p, struct siginfo *info,
-			   int sig, u32 secid)
+static int smack_task_kill(struct task_struct *p, struct kernel_siginfo *info,
+			   int sig, const struct cred *cred)
 {
 	struct smk_audit_info ad;
 	struct smack_known *skp;

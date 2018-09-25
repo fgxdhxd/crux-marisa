@@ -4200,8 +4200,8 @@ static int selinux_task_movememory(struct task_struct *p)
 			    PROCESS__SETSCHED, NULL);
 }
 
-static int selinux_task_kill(struct task_struct *p, struct siginfo *info,
-				int sig, u32 secid)
+static int selinux_task_kill(struct task_struct *p, struct kernel_siginfo *info,
+				int sig, const struct cred *cred)
 {
 	u32 perm;
 

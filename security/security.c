@@ -1131,8 +1131,8 @@ int security_task_movememory(struct task_struct *p)
 	return call_int_hook(task_movememory, 0, p);
 }
 
-int security_task_kill(struct task_struct *p, struct siginfo *info,
-			int sig, u32 secid)
+int security_task_kill(struct task_struct *p, struct kernel_siginfo *info,
+			int sig, const struct cred *cred)
 {
 	return call_int_hook(task_kill, 0, p, info, sig, secid);
 }
