@@ -424,24 +424,25 @@ void blk_sync_queue(struct request_queue *q)
 EXPORT_SYMBOL(blk_sync_queue);
 
 /**
- * blk_set_preempt_only - set QUEUE_FLAG_PREEMPT_ONLY
+ * blk_set_pm_only - increment pm_only counter
  * @q: request queue pointer
- *
- * Returns the previous value of the PREEMPT_ONLY flag - 0 if the flag was not
- * set and 1 if the flag was already set.
  */
-int blk_set_preempt_only(struct request_queue *q)
+void blk_set_pm_only(struct request_queue *q)
 {
-	return blk_queue_flag_test_and_set(QUEUE_FLAG_PREEMPT_ONLY, q);
+	atomic_inc(&q->pm_only);
 }
-EXPORT_SYMBOL_GPL(blk_set_preempt_only);
+EXPORT_SYMBOL_GPL(blk_set_pm_only);
 
-void blk_clear_preempt_only(struct request_queue *q)
+void blk_clear_pm_only(struct request_queue *q)
 {
-	blk_queue_flag_clear(QUEUE_FLAG_PREEMPT_ONLY, q);
-	wake_up_all(&q->mq_freeze_wq);
+	int pm_only;
+
+	pm_only = atomic_dec_return(&q->pm_only);
+	WARN_ON_ONCE(pm_only < 0);
+	if (pm_only == 0)
+		wake_up_all(&q->mq_freeze_wq);
 }
-EXPORT_SYMBOL(blk_set_preempt_only);
+EXPORT_SYMBOL_GPL(blk_clear_pm_only);
 
 /**
  * __blk_run_queue_uncond - run a queue whether or not it has been stopped
@@ -908,15 +909,20 @@ EXPORT_SYMBOL(blk_alloc_queue);
 
 int blk_queue_enter(struct request_queue *q, unsigned int op)
 {
+	const bool pm = flags & BLK_MQ_REQ_PREEMPT;
+
 	while (true) {
 
-		rcu_read_lock_sched();
-		if (__percpu_ref_tryget_live(&q->q_usage_counter)) {
-			if (likely((op & REQ_PREEMPT) ||
-					!blk_queue_preempt_only(q))) {
-				rcu_read_unlock_sched();
-				return 0;
-			} else
+		rcu_read_lock();
+		if (percpu_ref_tryget_live(&q->q_usage_counter)) {
+			/*
+			 * The code that increments the pm_only counter is
+			 * responsible for ensuring that that counter is
+			 * globally visible before the queue is unfrozen.
+			 */
+			if (pm || !blk_queue_pm_only(q)) {
+				success = true;
+			} else {
 				percpu_ref_put(&q->q_usage_counter);
 		}
 		rcu_read_unlock_sched();
@@ -934,10 +940,9 @@ int blk_queue_enter(struct request_queue *q, unsigned int op)
 		smp_rmb();
 
 		wait_event(q->mq_freeze_wq,
-			   (!atomic_read(&q->mq_freeze_depth) &&
-			   ((op & REQ_PREEMPT) ||
-			    !blk_queue_preempt_only(q))) ||
-			    blk_queue_dying(q));
+			   (atomic_read(&q->mq_freeze_depth) == 0 &&
+			    (pm || !blk_queue_pm_only(q))) ||
+			   blk_queue_dying(q));
 		if (blk_queue_dying(q))
 			return -ENODEV;
 	}
