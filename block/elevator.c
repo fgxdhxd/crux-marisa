@@ -60,10 +60,8 @@ static int elv_iosched_allow_bio_merge(struct request *rq, struct bio *bio)
 	struct request_queue *q = rq->q;
 	struct elevator_queue *e = q->elevator;
 
-	if (e->uses_mq && e->type->ops.mq.allow_merge)
+	if (e->type->ops.mq.allow_merge)
 		return e->type->ops.mq.allow_merge(q, rq, bio);
-	else if (!e->uses_mq && e->type->ops.sq.elevator_allow_bio_merge_fn)
-		return e->type->ops.sq.elevator_allow_bio_merge_fn(q, rq, bio);
 
 	return 1;
 }
@@ -84,14 +82,18 @@ bool elv_bio_merge_ok(struct request *rq, struct bio *bio)
 EXPORT_SYMBOL(elv_bio_merge_ok);
 
 /*
- * Return scheduler with name 'name' and with matching 'mq capability
+ * Return scheduler with name 'name'
  */
-static struct elevator_type *elevator_find(const char *name, bool mq)
+static struct elevator_type *elevator_find(const char *name)
 {
 	struct elevator_type *e;
 
 	list_for_each_entry(e, &elv_list, list) {
+<<<<<<< HEAD
 		if (!strcmp(e->elevator_name, name) && (mq == e->uses_mq))
+=======
+		if (elevator_match(e, name))
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 			return e;
 	}
 
@@ -110,12 +112,12 @@ static struct elevator_type *elevator_get(struct request_queue *q,
 
 	spin_lock(&elv_list_lock);
 
-	e = elevator_find(name, q->mq_ops != NULL);
+	e = elevator_find(name);
 	if (!e && try_loading) {
 		spin_unlock(&elv_list_lock);
 		request_module("%s-iosched", name);
 		spin_lock(&elv_list_lock);
-		e = elevator_find(name, q->mq_ops != NULL);
+		e = elevator_find(name);
 	}
 
 	if (e && !try_module_get(e->elevator_owner))
@@ -139,26 +141,6 @@ static int __init elevator_setup(char *str)
 
 __setup("elevator=", elevator_setup);
 
-/* called during boot to load the elevator chosen by the elevator param */
-void __init load_default_elevator_module(void)
-{
-	struct elevator_type *e;
-
-	if (!chosen_elevator[0])
-		return;
-
-	/*
-	 * Boot parameter is deprecated, we haven't supported that for MQ.
-	 * Only look for non-mq schedulers from here.
-	 */
-	spin_lock(&elv_list_lock);
-	e = elevator_find(chosen_elevator, false);
-	spin_unlock(&elv_list_lock);
-
-	if (!e)
-		request_module("%s-iosched", chosen_elevator);
-}
-
 static struct kobj_type elv_ktype;
 
 struct elevator_queue *elevator_alloc(struct request_queue *q,
@@ -174,7 +156,6 @@ struct elevator_queue *elevator_alloc(struct request_queue *q,
 	kobject_init(&eq->kobj, &elv_ktype);
 	mutex_init(&eq->sysfs_lock);
 	hash_init(eq->hash);
-	eq->uses_mq = e->uses_mq;
 
 	return eq;
 }
@@ -189,6 +170,7 @@ static void elevator_release(struct kobject *kobj)
 	kfree(e);
 }
 
+<<<<<<< HEAD
 int elevator_init(struct request_queue *q, char *name)
 {
 	struct elevator_type *e = NULL;
@@ -260,13 +242,13 @@ int elevator_init(struct request_queue *q, char *name)
 }
 EXPORT_SYMBOL(elevator_init);
 
+=======
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 void elevator_exit(struct request_queue *q, struct elevator_queue *e)
 {
 	mutex_lock(&e->sysfs_lock);
-	if (e->uses_mq && e->type->ops.mq.exit_sched)
+	if (e->type->ops.mq.exit_sched)
 		blk_mq_exit_sched(q, e);
-	else if (!e->uses_mq && e->type->ops.sq.elevator_exit_fn)
-		e->type->ops.sq.elevator_exit_fn(e);
 	mutex_unlock(&e->sysfs_lock);
 
 	kobject_put(&e->kobj);
@@ -477,10 +459,8 @@ enum elv_merge elv_merge(struct request_queue *q, struct request **req,
 		return ELEVATOR_BACK_MERGE;
 	}
 
-	if (e->uses_mq && e->type->ops.mq.request_merge)
+	if (e->type->ops.mq.request_merge)
 		return e->type->ops.mq.request_merge(q, req, bio);
-	else if (!e->uses_mq && e->type->ops.sq.elevator_merge_fn)
-		return e->type->ops.sq.elevator_merge_fn(q, req, bio);
 
 	return ELEVATOR_NO_MERGE;
 }
@@ -531,10 +511,8 @@ void elv_merged_request(struct request_queue *q, struct request *rq,
 {
 	struct elevator_queue *e = q->elevator;
 
-	if (e->uses_mq && e->type->ops.mq.request_merged)
+	if (e->type->ops.mq.request_merged)
 		e->type->ops.mq.request_merged(q, rq, type);
-	else if (!e->uses_mq && e->type->ops.sq.elevator_merged_fn)
-		e->type->ops.sq.elevator_merged_fn(q, rq, type);
 
 	if (type == ELEVATOR_BACK_MERGE)
 		elv_rqhash_reposition(q, rq);
@@ -548,13 +526,8 @@ void elv_merge_requests(struct request_queue *q, struct request *rq,
 	struct elevator_queue *e = q->elevator;
 	bool next_sorted = false;
 
-	if (e->uses_mq && e->type->ops.mq.requests_merged)
+	if (e->type->ops.mq.requests_merged)
 		e->type->ops.mq.requests_merged(q, rq, next);
-	else if (e->type->ops.sq.elevator_merge_req_fn) {
-		next_sorted = (__force bool)(next->rq_flags & RQF_SORTED);
-		if (next_sorted)
-			e->type->ops.sq.elevator_merge_req_fn(q, rq, next);
-	}
 
 	elv_rqhash_reposition(q, rq);
 
@@ -566,6 +539,7 @@ void elv_merge_requests(struct request_queue *q, struct request *rq,
 	q->last_merge = rq;
 }
 
+<<<<<<< HEAD
 void elv_bio_merged(struct request_queue *q, struct request *rq,
 			struct bio *bio)
 {
@@ -729,14 +703,14 @@ void elv_add_request(struct request_queue *q, struct request *rq, int where)
 }
 EXPORT_SYMBOL(elv_add_request);
 
+=======
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 struct request *elv_latter_request(struct request_queue *q, struct request *rq)
 {
 	struct elevator_queue *e = q->elevator;
 
-	if (e->uses_mq && e->type->ops.mq.next_request)
+	if (e->type->ops.mq.next_request)
 		return e->type->ops.mq.next_request(q, rq);
-	else if (!e->uses_mq && e->type->ops.sq.elevator_latter_req_fn)
-		return e->type->ops.sq.elevator_latter_req_fn(q, rq);
 
 	return NULL;
 }
@@ -745,66 +719,10 @@ struct request *elv_former_request(struct request_queue *q, struct request *rq)
 {
 	struct elevator_queue *e = q->elevator;
 
-	if (e->uses_mq && e->type->ops.mq.former_request)
+	if (e->type->ops.mq.former_request)
 		return e->type->ops.mq.former_request(q, rq);
-	if (!e->uses_mq && e->type->ops.sq.elevator_former_req_fn)
-		return e->type->ops.sq.elevator_former_req_fn(q, rq);
+
 	return NULL;
-}
-
-int elv_set_request(struct request_queue *q, struct request *rq,
-		    struct bio *bio, gfp_t gfp_mask)
-{
-	struct elevator_queue *e = q->elevator;
-
-	if (WARN_ON_ONCE(e->uses_mq))
-		return 0;
-
-	if (e->type->ops.sq.elevator_set_req_fn)
-		return e->type->ops.sq.elevator_set_req_fn(q, rq, bio, gfp_mask);
-	return 0;
-}
-
-void elv_put_request(struct request_queue *q, struct request *rq)
-{
-	struct elevator_queue *e = q->elevator;
-
-	if (WARN_ON_ONCE(e->uses_mq))
-		return;
-
-	if (e->type->ops.sq.elevator_put_req_fn)
-		e->type->ops.sq.elevator_put_req_fn(rq);
-}
-
-int elv_may_queue(struct request_queue *q, unsigned int op)
-{
-	struct elevator_queue *e = q->elevator;
-
-	if (WARN_ON_ONCE(e->uses_mq))
-		return 0;
-
-	if (e->type->ops.sq.elevator_may_queue_fn)
-		return e->type->ops.sq.elevator_may_queue_fn(q, op);
-
-	return ELV_MQUEUE_MAY;
-}
-
-void elv_completed_request(struct request_queue *q, struct request *rq)
-{
-	struct elevator_queue *e = q->elevator;
-
-	if (WARN_ON_ONCE(e->uses_mq))
-		return;
-
-	/*
-	 * request is released from the driver, io must be done
-	 */
-	if (blk_account_rq(rq)) {
-		q->in_flight[rq_is_sync(rq)]--;
-		if ((rq->rq_flags & RQF_SORTED) &&
-		    e->type->ops.sq.elevator_completed_req_fn)
-			e->type->ops.sq.elevator_completed_req_fn(q, rq);
-	}
 }
 
 #define to_elv(atr) container_of((atr), struct elv_fs_entry, attr)
@@ -871,8 +789,6 @@ int elv_register_queue(struct request_queue *q)
 		}
 		kobject_uevent(&e->kobj, KOBJ_ADD);
 		e->registered = 1;
-		if (!e->uses_mq && e->type->ops.sq.elevator_registered_fn)
-			e->type->ops.sq.elevator_registered_fn(q);
 	}
 	return error;
 }
@@ -912,7 +828,7 @@ int elv_register(struct elevator_type *e)
 
 	/* register, don't allow duplicate names */
 	spin_lock(&elv_list_lock);
-	if (elevator_find(e->elevator_name, e->uses_mq)) {
+	if (elevator_find(e->elevator_name)) {
 		spin_unlock(&elv_list_lock);
 		if (e->icq_cache)
 			kmem_cache_destroy(e->icq_cache);
@@ -996,10 +912,9 @@ out:
  */
 static int elevator_switch(struct request_queue *q, struct elevator_type *new_e)
 {
-	struct elevator_queue *old = q->elevator;
-	bool old_registered = false;
 	int err;
 
+<<<<<<< HEAD
 	if (q->mq_ops)
 		return elevator_switch_mq(q, new_e);
 
@@ -1050,6 +965,17 @@ fail_init:
 		elv_register_queue(q);
 		blk_queue_bypass_end(q);
 	}
+=======
+	lockdep_assert_held(&q->sysfs_lock);
+
+	blk_mq_freeze_queue(q);
+	blk_mq_quiesce_queue(q);
+
+	err = elevator_switch_mq(q, new_e);
+
+	blk_mq_unquiesce_queue(q);
+	blk_mq_unfreeze_queue(q);
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 
 	return err;
 }
@@ -1099,7 +1025,7 @@ ssize_t elv_iosched_store(struct request_queue *q, const char *name,
 {
 	int ret;
 
-	if (!(q->mq_ops || q->request_fn) || !elv_support_iosched(q))
+	if (!q->mq_ops || !elv_support_iosched(q))
 		return count;
 
 	ret = __elevator_change(q, name);
@@ -1126,13 +1052,15 @@ ssize_t elv_iosched_show(struct request_queue *q, char *name)
 
 	spin_lock(&elv_list_lock);
 	list_for_each_entry(__e, &elv_list, list) {
+<<<<<<< HEAD
 		if (elv && !strcmp(elv->elevator_name, __e->elevator_name)) {
+=======
+		if (elv && elevator_match(elv, __e->elevator_name)) {
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 			len += sprintf(name+len, "[%s] ", elv->elevator_name);
 			continue;
 		}
-		if (__e->uses_mq && q->mq_ops && elv_support_iosched(q))
-			len += sprintf(name+len, "%s ", __e->elevator_name);
-		else if (!__e->uses_mq && !q->mq_ops)
+		if (elv_support_iosched(q))
 			len += sprintf(name+len, "%s ", __e->elevator_name);
 	}
 	spin_unlock(&elv_list_lock);

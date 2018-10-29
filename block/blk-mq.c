@@ -88,7 +88,7 @@ struct mq_inflight {
 	unsigned int *inflight;
 };
 
-static void blk_mq_check_inflight(struct blk_mq_hw_ctx *hctx,
+static bool blk_mq_check_inflight(struct blk_mq_hw_ctx *hctx,
 				  struct request *rq, void *priv,
 				  bool reserved)
 {
@@ -107,6 +107,8 @@ static void blk_mq_check_inflight(struct blk_mq_hw_ctx *hctx,
 		if (mi->part->partno)
 			mi->inflight[1]++;
 	}
+
+	return true
 }
 
 void blk_mq_in_flight(struct request_queue *q, struct hd_struct *part,
@@ -118,7 +120,7 @@ void blk_mq_in_flight(struct request_queue *q, struct hd_struct *part,
 	blk_mq_queue_tag_busy_iter(q, blk_mq_check_inflight, &mi);
 }
 
-static void blk_mq_check_inflight_rw(struct blk_mq_hw_ctx *hctx,
+static bool blk_mq_check_inflight_rw(struct blk_mq_hw_ctx *hctx,
 				     struct request *rq, void *priv,
 				     bool reserved)
 {
@@ -126,6 +128,8 @@ static void blk_mq_check_inflight_rw(struct blk_mq_hw_ctx *hctx,
 
 	if (rq->part == mi->part)
 		mi->inflight[rq_data_dir(rq)]++;
+
+	return true
 }
 
 void blk_mq_in_flight_rw(struct request_queue *q, struct hd_struct *part,
@@ -315,6 +319,7 @@ static struct request *blk_mq_rq_ctx_init(struct blk_mq_alloc_data *data,
 	rq->rq_disk = NULL;
 	rq->part = NULL;
 	rq->start_time = jiffies;
+	rq->io_start_time_ns = 0;
 #ifdef CONFIG_BLK_CGROUP
 	rq->rl = NULL;
 	set_start_time_ns(rq);
@@ -487,9 +492,12 @@ void blk_mq_free_request(struct request *rq)
 	if (rq->rq_flags & RQF_MQ_INFLIGHT)
 		atomic_dec(&hctx->nr_active);
 
-	wbt_done(q->rq_wb, &rq->issue_stat);
+	if (unlikely(laptop_mode && !blk_rq_is_passthrough(rq)))
+		laptop_io_completion(q->backing_dev_info);
 
-	clear_bit(REQ_ATOM_STARTED, &rq->atomic_flags);
+	rq_qos_done(q, rq);
+
+	blk_mq_rq_update_state(rq, MQ_RQ_IDLE);
 	clear_bit(REQ_ATOM_POLL_SLEPT, &rq->atomic_flags);
 	if (rq->tag != -1)
 		blk_mq_put_tag(hctx, hctx->tags, ctx, rq->tag);
@@ -505,7 +513,7 @@ inline void __blk_mq_end_request(struct request *rq, blk_status_t error)
 	blk_account_io_done(rq);
 
 	if (rq->end_io) {
-		wbt_done(rq->q->rq_wb, &rq->issue_stat);
+		wbt_done(rq->q->rq_wb, rq);
 		rq->end_io(rq, error);
 	} else {
 		if (unlikely(blk_bidi_rq(rq)))
@@ -536,6 +544,9 @@ static void __blk_mq_complete_request(struct request *rq)
 	bool shared = false;
 	int cpu;
 
+	WARN_ON_ONCE(blk_mq_rq_state(rq) != MQ_RQ_IN_FLIGHT);
+	blk_mq_rq_update_state(rq, MQ_RQ_COMPLETE);
+
 	if (rq->internal_tag != -1)
 		blk_mq_sched_completed_request(rq);
 	if (rq->rq_flags & RQF_STATS) {
@@ -563,6 +574,36 @@ static void __blk_mq_complete_request(struct request *rq)
 	put_cpu();
 }
 
+static void blk_mq_rq_update_aborted_gstate(struct request *rq, u64 gstate)
+{
+	unsigned long flags;
+
+	/*
+	 * blk_mq_rq_aborted_gstate() is used from the completion path and
+	 * can thus be called from irq context.  u64_stats_fetch in the
+	 * middle of update on the same CPU leads to lockup.  Disable irq
+	 * while updating.
+	 */
+	local_irq_save(flags);
+	u64_stats_update_begin(&rq->aborted_gstate_sync);
+	rq->aborted_gstate = gstate;
+	u64_stats_update_end(&rq->aborted_gstate_sync);
+	local_irq_restore(flags);
+}
+
+static u64 blk_mq_rq_aborted_gstate(struct request *rq)
+{
+	unsigned int start;
+	u64 aborted_gstate;
+
+	do {
+		start = u64_stats_fetch_begin(&rq->aborted_gstate_sync);
+		aborted_gstate = rq->aborted_gstate;
+	} while (u64_stats_fetch_retry(&rq->aborted_gstate_sync, start));
+
+	return aborted_gstate;
+}
+
 /**
  * blk_mq_complete_request - end I/O on a request
  * @rq:		the request being processed
@@ -584,7 +625,7 @@ EXPORT_SYMBOL(blk_mq_complete_request);
 
 int blk_mq_request_started(struct request *rq)
 {
-	return test_bit(REQ_ATOM_STARTED, &rq->atomic_flags);
+	return blk_mq_rq_state(rq) != MQ_RQ_IDLE;
 }
 EXPORT_SYMBOL_GPL(blk_mq_request_started);
 
@@ -592,14 +633,15 @@ void blk_mq_start_request(struct request *rq)
 {
 	struct request_queue *q = rq->q;
 
-	blk_mq_sched_started_request(rq);
-
 	trace_block_rq_issue(q, rq);
 
 	if (test_bit(QUEUE_FLAG_STATS, &q->queue_flags)) {
-		blk_stat_set_issue(&rq->issue_stat, blk_rq_sectors(rq));
+		rq->io_start_time_ns = ktime_get_ns();
+#ifdef CONFIG_BLK_DEV_THROTTLING_LOW
+		rq->throtl_size = blk_rq_sectors(rq);
+#endif
 		rq->rq_flags |= RQF_STATS;
-		wbt_issue(q->rq_wb, &rq->issue_stat);
+		wbt_issue(q->rq_wb, rq);
 	}
 
 	blk_add_timer(rq);
@@ -646,7 +688,7 @@ static void __blk_mq_requeue_request(struct request *rq)
 	struct request_queue *q = rq->q;
 
 	trace_block_rq_requeue(q, rq);
-	wbt_requeue(q->rq_wb, &rq->issue_stat);
+	wbt_requeue(q->rq_wb, rq);
 
 	if (test_and_clear_bit(REQ_ATOM_STARTED, &rq->atomic_flags)) {
 		if (q->dma_drain_size && blk_rq_bytes(rq))
@@ -787,13 +829,13 @@ void blk_mq_rq_timed_out(struct request *req, bool reserved)
 	}
 }
 
-static void blk_mq_check_expired(struct blk_mq_hw_ctx *hctx,
+static bool blk_mq_check_expired(struct blk_mq_hw_ctx *hctx,
 		struct request *rq, void *priv, bool reserved)
 {
 	struct blk_mq_timeout_data *data = priv;
 
 	if (!test_bit(REQ_ATOM_STARTED, &rq->atomic_flags))
-		return;
+		return true;
 
 	/*
 	 * The rq being checked may have been freed and reallocated
@@ -1648,7 +1690,7 @@ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
 	if (!is_flush_fua && !blk_queue_nomerges(q) &&
 	    blk_attempt_plug_merge(q, bio, &same_queue_rq))
 		return BLK_QC_T_NONE;
-
+		
 	if (blk_mq_sched_bio_merge(q, bio))
 		return BLK_QC_T_NONE;
 
@@ -1664,7 +1706,7 @@ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
 		return BLK_QC_T_NONE;
 	}
 
-	wbt_track(&rq->issue_stat, wb_acct);
+	wbt_track(rq, wb_acct);
 
 	cookie = request_to_qc_t(data.hctx, rq);
 

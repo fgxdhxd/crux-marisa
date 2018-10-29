@@ -478,12 +478,12 @@ static void kyber_completed_request(struct request *rq)
 	if (blk_stat_is_active(kqd->cb))
 		return;
 
-	now = __blk_stat_time(ktime_to_ns(ktime_get()));
-	if (now < blk_stat_time(&rq->issue_stat))
+	now = ktime_get_ns();
+	if (now < rq->io_start_time_ns)
 		return;
 
-	latency = now - blk_stat_time(&rq->issue_stat);
-
+	latency = now - rq->io_start_time_ns;
+		
 	if (latency > target)
 		blk_stat_activate_msecs(kqd->cb, 10);
 }
@@ -819,7 +819,6 @@ static struct elevator_type kyber_sched = {
 		.dispatch_request = kyber_dispatch_request,
 		.has_work = kyber_has_work,
 	},
-	.uses_mq = true,
 #ifdef CONFIG_BLK_DEBUG_FS
 	.queue_debugfs_attrs = kyber_queue_debugfs_attrs,
 	.hctx_debugfs_attrs = kyber_hctx_debugfs_attrs,

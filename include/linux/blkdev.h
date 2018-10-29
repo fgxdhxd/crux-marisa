@@ -67,9 +67,6 @@ static inline int blk_validate_block_size(unsigned int bsize)
 
 typedef void (rq_end_io_fn)(struct request *, blk_status_t);
 
-#define BLK_RL_SYNCFULL		(1U << 0)
-#define BLK_RL_ASYNCFULL	(1U << 1)
-
 struct request_list {
 	struct request_queue	*q;	/* the queue this rl belongs to */
 #ifdef CONFIG_BLK_CGROUP
@@ -210,11 +207,19 @@ struct request {
 	struct gendisk *rq_disk;
 	struct hd_struct *part;
 	unsigned long start_time;
-	struct blk_issue_stat issue_stat;
+	/* Time that I/O was submitted to the device. */
+	u64 io_start_time_ns;
+
+#ifdef CONFIG_BLK_WBT
+	unsigned short wbt_flags;
+#endif
+#ifdef CONFIG_BLK_DEV_THROTTLING_LOW
+	unsigned short throtl_size;
+#endif
 #ifdef CONFIG_BLK_CGROUP
 	struct request_list *rl;		/* rl this rq is alloced from */
-	unsigned long long start_time_ns;
-	unsigned long long io_start_time_ns;    /* when passed to hardware */
+	unsigned long long cgroup_start_time_ns;
+	unsigned long long cgroup_io_start_time_ns;    /* when passed to hardware */
 #endif
 	/* Number of scatter-gather DMA addr+len pairs after
 	 * physical address coalescing is performed.
@@ -291,10 +296,13 @@ static inline unsigned short req_get_ioprio(struct request *req)
 
 struct blk_queue_ctx;
 
-typedef void (request_fn_proc) (struct request_queue *q);
 typedef blk_qc_t (make_request_fn) (struct request_queue *q, struct bio *bio);
+<<<<<<< HEAD
 typedef int (prep_rq_fn) (struct request_queue *, struct request *);
 typedef void (unprep_rq_fn) (struct request_queue *, struct request *);
+=======
+typedef bool (poll_q_fn) (struct request_queue *q, blk_qc_t);
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 
 struct bio_vec;
 typedef void (softirq_done_fn)(struct request *);
@@ -417,8 +425,6 @@ struct request_queue {
 	struct list_head	queue_head;
 	struct request		*last_merge;
 	struct elevator_queue	*elevator;
-	int			nr_rqs[2];	/* # allocated [a]sync rqs */
-	int			nr_rqs_elvpriv;	/* # allocated rqs w/ elvpriv */
 
 	atomic_t		shared_hctx_restart;
 
@@ -433,10 +439,13 @@ struct request_queue {
 	 */
 	struct request_list	root_rl;
 
-	request_fn_proc		*request_fn;
 	make_request_fn		*make_request_fn;
+<<<<<<< HEAD
 	prep_rq_fn		*prep_rq_fn;
 	unprep_rq_fn		*unprep_rq_fn;
+=======
+	poll_q_fn		*poll_fn;
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 	softirq_done_fn		*softirq_done_fn;
 	rq_timed_out_fn		*rq_timed_out_fn;
 	dma_drain_needed_fn	*dma_drain_needed;
@@ -445,8 +454,6 @@ struct request_queue {
 	init_rq_fn		*init_rq_fn;
 	/* Called just before a request is freed */
 	exit_rq_fn		*exit_rq_fn;
-	/* Called from inside blk_get_request() */
-	void (*initialize_rq_fn)(struct request *rq);
 
 	const struct blk_mq_ops	*mq_ops;
 
@@ -461,17 +468,6 @@ struct request_queue {
 	/* hw dispatch queues */
 	struct blk_mq_hw_ctx	**queue_hw_ctx;
 	unsigned int		nr_hw_queues;
-
-	/*
-	 * Dispatch queue sorting
-	 */
-	sector_t		end_sector;
-	struct request		*boundary_rq;
-
-	/*
-	 * Delayed queue handling
-	 */
-	struct delayed_work	delay_work;
 
 	struct backing_dev_info	*backing_dev_info;
 
@@ -535,9 +531,6 @@ struct request_queue {
 	 * queue settings
 	 */
 	unsigned long		nr_requests;	/* Max # of requests */
-	unsigned int		nr_congestion_on;
-	unsigned int		nr_congestion_off;
-	unsigned int		nr_batching;
 
 	unsigned int		dma_drain_size;
 	void			*dma_drain_buffer;
@@ -550,6 +543,7 @@ struct request_queue {
 	unsigned int		nr_sorted;
 	unsigned int		in_flight[2];
 
+<<<<<<< HEAD
 	/*
 	 * Number of active block driver functions for which blk_drain_queue()
 	 * must wait. Must be incremented around functions that unlock the
@@ -562,6 +556,8 @@ struct request_queue {
 	struct keyslot_manager *ksm;
 #endif
 
+=======
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 	unsigned int		rq_timeout;
 	int			poll_nsec;
 
@@ -803,7 +799,7 @@ static inline bool blk_account_rq(struct request *rq)
  */
 static inline bool queue_is_rq_based(struct request_queue *q)
 {
-	return q->request_fn || q->mq_ops;
+	return q->mq_ops;
 }
 
 static inline unsigned int blk_queue_cluster(struct request_queue *q)
@@ -836,27 +832,6 @@ static inline unsigned int blk_queue_zone_sectors(struct request_queue *q)
 static inline bool rq_is_sync(struct request *rq)
 {
 	return op_is_sync(rq->cmd_flags);
-}
-
-static inline bool blk_rl_full(struct request_list *rl, bool sync)
-{
-	unsigned int flag = sync ? BLK_RL_SYNCFULL : BLK_RL_ASYNCFULL;
-
-	return rl->flags & flag;
-}
-
-static inline void blk_set_rl_full(struct request_list *rl, bool sync)
-{
-	unsigned int flag = sync ? BLK_RL_SYNCFULL : BLK_RL_ASYNCFULL;
-
-	rl->flags |= flag;
-}
-
-static inline void blk_clear_rl_full(struct request_list *rl, bool sync)
-{
-	unsigned int flag = sync ? BLK_RL_SYNCFULL : BLK_RL_ASYNCFULL;
-
-	rl->flags &= ~flag;
 }
 
 static inline bool rq_mergeable(struct request *rq)
@@ -988,8 +963,12 @@ extern void blk_init_request_from_bio(struct request *req, struct bio *bio);
 extern void blk_put_request(struct request *);
 extern void __blk_put_request(struct request_queue *, struct request *);
 extern struct request *blk_get_request(struct request_queue *, unsigned int op,
+<<<<<<< HEAD
 				       gfp_t gfp_mask);
 extern void blk_requeue_request(struct request_queue *, struct request *);
+=======
+				       blk_mq_req_flags_t flags);
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 extern int blk_lld_busy(struct request_queue *q);
 extern int blk_rq_prep_clone(struct request *rq, struct request *rq_src,
 			     struct bio_set *bs, gfp_t gfp_mask,
@@ -999,7 +978,6 @@ extern void blk_rq_unprep_clone(struct request *rq);
 extern blk_status_t blk_insert_cloned_request(struct request_queue *q,
 				     struct request *rq);
 extern int blk_rq_append_bio(struct request *rq, struct bio **bio);
-extern void blk_delay_queue(struct request_queue *, unsigned long);
 extern void blk_queue_split(struct request_queue *, struct bio **);
 extern void blk_recount_segments(struct request_queue *, struct bio *);
 extern int scsi_verify_blk_ioctl(struct block_device *, unsigned int);
@@ -1012,15 +990,7 @@ extern int sg_scsi_ioctl(struct request_queue *, struct gendisk *, fmode_t,
 
 extern int blk_queue_enter(struct request_queue *q, unsigned int op);
 extern void blk_queue_exit(struct request_queue *q);
-extern void blk_start_queue(struct request_queue *q);
-extern void blk_start_queue_async(struct request_queue *q);
-extern void blk_stop_queue(struct request_queue *q);
 extern void blk_sync_queue(struct request_queue *q);
-extern void __blk_stop_queue(struct request_queue *q);
-extern void __blk_run_queue(struct request_queue *q);
-extern void __blk_run_queue_uncond(struct request_queue *q);
-extern void blk_run_queue(struct request_queue *);
-extern void blk_run_queue_async(struct request_queue *q);
 extern int blk_rq_map_user(struct request_queue *, struct request *,
 			   struct rq_map_data *, void __user *, unsigned long,
 			   gfp_t);
@@ -1163,12 +1133,16 @@ static inline unsigned int blk_rq_count_bios(struct request *rq)
 	return nr_bios;
 }
 
+<<<<<<< HEAD
 /*
  * Request issue related functions.
  */
 extern struct request *blk_peek_request(struct request_queue *q);
 extern void blk_start_request(struct request *rq);
 extern struct request *blk_fetch_request(struct request_queue *q);
+=======
+void blk_steal_bios(struct bio_list *list, struct request *rq);
+>>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 
 /*
  * Request completion related functions.
@@ -1185,9 +1159,6 @@ extern struct request *blk_fetch_request(struct request_queue *q);
  */
 extern bool blk_update_request(struct request *rq, blk_status_t error,
 			       unsigned int nr_bytes);
-extern void blk_finish_request(struct request *rq, blk_status_t error);
-extern bool blk_end_request(struct request *rq, blk_status_t error,
-			    unsigned int nr_bytes);
 extern void blk_end_request_all(struct request *rq, blk_status_t error);
 extern bool __blk_end_request(struct request *rq, blk_status_t error,
 			      unsigned int nr_bytes);
@@ -1197,15 +1168,10 @@ extern bool __blk_end_request_cur(struct request *rq, blk_status_t error);
 extern void blk_complete_request(struct request *);
 extern void __blk_complete_request(struct request *);
 extern void blk_abort_request(struct request *);
-extern void blk_unprep_request(struct request *);
 
 /*
  * Access functions for manipulating queue properties
  */
-extern struct request_queue *blk_init_queue_node(request_fn_proc *rfn,
-					spinlock_t *lock, int node_id);
-extern struct request_queue *blk_init_queue(request_fn_proc *, spinlock_t *);
-extern int blk_init_allocated_queue(struct request_queue *);
 extern void blk_cleanup_queue(struct request_queue *);
 extern void blk_queue_make_request(struct request_queue *, make_request_fn *);
 extern void blk_queue_bounce_limit(struct request_queue *, u64);
@@ -1247,8 +1213,6 @@ extern int blk_queue_dma_drain(struct request_queue *q,
 extern void blk_queue_lld_busy(struct request_queue *q, lld_busy_fn *fn);
 extern void blk_queue_segment_boundary(struct request_queue *, unsigned long);
 extern void blk_queue_virt_boundary(struct request_queue *, unsigned long);
-extern void blk_queue_prep_rq(struct request_queue *, prep_rq_fn *pfn);
-extern void blk_queue_unprep_rq(struct request_queue *, unprep_rq_fn *ufn);
 extern void blk_queue_dma_alignment(struct request_queue *, int);
 extern void blk_queue_update_dma_alignment(struct request_queue *, int);
 extern void blk_queue_softirq_done(struct request_queue *, softirq_done_fn *);
@@ -1328,7 +1292,6 @@ static inline void blk_set_runtime_active(struct request_queue *q) {}
  * schedule() where blk_schedule_flush_plug() is called.
  */
 struct blk_plug {
-	struct list_head list; /* requests */
 	struct list_head mq_list; /* blk-mq requests */
 	struct list_head cb_list; /* md requires an unplug callback */
 	unsigned short rq_count;
@@ -1370,8 +1333,7 @@ static inline bool blk_needs_flush_plug(struct task_struct *tsk)
 	struct blk_plug *plug = tsk->plug;
 
 	return plug &&
-		(!list_empty(&plug->list) ||
-		 !list_empty(&plug->mq_list) ||
+		 (!list_empty(&plug->mq_list) ||
 		 !list_empty(&plug->cb_list));
 }
 
@@ -1708,25 +1670,25 @@ int kblockd_mod_delayed_work_on(int cpu, struct delayed_work *dwork, unsigned lo
 static inline void set_start_time_ns(struct request *req)
 {
 	preempt_disable();
-	req->start_time_ns = sched_clock();
+	req->cgroup_start_time_ns = sched_clock();
 	preempt_enable();
 }
 
 static inline void set_io_start_time_ns(struct request *req)
 {
 	preempt_disable();
-	req->io_start_time_ns = sched_clock();
+	req->cgroup_io_start_time_ns = sched_clock();
 	preempt_enable();
 }
 
 static inline uint64_t rq_start_time_ns(struct request *req)
 {
-        return req->start_time_ns;
+	return req->cgroup_start_time_ns;
 }
 
 static inline uint64_t rq_io_start_time_ns(struct request *req)
 {
-        return req->io_start_time_ns;
+	return req->cgroup_io_start_time_ns;
 }
 #else
 static inline void set_start_time_ns(struct request *req) {}
