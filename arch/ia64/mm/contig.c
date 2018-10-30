@@ -132,8 +132,9 @@ skip:
 static inline __init void
 alloc_per_cpu_data(void)
 {
-	cpu_data = __alloc_bootmem(PERCPU_PAGE_SIZE * num_possible_cpus(),
-				   PERCPU_PAGE_SIZE, __pa(MAX_DMA_ADDRESS));
+	cpu_data = memblock_alloc_from(PERCPU_PAGE_SIZE * num_possible_cpus(),
+				       PERCPU_PAGE_SIZE,
+				       __pa(MAX_DMA_ADDRESS));
 }
 
 /**
