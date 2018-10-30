@@ -280,6 +280,101 @@ phys_addr_t memblock_phys_alloc_try_nid(phys_addr_t size, phys_addr_t align, int
 
 phys_addr_t memblock_phys_alloc(phys_addr_t size, phys_addr_t align);
 
+void *memblock_alloc_try_nid_raw(phys_addr_t size, phys_addr_t align,
+				 phys_addr_t min_addr, phys_addr_t max_addr,
+				 int nid);
+void *memblock_alloc_try_nid_nopanic(phys_addr_t size, phys_addr_t align,
+				     phys_addr_t min_addr, phys_addr_t max_addr,
+				     int nid);
+void *memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
+			     phys_addr_t min_addr, phys_addr_t max_addr,
+			     int nid);
+
+static inline void * __init memblock_alloc(phys_addr_t size,  phys_addr_t align)
+{
+	return memblock_alloc_try_nid(size, align, MEMBLOCK_LOW_LIMIT,
+				      MEMBLOCK_ALLOC_ACCESSIBLE, NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_raw(phys_addr_t size,
+					       phys_addr_t align)
+{
+	return memblock_alloc_try_nid_raw(size, align, MEMBLOCK_LOW_LIMIT,
+					  MEMBLOCK_ALLOC_ACCESSIBLE,
+					  NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_from(phys_addr_t size,
+						phys_addr_t align,
+						phys_addr_t min_addr)
+{
+	return memblock_alloc_try_nid(size, align, min_addr,
+				      MEMBLOCK_ALLOC_ACCESSIBLE, NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_nopanic(phys_addr_t size,
+						   phys_addr_t align)
+{
+	return memblock_alloc_try_nid_nopanic(size, align, MEMBLOCK_LOW_LIMIT,
+					      MEMBLOCK_ALLOC_ACCESSIBLE,
+					      NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_low(phys_addr_t size,
+					       phys_addr_t align)
+{
+	return memblock_alloc_try_nid(size, align, MEMBLOCK_LOW_LIMIT,
+				      ARCH_LOW_ADDRESS_LIMIT, NUMA_NO_NODE);
+}
+static inline void * __init memblock_alloc_low_nopanic(phys_addr_t size,
+						       phys_addr_t align)
+{
+	return memblock_alloc_try_nid_nopanic(size, align, MEMBLOCK_LOW_LIMIT,
+					      ARCH_LOW_ADDRESS_LIMIT,
+					      NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_from_nopanic(phys_addr_t size,
+							phys_addr_t align,
+							phys_addr_t min_addr)
+{
+	return memblock_alloc_try_nid_nopanic(size, align, min_addr,
+					      MEMBLOCK_ALLOC_ACCESSIBLE,
+					      NUMA_NO_NODE);
+}
+
+static inline void * __init memblock_alloc_node(phys_addr_t size,
+						phys_addr_t align, int nid)
+{
+	return memblock_alloc_try_nid(size, align, MEMBLOCK_LOW_LIMIT,
+				      MEMBLOCK_ALLOC_ACCESSIBLE, nid);
+}
+
+static inline void * __init memblock_alloc_node_nopanic(phys_addr_t size,
+							int nid)
+{
+	return memblock_alloc_try_nid_nopanic(size, SMP_CACHE_BYTES,
+					      MEMBLOCK_LOW_LIMIT,
+					      MEMBLOCK_ALLOC_ACCESSIBLE, nid);
+}
+
+static inline void __init memblock_free_early(phys_addr_t base,
+					      phys_addr_t size)
+{
+	__memblock_free_early(base, size);
+}
+
+static inline void __init memblock_free_early_nid(phys_addr_t base,
+						  phys_addr_t size, int nid)
+{
+	__memblock_free_early(base, size);
+}
+
+static inline void __init memblock_free_late(phys_addr_t base, phys_addr_t size)
+{
+	__memblock_free_late(base, size);
+}
+
 /*
  * Set the allocation direction to bottom-up or top-down.
  */

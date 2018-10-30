@@ -382,7 +382,7 @@ alloc_pci_controller(void)
 {
 	struct pci_controller *hose;
 
-	hose = memblock_alloc(sizeof(*hose), 0);
+	hose = memblock_alloc(sizeof(*hose), SMP_CACHE_BYTES);
 
 	*hose_tail = hose;
 	hose_tail = &hose->next;
@@ -393,7 +393,7 @@ alloc_pci_controller(void)
 struct resource * __init
 alloc_resource(void)
 {
-	return memblock_alloc(sizeof(struct resource), 0);
+	return memblock_alloc(sizeof(struct resource), SMP_CACHE_BYTES);
 }
 
 

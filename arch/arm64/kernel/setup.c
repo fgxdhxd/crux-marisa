@@ -315,6 +315,11 @@ static void __init request_standard_resources(void)
 	kernel_data.start   = __pa_symbol(_sdata);
 	kernel_data.end     = __pa_symbol(_end - 1);
 
+	num_standard_resources = memblock.memory.cnt;
+	standard_resources = memblock_alloc_low(num_standard_resources *
+					        sizeof(*standard_resources),
+					        SMP_CACHE_BYTES);
+
 	for_each_memblock(memory, region) {
 		res = alloc_bootmem_low(sizeof(*res));
 		if (memblock_is_nomap(region)) {
