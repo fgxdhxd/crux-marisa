@@ -1146,7 +1146,7 @@ static phys_addr_t __init memblock_alloc_base_nid(phys_addr_t size,
 	return memblock_alloc_range_nid(size, align, 0, max_addr, nid, flags);
 }
 
-phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
+phys_addr_t __init memblock_phys_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
 {
 	ulong flags = choose_memblock_flags();
 	phys_addr_t ret;
@@ -1183,16 +1183,16 @@ phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys
 	return alloc;
 }
 
-phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+phys_addr_t __init memblock_phys_alloc(phys_addr_t size, phys_addr_t align)
 {
 	memblock_dbg("%s: size: %llu align: %llu %pF\n",
 		     __func__, (u64)size, (u64)align, (void *)_RET_IP_);
 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
 }
 
-phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, int nid)
+phys_addr_t __init memblock_phys_alloc_try_nid(phys_addr_t size, phys_addr_t align, int nid)
 {
-	phys_addr_t res = memblock_alloc_nid(size, align, nid);
+	phys_addr_t res = memblock_phys_alloc_nid(size, align, nid);
 
 	if (res)
 		return res;
