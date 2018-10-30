@@ -737,7 +737,7 @@ static int _setup_clkctrl_provider(struct device_node *np)
 	const __be32 *addrp;
 	struct clkctrl_provider *provider;
 
-	provider = memblock_virt_alloc(sizeof(*provider), 0);
+	provider = memblock_alloc(sizeof(*provider), 0);
 	if (!provider)
 		return -ENOMEM;
 

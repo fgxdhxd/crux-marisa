@@ -68,7 +68,7 @@ static noinline struct mem_section __ref *sparse_index_alloc(int nid)
 	if (slab_is_available())
 		section = kzalloc_node(array_size, GFP_KERNEL, nid);
 	else
-		section = memblock_virt_alloc_node(array_size, nid);
+		section = memblock_alloc_node(array_size, nid);
 
 	return section;
 }
@@ -260,7 +260,7 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
 
 		size = sizeof(struct mem_section*) * NR_SECTION_ROOTS;
 		align = 1 << (INTERNODE_CACHE_SHIFT);
-		mem_section = memblock_virt_alloc(size, align);
+		mem_section = memblock_alloc(size, align);
 	}
 #endif
 
@@ -369,7 +369,6 @@ again:
 
 	usage = memblock_alloc_try_nid(size, SMP_CACHE_BYTES, goal, limit, nid);
 	if (!usage && limit) {
-	if (!p && limit) {
 		limit = 0;
 		goto again;
 	}
@@ -423,7 +422,7 @@ static struct mem_section_usage * __init
 sparse_early_usemaps_alloc_pgdat_section(struct pglist_data *pgdat,
 					 unsigned long size)
 {
-	return memblock_virt_alloc_node_nopanic(size, pgdat->node_id);
+	return memblock_alloc_node_nopanic(size, pgdat->node_id);
 }
 
 static void __init check_usemap_section_nr(int nid,
@@ -432,6 +431,7 @@ static void __init check_usemap_section_nr(int nid,
 }
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
+#ifdef CONFIG_SPARSEMEM_VMEMMAP
 static void __init sparse_early_usemaps_alloc_node(void *data,
 				 unsigned long pnum_begin,
 				 unsigned long pnum_end,
@@ -458,6 +458,8 @@ static void __init sparse_early_usemaps_alloc_node(void *data,
 	}
 }
 
+#else
+#############################################################
 struct page __init *__populate_section_memmap(unsigned long pfn,
 		unsigned long nr_pages, int nid, struct vmem_altmap *altmap)
 {
@@ -469,7 +471,7 @@ struct page __init *__populate_section_memmap(unsigned long pfn,
 		return map;
 
 	size = PAGE_ALIGN(sizeof(struct page) * PAGES_PER_SECTION);
-	map = memblock_virt_alloc_try_nid(size,
+	map = memblock_alloc_try_nid(size,
 					  PAGE_SIZE, __pa(MAX_DMA_ADDRESS),
 					  BOOTMEM_ALLOC_ACCESSIBLE, nid);
 	return map;

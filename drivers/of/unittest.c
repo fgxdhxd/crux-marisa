@@ -2082,6 +2082,11 @@ static struct overlay_info overlays[] = {
 
 static struct device_node *overlay_base_root;
 
+static void * __init dt_alloc_memory(u64 size, u64 align)
+{
+	return memblock_alloc(size, align);
+}
+
 /*
  * Create base device tree for the overlay unittest.
  *
