@@ -31,10 +31,6 @@ extern unsigned long free_all_bootmem(void);
 extern void reset_node_managed_pages(pg_data_t *pgdat);
 extern void reset_all_zones_managed_pages(void);
 
-extern void free_bootmem_node(pg_data_t *pgdat,
-			      unsigned long addr,
-			      unsigned long size);
-extern void free_bootmem(unsigned long physaddr, unsigned long size);
 extern void free_bootmem_late(unsigned long physaddr, unsigned long size);
 
 /* We are using top down, so it is safe to use 0 here */
@@ -49,14 +45,10 @@ extern void free_bootmem_late(unsigned long physaddr, unsigned long size);
 #define BOOTMEM_ALLOC_ANYWHERE		(~(phys_addr_t)0)
 
 /* FIXME: Move to memblock.h at a point where we remove nobootmem.c */
-<<<<<<< HEAD
-void *memblock_virt_alloc_try_nid_nopanic(phys_addr_t size,
-=======
 void *memblock_alloc_try_nid_raw(phys_addr_t size, phys_addr_t align,
 				      phys_addr_t min_addr,
 				      phys_addr_t max_addr, int nid);
 void *memblock_alloc_try_nid_nopanic(phys_addr_t size,
->>>>>>> eb31d559f1e83 (memblock: remove _virt from APIs returning virtual address)
 		phys_addr_t align, phys_addr_t min_addr,
 		phys_addr_t max_addr, int nid);
 void *memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
@@ -67,12 +59,6 @@ void __memblock_free_late(phys_addr_t base, phys_addr_t size);
 static inline void * __init memblock_alloc(
 					phys_addr_t size,  phys_addr_t align)
 {
-<<<<<<< HEAD
-	memblock_dbg("%s: %llu bytes align=0x%llx %pF\n",
-			__func__, (u64)size, (u64)align, (void *)_RET_IP_);
-
-	return memblock_virt_alloc_try_nid(size, align, BOOTMEM_LOW_LIMIT,
-=======
 	return memblock_alloc_try_nid(size, align, BOOTMEM_LOW_LIMIT,
 					    BOOTMEM_ALLOC_ACCESSIBLE,
 					    NUMA_NO_NODE);
@@ -82,7 +68,6 @@ static inline void * __init memblock_alloc_raw(
 					phys_addr_t size,  phys_addr_t align)
 {
 	return memblock_alloc_try_nid_raw(size, align, BOOTMEM_LOW_LIMIT,
->>>>>>> eb31d559f1e83 (memblock: remove _virt from APIs returning virtual address)
 					    BOOTMEM_ALLOC_ACCESSIBLE,
 					    NUMA_NO_NODE);
 }
