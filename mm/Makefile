@@ -42,7 +42,6 @@ obj-y			:= filemap.o mempool.o oom_kill.o \
 			   debug.o $(mmu-y) showmem.o vmpressure.o
 
 obj-y += init-mm.o
-obj-y += nobootmem.o
 obj-y += memblock.o
 
 obj-$(CONFIG_ADVISE_SYSCALLS)	+= fadvise.o
