@@ -236,8 +236,8 @@ static int __init map_properties(void)
 		 * to avoid breaking the chain of ->next pointers.
 		 */
 		data->len = 0;
-		iounmap(data);
-		free_bootmem_late(pa_data + sizeof(*data), data_len);
+		memunmap(data);
+		memblock_free_late(pa_data + sizeof(*data), data_len);
 
 		return ret;
 	}
