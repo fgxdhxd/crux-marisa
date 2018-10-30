@@ -2081,7 +2081,6 @@ endmenu # runtime tests
 
 config MEMTEST
 	bool "Memtest"
-	depends on HAVE_MEMBLOCK
 	---help---
 	  This option adds a kernel parameter 'memtest', which allows memtest
 	  to be set.
