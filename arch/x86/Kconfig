@@ -814,9 +814,6 @@ config PARAVIRT_CLOCK
 
 endif #HYPERVISOR_GUEST
 
-config NO_BOOTMEM
-	def_bool y
-
 source "arch/x86/Kconfig.cpu"
 
 config HPET_TIMER

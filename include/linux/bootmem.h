@@ -27,23 +27,6 @@ extern unsigned long max_pfn;
  */
 extern unsigned long long max_possible_pfn;
 
-#ifndef CONFIG_NO_BOOTMEM
-/*
- * node_bootmem_map is a map pointer - the bits represent all physical 
- * memory pages (including holes) on the node.
- */
-typedef struct bootmem_data {
-	unsigned long node_min_pfn;
-	unsigned long node_low_pfn;
-	void *node_bootmem_map;
-	unsigned long last_end_off;
-	unsigned long hint_idx;
-	struct list_head list;
-} bootmem_data_t;
-
-extern bootmem_data_t bootmem_node_data[];
-#endif
-
 extern unsigned long bootmem_bootmap_pages(unsigned long);
 
 extern unsigned long init_bootmem_node(pg_data_t *pgdat,
@@ -115,12 +98,8 @@ extern void *__alloc_bootmem_low_node(pg_data_t *pgdat,
 				      unsigned long align,
 				      unsigned long goal) __malloc;
 
-#ifdef CONFIG_NO_BOOTMEM
 /* We are using top down, so it is safe to use 0 here */
 #define BOOTMEM_LOW_LIMIT 0
-#else
-#define BOOTMEM_LOW_LIMIT __pa(MAX_DMA_ADDRESS)
-#endif
 
 #ifndef ARCH_LOW_ADDRESS_LIMIT
 #define ARCH_LOW_ADDRESS_LIMIT  0xffffffffUL
@@ -155,7 +134,7 @@ extern void *__alloc_bootmem_low_node(pg_data_t *pgdat,
 	__alloc_bootmem_low_node(pgdat, x, PAGE_SIZE, 0)
 
 
-#if defined(CONFIG_HAVE_MEMBLOCK) && defined(CONFIG_NO_BOOTMEM)
+#if defined(CONFIG_HAVE_MEMBLOCK)
 
 /* FIXME: use MEMBLOCK_ALLOC_* variants here */
 #define BOOTMEM_ALLOC_ACCESSIBLE	0
@@ -339,7 +318,7 @@ static inline void __init memblock_free_late(
 {
 	free_bootmem_late(base, size);
 }
-#endif /* defined(CONFIG_HAVE_MEMBLOCK) && defined(CONFIG_NO_BOOTMEM) */
+#endif /* defined(CONFIG_HAVE_MEMBLOCK) */
 
 #ifdef CONFIG_HAVE_ARCH_ALLOC_REMAP
 extern void *alloc_remap(int nid, unsigned long size);
