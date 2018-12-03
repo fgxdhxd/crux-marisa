@@ -46,6 +46,7 @@ static u64 swiotlb_powerpc_get_required(struct device *dev)
  * map_page, and unmap_page on highmem, use normal dma_ops
  * for everything else.
  */
+<<<<<<< HEAD
 const struct dma_map_ops swiotlb_dma_ops = {
 	.alloc = __dma_direct_alloc_coherent,
 	.free = __dma_direct_free_coherent,
@@ -60,6 +61,21 @@ const struct dma_map_ops swiotlb_dma_ops = {
 	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
 	.mapping_error = dma_direct_mapping_error,
+=======
+const struct dma_map_ops powerpc_swiotlb_dma_ops = {
+	.alloc = __dma_nommu_alloc_coherent,
+	.free = __dma_nommu_free_coherent,
+	.mmap = dma_nommu_mmap_coherent,
+	.map_sg = dma_direct_map_sg,
+	.unmap_sg = dma_direct_unmap_sg,
+	.dma_supported = swiotlb_dma_supported,
+	.map_page = dma_direct_map_page,
+	.unmap_page = dma_direct_unmap_page,
+	.sync_single_for_cpu = dma_direct_sync_single_for_cpu,
+	.sync_single_for_device = dma_direct_sync_single_for_device,
+	.sync_sg_for_cpu = dma_direct_sync_sg_for_cpu,
+	.sync_sg_for_device = dma_direct_sync_sg_for_device,
+>>>>>>> 55897af63091 (dma-direct: merge swiotlb_dma_ops into the dma_direct code)
 	.get_required_mask = swiotlb_powerpc_get_required,
 };
 
