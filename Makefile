@@ -1283,6 +1283,8 @@ prepare0: archprepare gcc-plugins
 prepare: prepare0 prepare-objtool
 
 # Support for using generic headers in asm-generic
+asm-generic := -f $(srctree)/scripts/Makefile.asm-generic obj
+
 PHONY += asm-generic uapi-asm-generic
 asm-generic: uapi-asm-generic
 	$(Q)$(MAKE) $(asm-generic)=arch/$(SRCARCH)/include/generated/asm \
