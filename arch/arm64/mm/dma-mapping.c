@@ -95,63 +95,6 @@ static int __swiotlb_mmap_pfn(struct vm_area_struct *vma,
 }
 #endif /* CONFIG_IOMMU_DMA */
 
-void arch_dma_prep_coherent(struct page *page, size_t size)
-{
-	__dma_flush_area(page_address(page), size);
-}
-
-#ifdef CONFIG_IOMMU_DMA
-
-static void *arm64_dma_remap(struct device *dev, void *cpu_addr,
-			dma_addr_t handle, size_t size,
-			unsigned long attrs)
-{
-	struct page *page = phys_to_page(dma_to_phys(dev, handle));
-	bool coherent = is_device_dma_coherent(dev);
-	pgprot_t prot = __get_dma_pgprot(attrs, PAGE_KERNEL, coherent);
-	unsigned long offset = handle & ~PAGE_MASK;
-	struct vm_struct *area;
-	unsigned long addr;
-
-	size = PAGE_ALIGN(size + offset);
-
-	/*
-	 * DMA allocation can be mapped to user space, so lets
-	 * set VM_USERMAP flags too.
-	 */
-	area = get_vm_area(size, VM_USERMAP);
-	if (!area)
-		return NULL;
-
-	addr = (unsigned long)area->addr;
-	area->phys_addr = __pfn_to_phys(page_to_pfn(page));
-
-	if (ioremap_page_range(addr, addr + size, area->phys_addr, prot)) {
-		vunmap((void *)addr);
-		return NULL;
-	}
-	return (void *)addr + offset;
-}
-
-static void arm64_dma_unremap(struct device *dev, void *remapped_addr,
-				size_t size)
-{
-	struct vm_struct *area;
-
-	size = PAGE_ALIGN(size);
-	remapped_addr = (void *)((unsigned long)remapped_addr & PAGE_MASK);
-
-	area = find_vm_area(remapped_addr);
-	if (!area) {
-		WARN(1, "trying to free invalid coherent area: %p\n",
-			remapped_addr);
-		return;
-	}
-	vunmap(remapped_addr);
-	flush_tlb_kernel_range((unsigned long)remapped_addr,
-			(unsigned long)(remapped_addr + size));
-}
-
 static int __init arm64_dma_init(void)
 {
 	WARN_TAINT(ARCH_DMA_MINALIGN < cache_line_size(),
