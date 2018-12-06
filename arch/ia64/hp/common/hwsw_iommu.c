@@ -39,10 +39,14 @@ const struct dma_map_ops *hwsw_dma_get_ops(struct device *dev)
 {
 	if (use_swiotlb(dev))
 <<<<<<< HEAD
+<<<<<<< HEAD
 		return &ia64_swiotlb_dma_ops;
 =======
 		return &dma_direct_ops;
 >>>>>>> 55897af63091 (dma-direct: merge swiotlb_dma_ops into the dma_direct code)
+=======
+		return NULL;
+>>>>>>> 356da6d0cde3 (dma-mapping: bypass indirect calls for dma-direct)
 	return &sba_dma_ops;
 }
 EXPORT_SYMBOL(hwsw_dma_get_ops);

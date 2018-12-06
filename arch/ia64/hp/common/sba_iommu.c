@@ -2099,10 +2099,14 @@ sba_init(void)
 	 */
 	if (is_kdump_kernel()) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		dma_ops = &ia64_swiotlb_dma_ops;
 =======
 		dma_ops = &dma_direct_ops;
 >>>>>>> 55897af63091 (dma-direct: merge swiotlb_dma_ops into the dma_direct code)
+=======
+		dma_ops = NULL;
+>>>>>>> 356da6d0cde3 (dma-mapping: bypass indirect calls for dma-direct)
 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
 			panic("Unable to initialize software I/O TLB:"
 				  " Try machvec=dig boot option");
@@ -2125,10 +2129,14 @@ sba_init(void)
 		 * need to setup the swiotlb and switch to the dig machvec.
 		 */
 <<<<<<< HEAD
+<<<<<<< HEAD
 		dma_ops = &ia64_swiotlb_dma_ops;
 =======
 		dma_ops = &dma_direct_ops;
 >>>>>>> 55897af63091 (dma-direct: merge swiotlb_dma_ops into the dma_direct code)
+=======
+		dma_ops = NULL;
+>>>>>>> 356da6d0cde3 (dma-mapping: bypass indirect calls for dma-direct)
 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
 			panic("Unable to find SBA IOMMU or initialize "
 			      "software I/O TLB: Try machvec=dig boot option");

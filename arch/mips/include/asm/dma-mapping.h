@@ -20,7 +20,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 #if defined(CONFIG_MACH_JAZZ)
 	return &jazz_dma_ops;
 #else
-	return &dma_direct_ops;
+	return NULL;
 #endif
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 }

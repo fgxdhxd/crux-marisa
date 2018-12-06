@@ -16,6 +16,7 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 #ifdef CONFIG_SPARC_LEON
 	if (sparc_cpu_model == sparc_leon)
 <<<<<<< HEAD
+<<<<<<< HEAD
 		return &pci32_dma_ops;
 #endif
 #if defined(CONFIG_SPARC32) && defined(CONFIG_PCI)
@@ -28,6 +29,13 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 	if (bus == &pci_bus_type)
 		return &dma_direct_ops;
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
+=======
+		return NULL;
+#endif
+#if defined(CONFIG_SPARC32) && defined(CONFIG_PCI)
+	if (bus == &pci_bus_type)
+		return NULL;
+>>>>>>> 356da6d0cde3 (dma-mapping: bypass indirect calls for dma-direct)
 #endif
 	return dma_ops;
 }

@@ -103,6 +103,7 @@ void __init dma_ops_init(void)
 		break;
 	case pcxl2:
 		pa7300lc_init();
+<<<<<<< HEAD
 	case pcxl: /* falls through */
 <<<<<<< HEAD
 		hppa_dma_ops = &pcxl_dma_ops;
@@ -111,6 +112,8 @@ void __init dma_ops_init(void)
 	case pcxt:
 		hppa_dma_ops = &dma_direct_ops;
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
+=======
+>>>>>>> 356da6d0cde3 (dma-mapping: bypass indirect calls for dma-direct)
 		break;
 	default:
 		break;
