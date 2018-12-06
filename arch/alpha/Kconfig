@@ -202,6 +202,10 @@ config ALPHA_EIGER
 
 config ALPHA_JENSEN
 	bool "Jensen"
+<<<<<<< HEAD
+=======
+	depends on BROKEN
+>>>>>>> 3731c3d4774e (dma-mapping: always build the direct mapping code)
 	help
 	  DEC PC 150 AXP (aka Jensen): This is a very old Digital system - one
 	  of the first-generation Alpha systems. A number of these systems

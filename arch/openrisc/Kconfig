@@ -9,8 +9,11 @@ config OPENRISC
 <<<<<<< HEAD
 =======
 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
+<<<<<<< HEAD
 	select DMA_DIRECT_OPS
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
+=======
+>>>>>>> 3731c3d4774e (dma-mapping: always build the direct mapping code)
 	select OF
 	select OF_EARLY_FLATTREE
 	select IRQ_DOMAIN

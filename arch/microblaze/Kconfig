@@ -14,6 +14,7 @@ config MICROBLAZE
 	select CLONE_BACKWARDS3
 	select COMMON_CLK
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	select DMA_DIRECT_OPS
 <<<<<<< HEAD
@@ -21,6 +22,8 @@ config MICROBLAZE
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 =======
 >>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
+=======
+>>>>>>> 3731c3d4774e (dma-mapping: always build the direct mapping code)
 	select GENERIC_ATOMIC64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES

@@ -192,7 +192,6 @@ config PA11
 =======
 	select ARCH_HAS_SYNC_DMA_FOR_CPU
 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
-	select DMA_DIRECT_OPS
 	select DMA_NONCOHERENT_CACHE_SYNC
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 

@@ -22,6 +22,7 @@ config ARC
 	select CLONE_BACKWARDS
 	select COMMON_CLK
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	select DMA_DIRECT_OPS
 <<<<<<< HEAD
@@ -29,6 +30,8 @@ config ARC
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 =======
 >>>>>>> 58b0440663ec (dma-mapping: consolidate the dma mmap implementations)
+=======
+>>>>>>> 3731c3d4774e (dma-mapping: always build the direct mapping code)
 	select GENERIC_ATOMIC64 if !ISA_ARCV2 || !(ARC_HAS_LL64 && ARC_HAS_LLSC)
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_FIND_FIRST_BIT

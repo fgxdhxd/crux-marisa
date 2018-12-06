@@ -11,11 +11,14 @@ config XTENSA
 	select CLONE_BACKWARDS
 	select COMMON_CLK
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	select DMA_DIRECT_OPS
 <<<<<<< HEAD
 >>>>>>> bc3ec75de545 (dma-mapping: merge direct and noncoherent ops)
 =======
+=======
+>>>>>>> 3731c3d4774e (dma-mapping: always build the direct mapping code)
 	select DMA_REMAP if MMU
 >>>>>>> f0edfea8ef93 (dma-mapping: move the remap helpers to a separate file)
 	select GENERIC_ATOMIC64
