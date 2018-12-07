@@ -49,6 +49,10 @@
  * TASK_SIZE - the maximum size of a user space task.
  * TASK_UNMAPPED_BASE - the lower boundary of the mmap VM area.
  */
+
+#define DEFAULT_MAP_WINDOW_64	(UL(1) << VA_BITS)
+#define TASK_SIZE_64		(UL(1) << vabits_user)
+
 #ifdef CONFIG_COMPAT
 #ifdef CONFIG_ARM64_64K_PAGES
 /*
