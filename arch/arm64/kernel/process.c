@@ -61,6 +61,7 @@
 #include <asm/mmu_context.h>
 #include <asm/processor.h>
 #include <asm/scs.h>
+#include <asm/pointer_auth.h>
 #include <asm/stacktrace.h>
 
 #ifdef CONFIG_CC_STACKPROTECTOR
@@ -542,6 +543,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
 	uao_thread_switch(next);
 	ssbs_thread_switch(next);
 	scs_overflow_check(next);
+	ptrauth_thread_switch(next);
 
 	/*
 	 * Complete any pending TLB or cache maintenance on this CPU in case
@@ -609,6 +611,8 @@ unsigned long arch_randomize_brk(struct mm_struct *mm)
 void arch_setup_new_exec(void)
 {
 	current->mm->context.flags = is_compat_task() ? MMCF_AARCH32 : 0;
+
+	ptrauth_thread_init_user(current);
 }
 
 #ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
