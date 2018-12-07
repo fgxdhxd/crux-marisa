@@ -67,6 +67,7 @@ arm64-obj-$(CONFIG_ARM64_SSBD)		+= ssbd.o
 ifeq ($(CONFIG_KVM),y)
 arm64-obj-$(CONFIG_HARDEN_BRANCH_PREDICTOR)	+= bpi.o
 endif
+arm64-obj-$(CONFIG_ARM64_PTR_AUTH)	+= pointer_auth.o
 
 obj-y					+= $(arm64-obj-y) vdso/ probes/
 obj-m					+= $(arm64-obj-m)
