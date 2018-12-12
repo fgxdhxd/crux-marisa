@@ -576,6 +576,19 @@ static struct midr_range broken_aarch32_aes[] = {
 };
 #endif
 
+#ifdef CONFIG_HARDEN_BRANCH_PREDICTOR
+
+/*
+ * List of CPUs where we need to issue a psci call to
+ * harden the branch predictor.
+ */
+static const struct midr_range arm64_bp_harden_smccc_cpus[] = {
+	MIDR_ALL_VERSIONS(MIDR_CORTEX_A57),
+	MIDR_ALL_VERSIONS(MIDR_CORTEX_A72),
+	{},
+};
+#endif
+
 const struct arm64_cpu_capabilities arm64_errata[] = {
 #if	defined(CONFIG_ARM64_ERRATUM_826319) || \
 	defined(CONFIG_ARM64_ERRATUM_827319) || \
@@ -686,16 +699,10 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 	},
 #ifdef CONFIG_QCOM_FALKOR_ERRATUM_1003
 	{
-		.desc = "Qualcomm Technologies Falkor erratum 1003",
+		.desc = "Qualcomm Technologies Falkor/Kryo erratum 1003",
 		.capability = ARM64_WORKAROUND_QCOM_FALKOR_E1003,
-		ERRATA_MIDR_REV(MIDR_QCOM_FALKOR_V1, 0, 0),
-	},
-	{
-		.desc = "Qualcomm Technologies Kryo erratum 1003",
-		.capability = ARM64_WORKAROUND_QCOM_FALKOR_E1003,
-		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
-		.midr_range.model = MIDR_QCOM_KRYO,
-		.matches = is_kryo_midr,
+		.matches = cpucap_multi_entry_cap_matches,
+		.match_list = qcom_erratum_1003_list,
 	},
 #endif
 #ifdef CONFIG_QCOM_FALKOR_ERRATUM_1009
