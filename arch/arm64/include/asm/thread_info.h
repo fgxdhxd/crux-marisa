@@ -28,7 +28,6 @@
 struct task_struct;
 
 #include <asm/memory.h>
-#include <asm/pointer_auth.h>
 #include <asm/stack_pointer.h>
 #include <asm/types.h>
 
@@ -47,9 +46,6 @@ struct thread_info {
 	int			preempt_count;	/* 0 => preemptable, <0 => bug */
 #ifdef CONFIG_SHADOW_CALL_STACK
 	void			*shadow_call_stack;
-#endif
-#ifdef CONFIG_ARM64_PTR_AUTH
-	struct ptrauth_keys	keys_user;
 #endif
 };
 
