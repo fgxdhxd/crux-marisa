@@ -816,6 +816,31 @@ static noinline void check_find_2(struct xarray *xa)
 	xa_destroy(xa);
 }
 
+static noinline void check_find_3(struct xarray *xa)
+{
+	XA_STATE(xas, xa, 0);
+	unsigned long i, j, k;
+	void *entry;
+
+	for (i = 0; i < 100; i++) {
+		for (j = 0; j < 100; j++) {
+			rcu_read_lock();
+			for (k = 0; k < 100; k++) {
+				xas_set(&xas, j);
+				xas_for_each_marked(&xas, entry, k, XA_MARK_0)
+					;
+				if (j > k)
+					XA_BUG_ON(xa,
+						xas.xa_node != XAS_RESTART);
+			}
+			rcu_read_unlock();
+		}
+		xa_store_index(xa, i, GFP_KERNEL);
+		xa_set_mark(xa, i, XA_MARK_0);
+	}
+	xa_destroy(xa);
+}
+
 static noinline void check_find(struct xarray *xa)
 {
 	check_find_1(xa);
