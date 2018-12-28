@@ -129,7 +129,7 @@ static int igt_ppgtt_alloc(void *arg)
 {
 	struct drm_i915_private *dev_priv = arg;
 	struct i915_hw_ppgtt *ppgtt;
-	u64 size, last;
+	u64 size, last, limit;
 	int err;
 
 	/* Allocate a ppggt and try to fill the entire range */
@@ -149,10 +149,18 @@ static int igt_ppgtt_alloc(void *arg)
 	if (!ppgtt->base.allocate_va_range)
 		goto err_ppgtt_cleanup;
 
+	/*
+	 * While we only allocate the page tables here and so we could
+	 * address a much larger GTT than we could actually fit into
+	 * RAM, a practical limit is the amount of physical pages in the system.
+	 * This should ensure that we do not run into the oomkiller during
+	 * the test and take down the machine wilfully.
+	 */
+	limit = totalram_pages() << PAGE_SHIFT;
+	limit = min(ppgtt->vm.total, limit);
+
 	/* Check we can allocate the entire range */
-	for (size = 4096;
-	     size <= ppgtt->base.total;
-	     size <<= 2) {
+	for (size = 4096; size <= limit; size <<= 2) {
 		err = ppgtt->base.allocate_va_range(&ppgtt->base, 0, size);
 		if (err) {
 			if (err == -ENOMEM) {
@@ -167,9 +175,7 @@ static int igt_ppgtt_alloc(void *arg)
 	}
 
 	/* Check we can incrementally allocate the entire range */
-	for (last = 0, size = 4096;
-	     size <= ppgtt->base.total;
-	     last = size, size <<= 2) {
+	for (last = 0, size = 4096; size <= limit; last = size, size <<= 2) {
 		err = ppgtt->base.allocate_va_range(&ppgtt->base,
 						    last, size - last);
 		if (err) {
@@ -1111,6 +1117,7 @@ static int exercise_mock(struct drm_i915_private *i915,
 				     u64 hole_start, u64 hole_end,
 				     unsigned long end_time))
 {
+	const u64 limit = totalram_pages() << PAGE_SHIFT;
 	struct i915_gem_context *ctx;
 	struct i915_hw_ppgtt *ppgtt;
 	IGT_TIMEOUT(end_time);
@@ -1123,7 +1130,7 @@ static int exercise_mock(struct drm_i915_private *i915,
 	ppgtt = ctx->ppgtt;
 	GEM_BUG_ON(!ppgtt);
 
-	err = func(i915, &ppgtt->base, 0, ppgtt->base.total, end_time);
+	err = func(i915, &ppgtt->base, 0, min(ppgtt->base.total, limit), end_time);
 
 	mock_context_close(ctx);
 	return err;

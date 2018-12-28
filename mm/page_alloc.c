@@ -4815,7 +4815,6 @@ unsigned long nr_free_pagecache_pages(void)
 	return nr_free_zone_pages(gfp_zone(GFP_HIGHUSER_MOVABLE));
 }
 
-
 static void zoneref_set_zone(struct zone *zone, struct zoneref *zoneref)
 {
 	zoneref->zone = zone;
@@ -6901,7 +6900,7 @@ early_param("movablecore", cmdline_parse_movablecore);
 void adjust_managed_page_count(struct page *page, long count)
 {
 	spin_lock(&managed_page_count_lock);
-	page_zone(page)->managed_pages += count;
+	atomic_long_add(count, &page_zone(page)->managed_pages);
 	totalram_pages_add(count);
 #ifdef CONFIG_HIGHMEM
 	if (PageHighMem(page))
@@ -6942,11 +6941,10 @@ void free_highmem_page(struct page *page)
 {
 	__free_reserved_page(page);
 	totalram_pages_inc();
-	page_zone(page)->managed_pages++;
+	atomic_long_inc(&page_zone(page)->managed_pages);
 	totalhigh_pages_inc();
 }
 #endif
-
 
 void __init mem_init_print_info(const char *str)
 {
