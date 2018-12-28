@@ -1182,24 +1182,29 @@ static inline bool trylock_page_bit_common(struct page *page, int bit_nr,
 int sysctl_page_lock_unfairness = 5;
 
 static inline int wait_on_page_bit_common(wait_queue_head_t *q,
-		struct page *page, int bit_nr, int state, bool lock)
+	struct page *page, int bit_nr, int state, enum behavior behavior)
 {
 	int unfairness = sysctl_page_lock_unfairness;
 	struct wait_page_queue wait_page;
 	wait_queue_entry_t *wait = &wait_page.wait;
+	bool bit_is_set;
 	bool thrashing = false;
+	bool delayacct = false;
 	unsigned long pflags;
 	int ret = 0;
 
 	if (bit_nr == PG_locked &&
 	    !PageUptodate(page) && PageWorkingset(page)) {
-		if (!PageSwapBacked(page))
+		if (!PageSwapBacked(page)) {
 			delayacct_thrashing_start();
+			delayacct = true;
+		}
 		psi_memstall_enter(&pflags);
 		thrashing = true;
 	}
 
 	init_wait(wait);
+	wait->flags = behavior == EXCLUSIVE ? WQ_FLAG_EXCLUSIVE : 0;
 	wait->func = wake_page_function;
 	wait_page.page = page;
 	wait_page.bit_nr = bit_nr;
@@ -1294,7 +1299,7 @@ repeat:
 	finish_wait(q, wait);
 
 	if (thrashing) {
-		if (!PageSwapBacked(page))
+		if (delayacct)
 			delayacct_thrashing_end();
 		psi_memstall_leave(&pflags);
 	}
@@ -1321,14 +1326,33 @@ repeat:
 void wait_on_page_bit(struct page *page, int bit_nr)
 {
 	wait_queue_head_t *q = page_waitqueue(page);
-	wait_on_page_bit_common(q, page, bit_nr, TASK_UNINTERRUPTIBLE, false);
+	wait_on_page_bit_common(q, page, bit_nr, TASK_UNINTERRUPTIBLE, SHARED);
 }
 EXPORT_SYMBOL(wait_on_page_bit);
 
 int wait_on_page_bit_killable(struct page *page, int bit_nr)
 {
 	wait_queue_head_t *q = page_waitqueue(page);
-	return wait_on_page_bit_common(q, page, bit_nr, TASK_KILLABLE, false);
+	return wait_on_page_bit_common(q, page, bit_nr, TASK_KILLABLE, SHARED);
+}
+
+/**
+ * put_and_wait_on_page_locked - Drop a reference and wait for it to be unlocked
+ * @page: The page to wait for.
+ *
+ * The caller should hold a reference on @page.  They expect the page to
+ * become unlocked relatively soon, but do not wish to hold up migration
+ * (for example) by holding the reference while waiting for the page to
+ * come unlocked.  After this function returns, the caller should not
+ * dereference @page.
+ */
+void put_and_wait_on_page_locked(struct page *page)
+{
+	wait_queue_head_t *q;
+
+	page = compound_head(page);
+	q = page_waitqueue(page);
+	wait_on_page_bit_common(q, page, PG_locked, TASK_UNINTERRUPTIBLE, DROP);
 }
 
 /**
@@ -1460,7 +1484,8 @@ void __lock_page(struct page *__page)
 {
 	struct page *page = compound_head(__page);
 	wait_queue_head_t *q = page_waitqueue(page);
-	wait_on_page_bit_common(q, page, PG_locked, TASK_UNINTERRUPTIBLE, true);
+	wait_on_page_bit_common(q, page, PG_locked, TASK_UNINTERRUPTIBLE,
+				EXCLUSIVE);
 }
 EXPORT_SYMBOL(__lock_page);
 
@@ -1468,7 +1493,8 @@ int __lock_page_killable(struct page *__page)
 {
 	struct page *page = compound_head(__page);
 	wait_queue_head_t *q = page_waitqueue(page);
-	return wait_on_page_bit_common(q, page, PG_locked, TASK_KILLABLE, true);
+	return wait_on_page_bit_common(q, page, PG_locked, TASK_KILLABLE,
+					EXCLUSIVE);
 }
 EXPORT_SYMBOL_GPL(__lock_page_killable);
 
