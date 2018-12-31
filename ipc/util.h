@@ -134,10 +134,7 @@ struct kern_ipc_perm *ipcctl_pre_down_nolock(struct ipc_namespace *ns,
 					     struct ipc_ids *ids, int id, int cmd,
 					     struct ipc64_perm *perm, int extra_perm);
 
-#ifndef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
-/* On IA-64, we always use the "64-bit version" of the IPC structures.  */
-# define ipc_parse_version(cmd)	IPC_64
-#else
+#ifdef CONFIG_ARCH_WANT_IPC_PARSE_VERSION
 int ipc_parse_version(int *cmd);
 #endif
 
@@ -216,13 +213,9 @@ int get_compat_ipc64_perm(struct ipc64_perm *,
 
 static inline int compat_ipc_parse_version(int *cmd)
 {
-#ifdef	CONFIG_ARCH_WANT_COMPAT_IPC_PARSE_VERSION
 	int version = *cmd & IPC_64;
 	*cmd &= ~IPC_64;
 	return version;
-#else
-	return IPC_64;
-#endif
 }
 #endif
 
@@ -231,29 +224,29 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
 		     unsigned int nsops,
 		     const struct timespec __user *timeout);
 long ksys_semget(key_t key, int nsems, int semflg);
-long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+long ksys_old_semctl(int semid, int semnum, int cmd, unsigned long arg);
 long ksys_msgget(key_t key, int msgflg);
-long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+long ksys_old_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
 long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
 		 long msgtyp, int msgflg);
 long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
 		 int msgflg);
 long ksys_shmget(key_t key, size_t size, int shmflg);
 long ksys_shmdt(char __user *shmaddr);
-long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+long ksys_old_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
 
 /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
 #ifdef CONFIG_COMPAT
 long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
 			    unsigned int nsops,
 			    const struct old_timespec32 __user *timeout);
-long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
-long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
+long compat_ksys_old_semctl(int semid, int semnum, int cmd, int arg);
+long compat_ksys_old_msgctl(int msqid, int cmd, void __user *uptr);
 long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
 			compat_long_t msgtyp, int msgflg);
 long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
 		       compat_ssize_t msgsz, int msgflg);
-long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+long compat_ksys_old_shmctl(int shmid, int cmd, void __user *uptr);
 #endif /* CONFIG_COMPAT */
 
 #endif
