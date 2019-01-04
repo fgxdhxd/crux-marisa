@@ -132,7 +132,7 @@
 
 static int copyout(void __user *to, const void *from, size_t n)
 {
-	if (access_ok(VERIFY_WRITE, to, n)) {
+	if (access_ok(to, n)) {
 		kasan_check_read(from, n);
 		n = raw_copy_to_user(to, from, n);
 	}
@@ -141,7 +141,7 @@ static int copyout(void __user *to, const void *from, size_t n)
 
 static int copyin(void *to, const void __user *from, size_t n)
 {
-	if (access_ok(VERIFY_READ, from, n)) {
+	if (access_ok(from, n)) {
 		kasan_check_write(to, n);
 		n = raw_copy_from_user(to, from, n);
 	}
@@ -1452,7 +1452,7 @@ int import_single_range(int rw, void __user *buf, size_t len,
 {
 	if (len > MAX_RW_COUNT)
 		len = MAX_RW_COUNT;
-	if (unlikely(!access_ok(!rw, buf, len)))
+	if (unlikely(!access_ok(buf, len)))
 		return -EFAULT;
 
 	iov->iov_base = buf;

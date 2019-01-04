@@ -1074,7 +1074,7 @@ static int do_setcontext(struct ucontext __user *ucp, struct pt_regs *regs, int 
 #else
 	if (__get_user(mcp, &ucp->uc_regs))
 		return -EFAULT;
-	if (!access_ok(VERIFY_READ, mcp, sizeof(*mcp)))
+	if (!access_ok(mcp, sizeof(*mcp)))
 		return -EFAULT;
 #endif
 	set_current_blocked(&set);
@@ -1173,7 +1173,7 @@ long sys_swapcontext(struct ucontext __user *old_ctx,
 		 */
 		mctx = (struct mcontext __user *)
 			((unsigned long) &old_ctx->uc_mcontext & ~0xfUL);
-		if (!access_ok(VERIFY_WRITE, old_ctx, ctx_size)
+		if (!access_ok(old_ctx, ctx_size)
 		    || save_user_regs(regs, mctx, NULL, 0, ctx_has_vsx_region)
 		    || put_sigset_t(&old_ctx->uc_sigmask, &current->blocked)
 		    || __put_user(to_user_ptr(mctx), &old_ctx->uc_regs))
@@ -1219,7 +1219,7 @@ long sys_rt_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
 
 	rt_sf = (struct rt_sigframe __user *)
 		(regs->gpr[1] + __SIGNAL_FRAMESIZE + 16);
-	if (!access_ok(VERIFY_READ, rt_sf, sizeof(*rt_sf)))
+	if (!access_ok(rt_sf, sizeof(*rt_sf)))
 		goto bad;
 
 #ifdef CONFIG_PPC_TRANSACTIONAL_MEM
@@ -1544,7 +1544,7 @@ long sys_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
 	{
 		sr = (struct mcontext __user *)from_user_ptr(sigctx.regs);
 		addr = sr;
-		if (!access_ok(VERIFY_READ, sr, sizeof(*sr))
+		if (!access_ok(sr, sizeof(*sr))
 		    || restore_user_regs(regs, sr, 1))
 			goto badframe;
 	}

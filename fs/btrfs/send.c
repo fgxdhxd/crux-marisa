@@ -6654,7 +6654,7 @@ long btrfs_ioctl_send(struct file *mnt_file, void __user *arg_)
 		goto out;
 	}
 
-	if (!access_ok(VERIFY_READ, arg->clone_sources,
+	if (!access_ok(arg->clone_sources,
 			sizeof(*arg->clone_sources) *
 			arg->clone_sources_count)) {
 		ret = -EFAULT;

@@ -185,7 +185,7 @@ ia64_rt_sigreturn (struct sigscratch *scr)
 		 */
 		retval = (long) &ia64_strace_leave_kernel;
 
-	if (!access_ok(VERIFY_READ, sc, sizeof(*sc)))
+	if (!access_ok(sc, sizeof(*sc)))
 		goto give_sigsegv;
 
 	if (GET_SIGSET(&set, &sc->sc_mask))

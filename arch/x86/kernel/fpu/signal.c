@@ -164,7 +164,7 @@ int copy_fpstate_to_sigframe(void __user *buf, void __user *buf_fx, int size)
 	ia32_fxstate &= (IS_ENABLED(CONFIG_X86_32) ||
 			 IS_ENABLED(CONFIG_IA32_EMULATION));
 
-	if (!access_ok(VERIFY_WRITE, buf, size))
+	if (!access_ok(buf, size))
 		return -EACCES;
 
 	if (!static_cpu_has(X86_FEATURE_FPU))

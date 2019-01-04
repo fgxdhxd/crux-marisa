@@ -1392,7 +1392,7 @@ static int eb_relocate_vma(struct i915_execbuffer *eb, struct i915_vma *vma)
 	 * to read. However, if the array is not writable the user loses
 	 * the updated relocation values.
 	 */
-	if (unlikely(!access_ok(VERIFY_READ, urelocs, remain*sizeof(*urelocs))))
+	if (unlikely(!access_ok(urelocs, remain*sizeof(*urelocs))))
 		return -EFAULT;
 
 	do {
@@ -1497,7 +1497,7 @@ static int check_relocations(const struct drm_i915_gem_exec_object2 *entry)
 
 	addr = u64_to_user_ptr(entry->relocs_ptr);
 	size *= sizeof(struct drm_i915_gem_relocation_entry);
-	if (!access_ok(VERIFY_READ, addr, size))
+	if (!access_ok(addr, size))
 		return -EFAULT;
 
 	end = addr + size;
@@ -1566,7 +1566,7 @@ static int eb_copy_relocations(const struct i915_execbuffer *eb)
 		 * happened we would make the mistake of assuming that the
 		 * relocations were valid.
 		 */
-		if (!user_access_begin(VERIFY_WRITE, urelocs, size))
+		if (!user_access_begin(urelocs, size))
 			goto end_user;
 
 		for (copied = 0; copied < nreloc; copied++)
@@ -2144,7 +2144,7 @@ get_fence_array(struct drm_i915_gem_execbuffer2 *args,
 		return ERR_PTR(-EINVAL);
 
 	user = u64_to_user_ptr(args->cliprects_ptr);
-	if (!access_ok(VERIFY_READ, user, nfences * 2 * sizeof(u32)))
+	if (!access_ok(user, nfences * 2 * sizeof(u32)))
 		return ERR_PTR(-EFAULT);
 
 	fences = kvmalloc_array(args->num_cliprects, sizeof(*fences),
@@ -2659,7 +2659,7 @@ i915_gem_execbuffer2(struct drm_device *dev, void *data,
 		 * And this range already got effectively checked earlier
 		 * when we did the "copy_from_user()" above.
 		 */
-		if (!user_access_begin(VERIFY_WRITE, user_exec_list,
+		if (!user_access_begin(user_exec_list,
 				       count * sizeof(*user_exec_list)))
 			goto end_user;
 

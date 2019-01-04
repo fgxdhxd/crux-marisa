@@ -104,7 +104,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	return ret;
 }
 
-#define access_ok(type, addr, size)	__range_ok((unsigned long)(addr), size)
+#define access_ok(addr, size)	__range_ok((unsigned long)(addr), size)
 #define user_addr_max			get_fs
 
 #define _ASM_EXTABLE(from, to)						\
@@ -312,7 +312,7 @@ do {									\
 ({									\
 	__typeof__(*(ptr)) __user *__p = (ptr);				\
 	might_fault();							\
-	if (access_ok(VERIFY_READ, __p, sizeof(*__p))) {		\
+	if (access_ok(__p, sizeof(*__p))) {				\
 		__p = uaccess_mask_ptr(__p);				\
 		__get_user_err((x), __p, (err));			\
 	} else {							\
@@ -379,7 +379,7 @@ do {									\
 ({									\
 	__typeof__(*(ptr)) __user *__p = (ptr);				\
 	might_fault();							\
-	if (access_ok(VERIFY_WRITE, __p, sizeof(*__p))) {		\
+	if (access_ok(__p, sizeof(*__p))) {				\
 		__p = uaccess_mask_ptr(__p);				\
 		__put_user_err((x), __p, (err));			\
 	} else	{							\

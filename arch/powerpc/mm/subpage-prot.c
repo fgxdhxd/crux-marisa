@@ -210,7 +210,7 @@ long sys_subpage_prot(unsigned long addr, unsigned long len, u32 __user *map)
 		return 0;
 	}
 
-	if (!access_ok(VERIFY_READ, map, (len >> PAGE_SHIFT) * sizeof(u32)))
+	if (!access_ok(map, (len >> PAGE_SHIFT) * sizeof(u32)))
 		return -EFAULT;
 
 	down_write(&mm->mmap_sem);

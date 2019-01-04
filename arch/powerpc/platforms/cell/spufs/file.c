@@ -606,7 +606,7 @@ static ssize_t spufs_mbox_read(struct file *file, char __user *buf,
 	if (len < 4)
 		return -EINVAL;
 
-	if (!access_ok(VERIFY_WRITE, buf, len))
+	if (!access_ok(buf, len))
 		return -EFAULT;
 
 	udata = (void __user *)buf;
@@ -714,7 +714,7 @@ static ssize_t spufs_ibox_read(struct file *file, char __user *buf,
 	if (len < 4)
 		return -EINVAL;
 
-	if (!access_ok(VERIFY_WRITE, buf, len))
+	if (!access_ok(buf, len))
 		return -EFAULT;
 
 	udata = (void __user *)buf;
@@ -853,7 +853,7 @@ static ssize_t spufs_wbox_write(struct file *file, const char __user *buf,
 		return -EINVAL;
 
 	udata = (void __user *)buf;
-	if (!access_ok(VERIFY_READ, buf, len))
+	if (!access_ok(buf, len))
 		return -EFAULT;
 
 	if (__get_user(wbox_data, udata))
