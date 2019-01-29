@@ -31,10 +31,9 @@
 #endif
 
 #include <asm/cpufeature.h>
-
-#ifndef DAIF_PROCCTX_NOIRQ
-#define DAIF_PROCCTX_NOIRQ 0UL
-#endif
+#define DAIF_PROCCTX		0
+#define DAIF_PROCCTX_NOIRQ	PSR_I_BIT
+#define DAIF_ERRCTX		(PSR_I_BIT | PSR_A_BIT)
 
 /* mask/save/unmask/restore all exceptions, including interrupts. */
 static inline void local_daif_mask(void)
