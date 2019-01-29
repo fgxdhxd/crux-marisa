@@ -765,14 +765,7 @@ static const struct fault_info fault_info[] = {
 	{ do_bad,		SIGBUS,  0,		"unknown 63"			},
 };
 
-/*
- * Handle Synchronous External Aborts that occur in a guest kernel.
- *
- * The return value will be zero if the SEA was successfully handled
- * and non-zero if there was an error processing the error or there was
- * no error to process.
- */
-int handle_guest_sea(phys_addr_t addr, unsigned int esr)
+int kvm_handle_guest_sea(phys_addr_t addr, unsigned int esr)
 {
 	int ret = -ENOENT;
 
