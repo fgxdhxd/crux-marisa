@@ -285,11 +285,31 @@ static inline void kernel_signal_stop(void)
 
 	schedule();
 }
-extern int send_sig_info(int, struct siginfo *, struct task_struct *);
-extern int force_sigsegv(int, struct task_struct *);
-extern int force_sig_info(int, struct siginfo *, struct task_struct *);
+
+int force_sig_fault_to_task(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+	, struct task_struct *t);
+int force_sig_fault(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr));
+int send_sig_fault(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+	, struct task_struct *t);
+
+int force_sig_mceerr(int code, void __user *, short);
+int send_sig_mceerr(int code, void __user *, short, struct task_struct *);
+
+int force_sig_bnderr(void __user *addr, void __user *lower, void __user *upper);
+int force_sig_pkuerr(void __user *addr, u32 pkey);
+
 int force_sig_ptrace_errno_trap(int errno, void __user *addr);
 
+extern int send_sig_info(int, struct kernel_siginfo *, struct task_struct *);
+extern void force_sigsegv(int sig);
+extern int force_sig_info(struct kernel_siginfo *);
+int force_sig_ptrace_errno_trap(int errno, void __user *addr);
 extern int __kill_pgrp_info(int sig, struct siginfo *info, struct pid *pgrp);
 extern int kill_pid_info(int sig, struct siginfo *info, struct pid *pid);
 extern int kill_pid_info_as_cred(int, struct siginfo *, struct pid *,

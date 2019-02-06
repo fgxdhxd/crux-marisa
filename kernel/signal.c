@@ -186,6 +186,7 @@ void recalc_sigpending(void)
 		clear_thread_flag(TIF_SIGPENDING);
 
 }
+EXPORT_SYMBOL(recalc_sigpending);
 
 /* Given the mask, find the first available signal that should be serviced. */
 
@@ -456,6 +457,7 @@ void flush_signals(struct task_struct *t)
 	flush_sigqueue(&t->signal->shared_pending);
 	spin_unlock_irqrestore(&t->sighand->siglock, flags);
 }
+EXPORT_SYMBOL(flush_signals);
 
 #ifdef CONFIG_POSIX_TIMERS
 static void __flush_itimer_signals(struct sigpending *pending)
@@ -668,6 +670,7 @@ int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info)
 #endif
 	return signr;
 }
+EXPORT_SYMBOL_GPL(dequeue_signal);
 
 /*
  * Tell a process that it has a new active signal..
@@ -1530,6 +1533,7 @@ int send_sig_info(int sig, struct siginfo *info, struct task_struct *p)
 
 	return do_send_sig_info(sig, info, p, false);
 }
+EXPORT_SYMBOL(send_sig_info);
 
 #define __si_special(priv) \
 	((priv) ? SEND_SIG_PRIV : SEND_SIG_NOINFO)
@@ -1539,11 +1543,21 @@ send_sig(int sig, struct task_struct *p, int priv)
 {
 	return send_sig_info(sig, __si_special(priv), p);
 }
+EXPORT_SYMBOL(send_sig);
 
 void force_sig(int sig)
 {
-	force_sig_info(sig, SEND_SIG_PRIV, current);
+	struct kernel_siginfo info;
+
+	clear_siginfo(&info);
+	info.si_signo = sig;
+	info.si_errno = 0;
+	info.si_code = SI_KERNEL;
+	info.si_pid = 0;
+	info.si_uid = 0;
+	force_sig_info(&info);
 }
+EXPORT_SYMBOL(force_sig);
 
 /*
  * When things go south during signal handling, we
@@ -1551,9 +1565,10 @@ void force_sig(int sig)
  * the problem was already a SIGSEGV, we'll want to
  * make sure we don't even try to deliver the signal..
  */
-int
-force_sigsegv(int sig, struct task_struct *p)
+void force_sigsegv(int sig)
 {
+	struct task_struct *p = current;
+
 	if (sig == SIGSEGV) {
 		unsigned long flags;
 		spin_lock_irqsave(&p->sighand->siglock, flags);
@@ -1561,22 +1576,134 @@ force_sigsegv(int sig, struct task_struct *p)
 		spin_unlock_irqrestore(&p->sighand->siglock, flags);
 	}
 	force_sig(SIGSEGV);
-	return 0;
 }
+
+int force_sig_fault_to_task(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+	, struct task_struct *t)
+{
+	struct kernel_siginfo info;
+
+	clear_siginfo(&info);
+	info.si_signo = sig;
+	info.si_errno = 0;
+	info.si_code  = code;
+	info.si_addr  = addr;
+#ifdef __ARCH_SI_TRAPNO
+	info.si_trapno = trapno;
+#endif
+#ifdef __ia64__
+	info.si_imm = imm;
+	info.si_flags = flags;
+	info.si_isr = isr;
+#endif
+	return force_sig_info_to_task(&info, t);
+}
+
+int force_sig_fault(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr))
+{
+	return force_sig_fault_to_task(sig, code, addr
+				       ___ARCH_SI_TRAPNO(trapno)
+				       ___ARCH_SI_IA64(imm, flags, isr), current);
+}
+
+int send_sig_fault(int sig, int code, void __user *addr
+	___ARCH_SI_TRAPNO(int trapno)
+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
+	, struct task_struct *t)
+{
+	struct kernel_siginfo info;
+
+	clear_siginfo(&info);
+	info.si_signo = sig;
+	info.si_errno = 0;
+	info.si_code  = code;
+	info.si_addr  = addr;
+#ifdef __ARCH_SI_TRAPNO
+	info.si_trapno = trapno;
+#endif
+#ifdef __ia64__
+	info.si_imm = imm;
+	info.si_flags = flags;
+	info.si_isr = isr;
+#endif
+	return send_sig_info(info.si_signo, &info, t);
+}
+
+int force_sig_mceerr(int code, void __user *addr, short lsb)
+{
+	struct kernel_siginfo info;
+
+	WARN_ON((code != BUS_MCEERR_AO) && (code != BUS_MCEERR_AR));
+	clear_siginfo(&info);
+	info.si_signo = SIGBUS;
+	info.si_errno = 0;
+	info.si_code = code;
+	info.si_addr = addr;
+	info.si_addr_lsb = lsb;
+	return force_sig_info(&info);
+}
+
+int send_sig_mceerr(int code, void __user *addr, short lsb, struct task_struct *t)
+{
+	struct kernel_siginfo info;
+
+	WARN_ON((code != BUS_MCEERR_AO) && (code != BUS_MCEERR_AR));
+	clear_siginfo(&info);
+	info.si_signo = SIGBUS;
+	info.si_errno = 0;
+	info.si_code = code;
+	info.si_addr = addr;
+	info.si_addr_lsb = lsb;
+	return send_sig_info(info.si_signo, &info, t);
+}
+EXPORT_SYMBOL(send_sig_mceerr);
+
+int force_sig_bnderr(void __user *addr, void __user *lower, void __user *upper)
+{
+	struct kernel_siginfo info;
+
+	clear_siginfo(&info);
+	info.si_signo = SIGSEGV;
+	info.si_errno = 0;
+	info.si_code  = SEGV_BNDERR;
+	info.si_addr  = addr;
+	info.si_lower = lower;
+	info.si_upper = upper;
+	return force_sig_info(&info);
+}
+
+#ifdef SEGV_PKUERR
+int force_sig_pkuerr(void __user *addr, u32 pkey)
+{
+	struct kernel_siginfo info;
+
+	clear_siginfo(&info);
+	info.si_signo = SIGSEGV;
+	info.si_errno = 0;
+	info.si_code  = SEGV_PKUERR;
+	info.si_addr  = addr;
+	info.si_pkey  = pkey;
+	return force_sig_info(&info);
+}
+#endif
 
 /* For the crazy architectures that include trap information in
  * the errno field, instead of an actual errno value.
  */
 int force_sig_ptrace_errno_trap(int errno, void __user *addr)
 {
-	struct siginfo info;
+	struct kernel_siginfo info;
 
 	clear_siginfo(&info);
 	info.si_signo = SIGTRAP;
 	info.si_errno = errno;
 	info.si_code  = TRAP_HWBKPT;
 	info.si_addr  = addr;
-	return force_sig_info(info.si_signo, &info, current);
+	return force_sig_info(&info);
 }
 
 int kill_pgrp(struct pid *pid, int sig, int priv)
@@ -2642,14 +2769,6 @@ out:
 	}
 }
 
-EXPORT_SYMBOL(recalc_sigpending);
-EXPORT_SYMBOL_GPL(dequeue_signal);
-EXPORT_SYMBOL(flush_signals);
-EXPORT_SYMBOL(force_sig);
-EXPORT_SYMBOL(send_sig);
-EXPORT_SYMBOL(send_sig_info);
-EXPORT_SYMBOL(sigprocmask);
-
 /*
  * System call entry points.
  */
@@ -2743,6 +2862,7 @@ int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
 	__set_current_blocked(&newset);
 	return 0;
 }
+EXPORT_SYMBOL(sigprocmask);
 
 /*
  * The api helps set app-provided sigmasks.
