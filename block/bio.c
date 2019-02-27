@@ -1011,6 +1011,13 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
 {
 	unsigned short orig_vcnt = bio->bi_vcnt;
 
+	/*
+	 * If this is a BVEC iter, then the pages are kernel pages. Don't
+	 * release them on IO completion, if the caller asked us to.
+	 */
+	if (is_bvec && iov_iter_bvec_no_ref(iter))
+		bio_set_flag(bio, BIO_NO_PAGE_REF);
+
 	do {
 		int ret = __bio_iov_iter_get_pages(bio, iter);
 
@@ -1730,10 +1737,9 @@ static void bio_dirty_fn(struct work_struct *work)
 
 	while ((bio = next) != NULL) {
 		next = bio->bi_private;
-		
-		bio_set_pages_dirty(bio);
-		bio_release_pages(bio);
-		bio = next;
+
+		bio_release_pages(bio, true);
+		bio_put(bio);
 	}
 }
 
@@ -1748,7 +1754,8 @@ void bio_check_pages_dirty(struct bio *bio)
 			goto defer;
 	}
 
-	bio_release_pages(bio);
+	if (!bio_flagged(bio, BIO_NO_PAGE_REF))
+		bio_release_pages(bio);
 	bio_put(bio);
 	return;
 defer:
