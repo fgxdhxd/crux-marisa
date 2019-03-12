@@ -438,13 +438,6 @@ static inline bool memblock_bottom_up(void)
 	return memblock.bottom_up;
 }
 
-/* Flags for memblock_alloc_base() amd __memblock_alloc_base() */
-#define MEMBLOCK_ALLOC_ANYWHERE	(~(phys_addr_t)0)
-#define MEMBLOCK_ALLOC_ACCESSIBLE	0
-#define MEMBLOCK_ALLOC_KASAN		1
-
-phys_addr_t memblock_alloc_base(phys_addr_t size, phys_addr_t align,
-				phys_addr_t max_addr);
 phys_addr_t memblock_phys_mem_size(void);
 phys_addr_t memblock_reserved_size(void);
 phys_addr_t memblock_mem_size(unsigned long limit_pfn);
