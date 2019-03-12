@@ -39,24 +39,17 @@ int __init __weak early_init_dt_alloc_reserved_memory_arch(phys_addr_t size,
 
 	end = !end ? MEMBLOCK_ALLOC_ANYWHERE : end;
 	align = !align ? SMP_CACHE_BYTES : align;
-	base = memblock_phys_alloc_range(size, align, 0, end);
+	base = memblock_find_in_range(start, end, size, align);
 	if (!base)
 		return -ENOMEM;
-
-	/*
-	 * Check if the allocated region fits in to start..end window
-	 */
-	if (base < start) {
-		memblock_free(base, size);
-		return -ENOMEM;
-	}
 
 	*res_base = base;
 	if (nomap) {
 		kmemleak_ignore_phys(base);
 		return memblock_remove(base, size);
 	}
-	return 0;
+
+	return memblock_reserve(base, size);
 }
 
 /**
