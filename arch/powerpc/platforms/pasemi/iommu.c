@@ -208,7 +208,16 @@ static int __init iob_init(struct device_node *dn)
 	pr_debug(" -> %s\n", __func__);
 
 	/* For 2G space, 8x64 pages (2^21 bytes) is max total l2 size */
+<<<<<<< HEAD
 	iob_l2_base = (u32 *)__va(memblock_alloc_base(1UL<<21, 1UL<<21, 0x80000000));
+=======
+	iob_l2_base = memblock_alloc_try_nid_raw(1UL << 21, 1UL << 21,
+					MEMBLOCK_LOW_LIMIT, 0x80000000,
+					NUMA_NO_NODE);
+	if (!iob_l2_base)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx max_addr=%x\n",
+		      __func__, 1UL << 21, 1UL << 21, 0x80000000);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	printk(KERN_INFO "IOBMAP L2 allocated at: %p\n", iob_l2_base);
 

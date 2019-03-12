@@ -465,7 +465,17 @@ void __init smp_setup_cpu_maps(void)
 
 	DBG("smp_setup_cpu_maps()\n");
 
+<<<<<<< HEAD
 	while ((dn = of_find_node_by_type(dn, "cpu")) && cpu < nr_cpu_ids) {
+=======
+	cpu_to_phys_id = memblock_alloc(nr_cpu_ids * sizeof(u32),
+					__alignof__(u32));
+	if (!cpu_to_phys_id)
+		panic("%s: Failed to allocate %zu bytes align=0x%zx\n",
+		      __func__, nr_cpu_ids * sizeof(u32), __alignof__(u32));
+
+	for_each_node_by_type(dn, "cpu") {
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 		const __be32 *intserv;
 		__be32 cpu_be;
 		int j, len;

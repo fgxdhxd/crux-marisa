@@ -1059,7 +1059,16 @@ static int __init dt_cpu_ftrs_scan_callback(unsigned long node, const char
 	/* Count and allocate space for cpu features */
 	of_scan_flat_dt_subnodes(node, count_cpufeatures_subnodes,
 						&nr_dt_cpu_features);
+<<<<<<< HEAD
 	dt_cpu_features = __va(memblock_phys_alloc(sizeof(struct dt_cpu_feature) * nr_dt_cpu_features, PAGE_SIZE));
+=======
+	dt_cpu_features = memblock_alloc(sizeof(struct dt_cpu_feature) * nr_dt_cpu_features, PAGE_SIZE);
+	if (!dt_cpu_features)
+		panic("%s: Failed to allocate %zu bytes align=0x%lx\n",
+		      __func__,
+		      sizeof(struct dt_cpu_feature) * nr_dt_cpu_features,
+		      PAGE_SIZE);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	cpufeatures_setup_start(isa);
 

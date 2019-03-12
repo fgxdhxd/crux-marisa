@@ -105,8 +105,17 @@ static void __init numa_setup_memory(void)
 	} while (cur_base < end_of_dram);
 
 	/* Allocate and fill out node_data */
+<<<<<<< HEAD
 	for (nid = 0; nid < MAX_NUMNODES; nid++)
 		NODE_DATA(nid) = alloc_node_data();
+=======
+	for (nid = 0; nid < MAX_NUMNODES; nid++) {
+		NODE_DATA(nid) = memblock_alloc(sizeof(pg_data_t), 8);
+		if (!NODE_DATA(nid))
+			panic("%s: Failed to allocate %zu bytes align=0x%x\n",
+			      __func__, sizeof(pg_data_t), 8);
+	}
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	for_each_online_node(nid) {
 		unsigned long start_pfn, end_pfn;

@@ -133,8 +133,18 @@ void __init coherent_mem_init(phys_addr_t start, u32 size)
 	if (dma_size & (PAGE_SIZE - 1))
 		++dma_pages;
 
+<<<<<<< HEAD
 	bitmap_phys = memblock_phys_alloc(BITS_TO_LONGS(dma_pages) * sizeof(long),
 					  sizeof(long));
+=======
+	dma_bitmap = memblock_alloc(BITS_TO_LONGS(dma_pages) * sizeof(long),
+				    sizeof(long));
+	if (!dma_bitmap)
+		panic("%s: Failed to allocate %zu bytes align=0x%zx\n",
+		      __func__, BITS_TO_LONGS(dma_pages) * sizeof(long),
+		      sizeof(long));
+}
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	dma_bitmap = phys_to_virt(bitmap_phys);
 	memset(dma_bitmap, 0, dma_pages * PAGE_SIZE);

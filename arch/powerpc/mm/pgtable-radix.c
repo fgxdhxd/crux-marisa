@@ -49,12 +49,28 @@ static int native_register_process_table(unsigned long base, unsigned long pg_sz
 
 static __ref void *early_alloc_pgtable(unsigned long size)
 {
+<<<<<<< HEAD
 	void *pt;
+=======
+	phys_addr_t min_addr = MEMBLOCK_LOW_LIMIT;
+	phys_addr_t max_addr = MEMBLOCK_ALLOC_ANYWHERE;
+	void *ptr;
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	pt = __va(memblock_alloc_base(size, size, MEMBLOCK_ALLOC_ANYWHERE));
 	memset(pt, 0, size);
 
+<<<<<<< HEAD
 	return pt;
+=======
+	ptr = memblock_alloc_try_nid(size, size, min_addr, max_addr, nid);
+
+	if (!ptr)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx nid=%d from=%pa max_addr=%pa\n",
+		      __func__, size, size, nid, &min_addr, &max_addr);
+
+	return ptr;
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 }
 
 int radix__map_kernel_page(unsigned long ea, unsigned long pa,

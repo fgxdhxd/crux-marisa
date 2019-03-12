@@ -2302,11 +2302,18 @@ void __init trap_init(void)
 
 		ebase = (unsigned long)
 <<<<<<< HEAD
+<<<<<<< HEAD
 			__alloc_bootmem(size, 1 << fls(size), 0);
 =======
 			memblock_alloc_from(size, 1 << fls(size), 0);
 		memblock_set_bottom_up(false);
 >>>>>>> 4fc4a09e4cc11 (memblock: replace __alloc_bootmem with memblock_alloc_from)
+=======
+			memblock_alloc(size, 1 << fls(size));
+		if (!ebase)
+			panic("%s: Failed to allocate %lu bytes align=0x%x\n",
+			      __func__, size, 1 << fls(size));
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 		/*
 		 * Try to ensure ebase resides in KSeg0 if possible.

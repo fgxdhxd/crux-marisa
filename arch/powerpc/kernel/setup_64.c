@@ -900,8 +900,18 @@ static void __ref init_fallback_flush(void)
 	 * hardware prefetch runoff. We don't have a recipe for load patterns to
 	 * reliably avoid the prefetcher.
 	 */
+<<<<<<< HEAD
 	l1d_flush_fallback_area = __va(memblock_alloc_base(l1d_size * 2, l1d_size, limit));
 	memset(l1d_flush_fallback_area, 0, l1d_size * 2);
+=======
+	l1d_flush_fallback_area = memblock_alloc_try_nid(l1d_size * 2,
+						l1d_size, MEMBLOCK_LOW_LIMIT,
+						limit, NUMA_NO_NODE);
+	if (!l1d_flush_fallback_area)
+		panic("%s: Failed to allocate %llu bytes align=0x%llx max_addr=%pa\n",
+		      __func__, l1d_size * 2, l1d_size, &limit);
+
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	for_each_possible_cpu(cpu) {
 		paca[cpu].rfi_flush_fallback_area = l1d_flush_fallback_area;

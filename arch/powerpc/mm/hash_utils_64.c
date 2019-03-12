@@ -942,9 +942,18 @@ static void __init htab_initialize(void)
 #ifdef CONFIG_DEBUG_PAGEALLOC
 	if (debug_pagealloc_enabled()) {
 		linear_map_hash_count = memblock_end_of_DRAM() >> PAGE_SHIFT;
+<<<<<<< HEAD
 		linear_map_hash_slots = __va(memblock_alloc_base(
 				linear_map_hash_count, 1, ppc64_rma_size));
 		memset(linear_map_hash_slots, 0, linear_map_hash_count);
+=======
+		linear_map_hash_slots = memblock_alloc_try_nid(
+				linear_map_hash_count, 1, MEMBLOCK_LOW_LIMIT,
+				ppc64_rma_size,	NUMA_NO_NODE);
+		if (!linear_map_hash_slots)
+			panic("%s: Failed to allocate %lu bytes max_addr=%pa\n",
+			      __func__, linear_map_hash_count, &ppc64_rma_size);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 	}
 #endif /* CONFIG_DEBUG_PAGEALLOC */
 

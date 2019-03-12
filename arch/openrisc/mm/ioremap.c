@@ -124,9 +124,18 @@ pte_t __ref *pte_alloc_one_kernel(struct mm_struct *mm,
 	pte_t *pte;
 
 	if (likely(mem_init_done)) {
+<<<<<<< HEAD
 		pte = (pte_t *) __get_free_page(GFP_KERNEL);
 	} else {
 		pte = (pte_t *) __va(memblock_phys_alloc(PAGE_SIZE, PAGE_SIZE));
+=======
+		pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
+	} else {
+		pte = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
+		if (!pte)
+			panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
+			      __func__, PAGE_SIZE, PAGE_SIZE);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 	}
 
 	if (pte)

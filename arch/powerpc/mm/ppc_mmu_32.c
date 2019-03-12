@@ -224,8 +224,15 @@ void __init MMU_init_hw(void)
 	 * Find some memory for the hash table.
 	 */
 	if ( ppc_md.progress ) ppc_md.progress("hash:find piece", 0x322);
+<<<<<<< HEAD
 	Hash = __va(memblock_phys_alloc(Hash_size, Hash_size));
 	memset(Hash, 0, Hash_size);
+=======
+	Hash = memblock_alloc(Hash_size, Hash_size);
+	if (!Hash)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
+		      __func__, Hash_size, Hash_size);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 	_SDR1 = __pa(Hash) | SDR1_LOW_BITS;
 
 	Hash_end = (struct hash_pte *) ((unsigned long)Hash + Hash_size);

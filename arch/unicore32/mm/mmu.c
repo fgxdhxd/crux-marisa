@@ -153,7 +153,17 @@ static pte_t * __init early_pte_alloc(pmd_t *pmd, unsigned long addr,
 		unsigned long prot)
 {
 	if (pmd_none(*pmd)) {
+<<<<<<< HEAD
 		pte_t *pte = early_alloc(PTRS_PER_PTE * sizeof(pte_t));
+=======
+		size_t size = PTRS_PER_PTE * sizeof(pte_t);
+		pte_t *pte = memblock_alloc(size, size);
+
+		if (!pte)
+			panic("%s: Failed to allocate %zu bytes align=%zx\n",
+			      __func__, size, size);
+
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 		__pmd_populate(pmd, __pa(pte) | prot);
 	}
 	BUG_ON(pmd_bad(*pmd));
@@ -355,7 +365,14 @@ static void __init devicemaps_init(void)
 	/*
 	 * Allocate the vector page early.
 	 */
+<<<<<<< HEAD
 	vectors = early_alloc(PAGE_SIZE);
+=======
+	vectors = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
+	if (!vectors)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
+		      __func__, PAGE_SIZE, PAGE_SIZE);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	for (addr = VMALLOC_END; addr; addr += PGDIR_SIZE)
 		pmd_clear(pmd_off_k(addr));
@@ -432,7 +449,14 @@ void __init paging_init(void)
 	top_pmd = pmd_off_k(0xffff0000);
 
 	/* allocate the zero page. */
+<<<<<<< HEAD
 	zero_page = early_alloc(PAGE_SIZE);
+=======
+	zero_page = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
+	if (!zero_page)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
+		      __func__, PAGE_SIZE, PAGE_SIZE);
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	bootmem_init();
 

@@ -730,7 +730,17 @@ static void __init *early_alloc_aligned(unsigned long sz, unsigned long align)
 
 static void __init *early_alloc(unsigned long sz)
 {
+<<<<<<< HEAD
 	return early_alloc_aligned(sz, sz);
+=======
+	void *ptr = memblock_alloc(sz, sz);
+
+	if (!ptr)
+		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
+		      __func__, sz, sz);
+
+	return ptr;
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 }
 
 static void *__init late_alloc(unsigned long sz)
@@ -1002,7 +1012,14 @@ void __init iotable_init(struct map_desc *io_desc, int nr)
 	if (!nr)
 		return;
 
+<<<<<<< HEAD
 	svm = early_alloc_aligned(sizeof(*svm) * nr, __alignof__(*svm));
+=======
+	svm = memblock_alloc(sizeof(*svm) * nr, __alignof__(*svm));
+	if (!svm)
+		panic("%s: Failed to allocate %zu bytes align=0x%zx\n",
+		      __func__, sizeof(*svm) * nr, __alignof__(*svm));
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	for (md = io_desc; nr; md++, nr--) {
 		create_mapping(md);
@@ -1024,7 +1041,14 @@ void __init vm_reserve_area_early(unsigned long addr, unsigned long size,
 	struct vm_struct *vm;
 	struct static_vm *svm;
 
+<<<<<<< HEAD
 	svm = early_alloc_aligned(sizeof(*svm), __alignof__(*svm));
+=======
+	svm = memblock_alloc(sizeof(*svm), __alignof__(*svm));
+	if (!svm)
+		panic("%s: Failed to allocate %zu bytes align=0x%zx\n",
+		      __func__, sizeof(*svm), __alignof__(*svm));
+>>>>>>> 8a7f97b902f4 (treewide: add checks for the return value of memblock_alloc*())
 
 	vm = &svm->vm;
 	vm->addr = (void *)addr;
