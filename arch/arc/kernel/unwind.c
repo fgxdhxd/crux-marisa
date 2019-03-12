@@ -182,6 +182,14 @@ static void init_unwind_hdr(struct unwind_table *table,
 static void *__init unw_hdr_alloc_early(unsigned long sz)
 {
 	return memblock_alloc_from(sz, sizeof(unsigned int), MAX_DMA_ADDRESS);
+<<<<<<< HEAD
+=======
+}
+
+static void *unw_hdr_alloc(unsigned long sz)
+{
+	return kmalloc(sz, GFP_KERNEL);
+>>>>>>> 26fb3dae0a1e (memblock: drop memblock_alloc_*_nopanic() variants)
 }
 
 static void init_unwind_table(struct unwind_table *table, const char *name,
