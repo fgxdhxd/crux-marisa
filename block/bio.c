@@ -643,6 +643,24 @@ struct bio *bio_clone_fast(struct bio *bio, gfp_t gfp_mask, struct bio_set *bs)
 }
 EXPORT_SYMBOL(bio_clone_fast);
 
+static inline bool page_is_mergeable(const struct bio_vec *bv,
+		struct page *page, unsigned int len, unsigned int off,
+		bool same_page)
+{
+	phys_addr_t vec_end_addr = page_to_phys(bv->bv_page) +
+		bv->bv_offset + bv->bv_len - 1;
+	phys_addr_t page_addr = page_to_phys(page);
+
+	if (vec_end_addr + 1 != page_addr + off)
+		return false;
+	if (xen_domain() && !xen_biovec_phys_mergeable(bv, page))
+		return false;
+	if (same_page && (vec_end_addr & PAGE_MASK) != page_addr)
+		return false;
+
+	return true;
+}
+
 /**
  * 	bio_clone_bioset - clone a bio
  * 	@bio_src: bio to clone
