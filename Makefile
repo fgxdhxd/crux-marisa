@@ -1285,11 +1285,11 @@ prepare: prepare0 prepare-objtool
 # Support for using generic headers in asm-generic
 PHONY += asm-generic uapi-asm-generic
 asm-generic: uapi-asm-generic
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
-	            src=asm obj=arch/$(SRCARCH)/include/generated/asm
+	$(Q)$(MAKE) $(asm-generic)=arch/$(SRCARCH)/include/generated/asm \
+	generic=include/asm-generic
 uapi-asm-generic:
-	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
-	            src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm
+	$(Q)$(MAKE) $(asm-generic)=arch/$(SRCARCH)/include/generated/uapi/asm \
+	generic=include/uapi/asm-generic
 
 PHONY += prepare-objtool
 prepare-objtool: $(objtool_target)

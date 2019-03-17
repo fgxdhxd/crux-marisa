@@ -9,6 +9,11 @@
 kbuild-file := $(srctree)/arch/$(SRCARCH)/include/$(src)/Kbuild
 -include $(kbuild-file)
 
+# $(generic)/Kbuild lists mandatory-y. Exclude um since it is a special case.
+ifneq ($(SRCARCH),um)
+include $(generic)/Kbuild
+endif
+
 include scripts/Kbuild.include
 
 # Create output directory if not already present
