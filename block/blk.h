@@ -79,6 +79,41 @@ static inline void blk_queue_enter_live(struct request_queue *q)
 	percpu_ref_get(&q->q_usage_counter);
 }
 
+static inline bool biovec_phys_mergeable(struct request_queue *q,
+		struct bio_vec *vec1, struct bio_vec *vec2)
+{
+	unsigned long mask = queue_segment_boundary(q);
+	phys_addr_t addr1 = page_to_phys(vec1->bv_page) + vec1->bv_offset;
+	phys_addr_t addr2 = page_to_phys(vec2->bv_page) + vec2->bv_offset;
+
+	if (addr1 + vec1->bv_len != addr2)
+		return false;
+	if (xen_domain() && !xen_biovec_phys_mergeable(vec1, vec2->bv_page))
+		return false;
+	if ((addr1 | mask) != ((addr2 + vec2->bv_len - 1) | mask))
+		return false;
+	return true;
+}
+
+static inline bool __bvec_gap_to_prev(struct request_queue *q,
+		struct bio_vec *bprv, unsigned int offset)
+{
+	return (offset & queue_virt_boundary(q)) ||
+		((bprv->bv_offset + bprv->bv_len) & queue_virt_boundary(q));
+}
+
+/*
+ * Check if adding a bio_vec after bprv with offset would create a gap in
+ * the SG list. Most drivers don't care about this, but some do.
+ */
+static inline bool bvec_gap_to_prev(struct request_queue *q,
+		struct bio_vec *bprv, unsigned int offset)
+{
+	if (!queue_virt_boundary(q))
+		return false;
+	return __bvec_gap_to_prev(q, bprv, offset);
+}
+
 #ifdef CONFIG_BLK_DEV_INTEGRITY
 void blk_flush_integrity(void);
 bool __bio_integrity_endio(struct bio *);
