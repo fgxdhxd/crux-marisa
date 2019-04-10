@@ -328,7 +328,33 @@ static inline size_t __must_check size_sub(size_t minuend, size_t subtrahend)
  * Returns: number of bytes needed to represent the array or SIZE_MAX on
  * overflow.
  */
-#define array3_size(a, b, c)	size_mul(size_mul(a, b), c)
+static inline __must_check size_t array3_size(size_t a, size_t b, size_t c)
+{
+	size_t bytes;
+
+	if (check_mul_overflow(a, b, &bytes))
+		return SIZE_MAX;
+	if (check_mul_overflow(bytes, c, &bytes))
+		return SIZE_MAX;
+
+	return bytes;
+}
+
+/*
+ * Compute a*b+c, returning SIZE_MAX on overflow. Internal helper for
+ * struct_size() below.
+ */
+static inline __must_check size_t __ab_c_size(size_t a, size_t b, size_t c)
+{
+	size_t bytes;
+
+	if (check_mul_overflow(a, b, &bytes))
+		return SIZE_MAX;
+	if (check_add_overflow(bytes, c, &bytes))
+		return SIZE_MAX;
+
+	return bytes;
+}
 
 /**
  * flex_array_size() - Calculate size of a flexible array member
