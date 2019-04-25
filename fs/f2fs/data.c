@@ -121,22 +121,10 @@ struct bio_post_read_ctx {
 static void f2fs_finish_read_bio(struct bio *bio, bool in_task)
 {
 	struct bio_vec *bv;
-	int iter_all;
+	struct bvec_iter_all iter_all;
 
-	/*
-	 * Update and unlock the bio's pagecache pages, and put the
-	 * decompression context for any compressed pages.
-	 */
 	bio_for_each_segment_all(bv, bio, iter_all) {
-		struct page *page = bv->bv_page;
-
-		if (f2fs_is_compressed_page(page)) {
-			if (bio->bi_status)
-				f2fs_end_read_compressed_page(page, true, 0,
-							in_task);
-			f2fs_put_page_dic(page, in_task);
-			continue;
-		}
+		page = bv->bv_page;
 
 		/* PG_error was set if decryption or verity failed. */
 		if (bio->bi_status || PageError(page)) {
@@ -312,10 +300,7 @@ static void f2fs_write_end_io(struct bio *bio)
 {
 	struct f2fs_sb_info *sbi;
 	struct bio_vec *bvec;
-	int iter_all;
-
-	iostat_update_and_unbind_ctx(bio, 1);
-	sbi = bio->bi_private;
+	struct bvec_iter_all iter_all;
 
 	if (time_to_inject(sbi, FAULT_WRITE_IO)) {
 		f2fs_show_injection_info(sbi, FAULT_WRITE_IO);
@@ -580,7 +565,8 @@ static bool __has_merged_page(struct bio *bio, struct inode *inode,
 						struct page *page, nid_t ino)
 {
 	struct bio_vec *bvec;
-	int iter_all;
+	struct page *target;
+	struct bvec_iter_all iter_all;
 
 	if (!bio)
 		return false;
@@ -588,19 +574,12 @@ static bool __has_merged_page(struct bio *bio, struct inode *inode,
 	if (!inode && !page && !ino)
 		return true;
 
-	bio_for_each_segment_all(bvec, bio, iter_all) {
-		struct page *target = bvec->bv_page;
+	bio_for_each_segment_all(bvec, io->bio, iter_all) {
 
-		if (fscrypt_is_bounce_page(target)) {
-			target = fscrypt_pagecache_page(target);
-			if (IS_ERR(target))
-				continue;
-		}
-		if (f2fs_is_compressed_page(target)) {
-			target = f2fs_compress_control_page(target);
-			if (IS_ERR(target))
-				continue;
-		}
+		if (bvec->bv_page->mapping)
+			target = bvec->bv_page;
+		else
+			target = fscrypt_control_page(bvec->bv_page);
 
 		if (inode && inode == target->mapping->host)
 			return true;
