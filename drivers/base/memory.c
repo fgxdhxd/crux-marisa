@@ -863,10 +863,13 @@ int create_memory_block_devices(unsigned long start, unsigned long size)
 	return ret;
 }
 
-static int remove_memory_section(unsigned long node_id,
+void unregister_memory_section(unsigned long node_id,
 			       struct mem_section *section, int phys_device)
 {
 	struct memory_block *mem;
+
+	if (WARN_ON_ONCE(!present_section(section)))
+	return;
 
 	mutex_lock(&mem_sysfs_mutex);
 
@@ -888,15 +891,6 @@ static int remove_memory_section(unsigned long node_id,
 
 out_unlock:
 	mutex_unlock(&mem_sysfs_mutex);
-	return 0;
-}
-
-int unregister_memory_section(struct mem_section *section)
-{
-	if (!present_section(section))
-		return -EINVAL;
-
-	return remove_memory_section(0, section, 0);
 }
 
 /* return true if the memory block is offlined, otherwise, return false */
