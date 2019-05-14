@@ -111,6 +111,7 @@ struct mem_cgroup_per_node {
 
 	struct lruvec_stat __percpu *lruvec_stat_cpu;
 	atomic_long_t		lruvec_stat[NR_VM_NODE_STAT_ITEMS];
+	atomic_long_t		lruvec_stat_local[NR_VM_NODE_STAT_ITEMS];
 
 	unsigned long		lru_zone_size[MAX_NR_ZONES][NR_LRU_LISTS];
 
@@ -248,9 +249,13 @@ struct mem_cgroup {
 
 	MEMCG_PADDING(_pad2_);
 
-	atomic_long_t		stat[MEMCG_NR_STAT];
-	atomic_long_t		events[NR_VM_EVENT_ITEMS];
-	atomic_long_t memory_events[MEMCG_NR_MEMORY_EVENTS];
+	atomic_long_t		vmstats[MEMCG_NR_STAT];
+	atomic_long_t		vmstats_local[MEMCG_NR_STAT];
+
+	atomic_long_t		vmevents[NR_VM_EVENT_ITEMS];
+	atomic_long_t		vmevents_local[NR_VM_EVENT_ITEMS];
+
+	atomic_long_t		memory_events[MEMCG_NR_MEMORY_EVENTS];
 
 	unsigned long		socket_pressure;
 
@@ -511,10 +516,24 @@ void unlock_page_memcg(struct page *page);
  * idx can be of type enum memcg_stat_item or node_stat_item.
  * Keep in sync with memcg_exact_page_state().
  */
-static inline unsigned long memcg_page_state(struct mem_cgroup *memcg,
-					     int idx)
+static inline unsigned long memcg_page_state(struct mem_cgroup *memcg, int idx)
 {
-	long x = atomic_long_read(&memcg->stat[idx]);
+	long x = atomic_long_read(&memcg->vmstats[idx]);
+#ifdef CONFIG_SMP
+	if (x < 0)
+		x = 0;
+#endif
+	return x;
+}
+
+/*
+ * idx can be of type enum memcg_stat_item or node_stat_item.
+ * Keep in sync with memcg_exact_page_state().
+ */
+static inline unsigned long memcg_page_state_local(struct mem_cgroup *memcg,
+						   int idx)
+{
+	long x = atomic_long_read(&memcg->vmstats_local[idx]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -577,6 +596,24 @@ static inline unsigned long lruvec_page_state(struct lruvec *lruvec,
 
 	pn = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
 	x = atomic_long_read(&pn->lruvec_stat[idx]);
+#ifdef CONFIG_SMP
+	if (x < 0)
+		x = 0;
+#endif
+	return x;
+}
+
+static inline unsigned long lruvec_page_state_local(struct lruvec *lruvec,
+						    enum node_stat_item idx)
+{
+	struct mem_cgroup_per_node *pn;
+	long x;
+
+	if (mem_cgroup_disabled())
+		return node_page_state(lruvec_pgdat(lruvec), idx);
+
+	pn = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
+	x = atomic_long_read(&pn->lruvec_stat_local[idx]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -880,8 +917,23 @@ static inline bool mem_cgroup_oom_synchronize(bool wait)
 	return false;
 }
 
-static inline unsigned long memcg_page_state(struct mem_cgroup *memcg,
-					     int idx)
+static inline struct mem_cgroup *mem_cgroup_get_oom_group(
+	struct task_struct *victim, struct mem_cgroup *oom_domain)
+{
+	return NULL;
+}
+
+static inline void mem_cgroup_print_oom_group(struct mem_cgroup *memcg)
+{
+}
+
+static inline unsigned long memcg_page_state(struct mem_cgroup *memcg, int idx)
+{
+	return 0;
+}
+
+static inline unsigned long memcg_page_state_local(struct mem_cgroup *memcg,
+						   int idx)
 {
 	return 0;
 }
@@ -912,6 +964,12 @@ static inline void mod_memcg_page_state(struct page *page,
 
 static inline unsigned long lruvec_page_state(struct lruvec *lruvec,
 					      enum node_stat_item idx)
+{
+	return node_page_state(lruvec_pgdat(lruvec), idx);
+}
+
+static inline unsigned long lruvec_page_state_local(struct lruvec *lruvec,
+						    enum node_stat_item idx)
 {
 	return node_page_state(lruvec_pgdat(lruvec), idx);
 }
