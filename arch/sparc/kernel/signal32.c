@@ -239,7 +239,7 @@ void do_sigreturn32(struct pt_regs *regs)
 	return;
 
 segv:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 }
 
 asmlinkage void do_rt_sigreturn32(struct pt_regs *regs)
@@ -325,7 +325,7 @@ asmlinkage void do_rt_sigreturn32(struct pt_regs *regs)
 	set_current_blocked(&set);
 	return;
 segv:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 }
 
 static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs, unsigned long framesize)

@@ -277,7 +277,26 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
 		pr_cont("\n");
 	}
 
+<<<<<<< HEAD
 	force_sig_info(signr, info ?: SEND_SIG_PRIV, tsk);
+=======
+static void
+do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
+	long error_code, int sicode, void __user *addr)
+{
+	struct task_struct *tsk = current;
+
+
+	if (!do_trap_no_signal(tsk, trapnr, str, regs, error_code))
+		return;
+
+	show_signal(tsk, signr, "trap ", str, regs, error_code);
+
+	if (!sicode)
+		force_sig(signr);
+	else
+		force_sig_fault(signr, sicode, addr, tsk);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 }
 NOKPROBE_SYMBOL(do_trap);
 
@@ -567,7 +586,11 @@ do_general_protection(struct pt_regs *regs, long error_code)
 		pr_cont("\n");
 	}
 
+<<<<<<< HEAD
 	force_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
+=======
+	force_sig(SIGSEGV);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 }
 NOKPROBE_SYMBOL(do_general_protection);
 

@@ -281,8 +281,33 @@ void arm64_force_sig_info(struct siginfo *info, const char *str,
 	pr_cont("\n");
 	__show_regs(regs);
 
+<<<<<<< HEAD
 send_sig:
 	force_sig_info(info->si_signo, info, tsk);
+=======
+void arm64_force_sig_fault(int signo, int code, void __user *addr,
+			   const char *str)
+{
+	arm64_show_signal(signo, str);
+	if (signo == SIGKILL)
+		force_sig(SIGKILL);
+	else
+		force_sig_fault(signo, code, addr, current);
+}
+
+void arm64_force_sig_mceerr(int code, void __user *addr, short lsb,
+			    const char *str)
+{
+	arm64_show_signal(SIGBUS, str);
+	force_sig_mceerr(code, addr, lsb, current);
+}
+
+void arm64_force_sig_ptrace_errno_trap(int errno, void __user *addr,
+				       const char *str)
+{
+	arm64_show_signal(SIGTRAP, str);
+	force_sig_ptrace_errno_trap(errno, addr);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 }
 
 void arm64_notify_die(const char *str, struct pt_regs *regs,

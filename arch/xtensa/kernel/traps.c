@@ -181,11 +181,20 @@ void do_unhandled(struct pt_regs *regs, unsigned long exccause)
 	    		regs, SIGKILL);
 
 	/* If in user mode, send SIGILL signal to current process */
+<<<<<<< HEAD
 	printk("Caught unhandled exception in '%s' "
 	       "(pid = %d, pc = %#010lx) - should not happen\n"
 	       "\tEXCCAUSE is %ld\n",
 	       current->comm, task_pid_nr(current), regs->pc, exccause);
 	force_sig(SIGILL, current);
+=======
+	pr_info_ratelimited("Caught unhandled exception in '%s' "
+			    "(pid = %d, pc = %#010lx) - should not happen\n"
+			    "\tEXCCAUSE is %ld\n",
+			    current->comm, task_pid_nr(current), regs->pc,
+			    exccause);
+	force_sig(SIGILL);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 }
 
 /*
@@ -305,9 +314,15 @@ do_illegal_instruction(struct pt_regs *regs)
 
 	/* If in user mode, send SIGILL signal to current process. */
 
+<<<<<<< HEAD
 	printk("Illegal Instruction in '%s' (pid = %d, pc = %#010lx)\n",
 	    current->comm, task_pid_nr(current), regs->pc);
 	force_sig(SIGILL, current);
+=======
+	pr_info_ratelimited("Illegal Instruction in '%s' (pid = %d, pc = %#010lx)\n",
+			    current->comm, task_pid_nr(current), regs->pc);
+	force_sig(SIGILL);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 }
 
 
@@ -361,7 +376,7 @@ do_debug(struct pt_regs *regs)
 
 	/* If in user mode, send SIGTRAP signal to current process */
 
-	force_sig(SIGTRAP, current);
+	force_sig(SIGTRAP);
 }
 
 

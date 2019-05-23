@@ -280,7 +280,7 @@ asmlinkage int sys_sigreturn(unsigned long r2, unsigned long r3,
 	return (int) ret;
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 
@@ -314,7 +314,7 @@ asmlinkage int sys_rt_sigreturn(unsigned long r2, unsigned long r3,
 	return (int) ret;
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 

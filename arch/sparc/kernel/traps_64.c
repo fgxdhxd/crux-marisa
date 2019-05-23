@@ -2141,10 +2141,14 @@ bool sun4v_nonresum_error_user_handled(struct pt_regs *regs,
 				addr += PAGE_SIZE;
 			}
 		}
+<<<<<<< HEAD
 		info.si_signo = SIGKILL;
 		info.si_errno = 0;
 		info.si_trapno = 0;
 		force_sig_info(info.si_signo, &info, current);
+=======
+		force_sig(SIGKILL);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 
 		return true;
 	}

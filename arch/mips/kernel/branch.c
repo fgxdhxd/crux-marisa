@@ -32,7 +32,7 @@ int __isa_exception_epc(struct pt_regs *regs)
 	/* Calculate exception PC in branch delay slot. */
 	if (__get_user(inst, (u16 __user *) msk_isa16_mode(epc))) {
 		/* This should never happen because delay slot was checked. */
-		force_sig(SIGSEGV, current);
+		force_sig(SIGSEGV);
 		return epc;
 	}
 	if (cpu_has_mips16) {
@@ -301,7 +301,7 @@ int __microMIPS_compute_return_epc(struct pt_regs *regs)
 	return 0;
 
 sigsegv:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return -EFAULT;
 }
 
@@ -324,7 +324,7 @@ int __MIPS16e_compute_return_epc(struct pt_regs *regs)
 	/* Read the instruction. */
 	addr = (u16 __user *)msk_isa16_mode(epc);
 	if (__get_user(inst.full, addr)) {
-		force_sig(SIGSEGV, current);
+		force_sig(SIGSEGV);
 		return -EFAULT;
 	}
 
@@ -339,7 +339,7 @@ int __MIPS16e_compute_return_epc(struct pt_regs *regs)
 	case MIPS16e_jal_op:
 		addr += 1;
 		if (__get_user(inst2, addr)) {
-			force_sig(SIGSEGV, current);
+			force_sig(SIGSEGV);
 			return -EFAULT;
 		}
 		fullinst = ((unsigned)inst.full << 16) | inst2;
@@ -820,17 +820,17 @@ int __compute_return_epc_for_insn(struct pt_regs *regs,
 sigill_dsp:
 	pr_debug("%s: DSP branch but not DSP ASE - sending SIGILL.\n",
 		 current->comm);
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 	return -EFAULT;
 sigill_r2r6:
 	pr_debug("%s: R2 branch but r2-to-r6 emulator is not present - sending SIGILL.\n",
 		 current->comm);
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 	return -EFAULT;
 sigill_r6:
 	pr_debug("%s: R6 branch but no MIPSr6 ISA support - sending SIGILL.\n",
 		 current->comm);
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 	return -EFAULT;
 }
 EXPORT_SYMBOL_GPL(__compute_return_epc_for_insn);
@@ -850,7 +850,7 @@ int __compute_return_epc(struct pt_regs *regs)
 	 */
 	addr = (unsigned int __user *) epc;
 	if (__get_user(insn.word, addr)) {
-		force_sig(SIGSEGV, current);
+		force_sig(SIGSEGV);
 		return -EFAULT;
 	}
 
@@ -858,7 +858,7 @@ int __compute_return_epc(struct pt_regs *regs)
 
 unaligned:
 	printk("%s: unaligned epc - sending SIGBUS.\n", current->comm);
-	force_sig(SIGBUS, current);
+	force_sig(SIGBUS);
 	return -EFAULT;
 }
 

@@ -1540,10 +1540,9 @@ send_sig(int sig, struct task_struct *p, int priv)
 	return send_sig_info(sig, __si_special(priv), p);
 }
 
-void
-force_sig(int sig, struct task_struct *p)
+void force_sig(int sig)
 {
-	force_sig_info(sig, SEND_SIG_PRIV, p);
+	force_sig_info(sig, SEND_SIG_PRIV, current);
 }
 
 /*
@@ -1561,7 +1560,7 @@ force_sigsegv(int sig, struct task_struct *p)
 		p->sighand->action[sig - 1].sa.sa_handler = SIG_DFL;
 		spin_unlock_irqrestore(&p->sighand->siglock, flags);
 	}
-	force_sig(SIGSEGV, p);
+	force_sig(SIGSEGV);
 	return 0;
 }
 

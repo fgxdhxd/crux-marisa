@@ -1294,7 +1294,7 @@ long sys_rt_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
 				   current->comm, current->pid,
 				   rt_sf, regs->nip, regs->link);
 
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 
@@ -1386,7 +1386,7 @@ int sys_debug_setcontext(struct ucontext __user *ctx,
 					   current->comm, current->pid,
 					   ctx, regs->nip, regs->link);
 
-		force_sig(SIGSEGV, current);
+		force_sig(SIGSEGV);
 		goto out;
 	}
 
@@ -1560,6 +1560,6 @@ badframe:
 				   current->comm, current->pid,
 				   addr, regs->nip, regs->link);
 
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }

@@ -205,6 +205,7 @@ ia64_rt_sigreturn (struct sigscratch *scr)
 	return retval;
 
   give_sigsegv:
+<<<<<<< HEAD
 	si.si_signo = SIGSEGV;
 	si.si_errno = 0;
 	si.si_code = SI_KERNEL;
@@ -212,6 +213,9 @@ ia64_rt_sigreturn (struct sigscratch *scr)
 	si.si_uid = from_kuid_munged(current_user_ns(), current_uid());
 	si.si_addr = sc;
 	force_sig_info(SIGSEGV, &si, current);
+=======
+	force_sig(SIGSEGV);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 	return retval;
 }
 

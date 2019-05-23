@@ -179,7 +179,7 @@ asmlinkage int sys_sigreturn(void)
 	return r0;
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 
@@ -210,7 +210,7 @@ asmlinkage int sys_rt_sigreturn(void)
 	return r0;
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 

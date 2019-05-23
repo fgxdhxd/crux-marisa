@@ -481,7 +481,7 @@ asmlinkage void do_be(struct pt_regs *regs)
 		goto out;
 
 	die_if_kernel("Oops", regs);
-	force_sig(SIGBUS, current);
+	force_sig(SIGBUS);
 
 out:
 	exception_exit(prev_state);
@@ -772,7 +772,7 @@ int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
 		return 1;
 
 	default:
-		force_sig(sig, current);
+		force_sig(sig);
 		return 1;
 	}
 }
@@ -925,7 +925,7 @@ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
 		break;
 	case BRK_BUG:
 		die_if_kernel("Kernel bug detected", regs);
-		force_sig(SIGTRAP, current);
+		force_sig(SIGTRAP);
 		break;
 	case BRK_MEMU:
 		/*
@@ -940,7 +940,7 @@ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
 			return;
 
 		die_if_kernel("Math emu break/trap", regs);
-		force_sig(SIGTRAP, current);
+		force_sig(SIGTRAP);
 		break;
 	default:
 		scnprintf(b, sizeof(b), "%s instruction in kernel code", str);
@@ -950,7 +950,7 @@ void do_trap_or_bp(struct pt_regs *regs, unsigned int code, int si_code,
 			info.si_code = si_code;
 			force_sig_info(SIGTRAP, &info, current);
 		} else {
-			force_sig(SIGTRAP, current);
+			force_sig(SIGTRAP);
 		}
 	}
 }
@@ -1043,7 +1043,7 @@ out:
 	return;
 
 out_sigsegv:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	goto out;
 }
 
@@ -1085,7 +1085,7 @@ out:
 	return;
 
 out_sigsegv:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	goto out;
 }
 
@@ -1171,7 +1171,7 @@ no_r2_instr:
 	if (unlikely(status > 0)) {
 		regs->cp0_epc = old_epc;		/* Undo skip-over.  */
 		regs->regs[31] = old31;
-		force_sig(status, current);
+		force_sig(status);
 	}
 
 out:
@@ -1229,7 +1229,7 @@ static int default_cu2_call(struct notifier_block *nfb, unsigned long action,
 
 	die_if_kernel("COP2: Unhandled kernel unaligned access or invalid "
 			      "instruction", regs);
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 
 	return NOTIFY_OK;
 }
@@ -1403,7 +1403,7 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 		if (unlikely(status > 0)) {
 			regs->cp0_epc = old_epc;	/* Undo skip-over.  */
 			regs->regs[31] = old31;
-			force_sig(status, current);
+			force_sig(status);
 		}
 
 		break;
@@ -1422,7 +1422,7 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 		 * emulator too.
 		 */
 		if (raw_cpu_has_fpu || !cpu_has_mips_4_5_64_r2_r6) {
-			force_sig(SIGILL, current);
+			force_sig(SIGILL);
 			break;
 		}
 		/* Fall through.  */
@@ -1448,6 +1448,16 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 			mt_ase_fp_affinity();
 
 		break;
+<<<<<<< HEAD
+=======
+	}
+#else /* CONFIG_MIPS_FP_SUPPORT */
+	case 1:
+	case 3:
+		force_sig(SIGILL);
+		break;
+#endif /* CONFIG_MIPS_FP_SUPPORT */
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 
 	case 2:
 		raw_notifier_call_chain(&cu2_chain, CU2_EXCEPTION, regs);
@@ -1472,7 +1482,7 @@ asmlinkage void do_msa_fpe(struct pt_regs *regs, unsigned int msacsr)
 	local_irq_enable();
 
 	die_if_kernel("do_msa_fpe invoked from kernel context!", regs);
-	force_sig(SIGFPE, current);
+	force_sig(SIGFPE);
 out:
 	exception_exit(prev_state);
 }
@@ -1485,7 +1495,7 @@ asmlinkage void do_msa(struct pt_regs *regs)
 	prev_state = exception_enter();
 
 	if (!cpu_has_msa || test_thread_flag(TIF_32BIT_FPREGS)) {
-		force_sig(SIGILL, current);
+		force_sig(SIGILL);
 		goto out;
 	}
 
@@ -1493,7 +1503,7 @@ asmlinkage void do_msa(struct pt_regs *regs)
 
 	err = enable_restore_fp_context(1);
 	if (err)
-		force_sig(SIGILL, current);
+		force_sig(SIGILL);
 out:
 	exception_exit(prev_state);
 }
@@ -1503,7 +1513,7 @@ asmlinkage void do_mdmx(struct pt_regs *regs)
 	enum ctx_state prev_state;
 
 	prev_state = exception_enter();
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 	exception_exit(prev_state);
 }
 
@@ -1601,7 +1611,7 @@ asmlinkage void do_mt(struct pt_regs *regs)
 	}
 	die_if_kernel("MIPS MT Thread exception in kernel", regs);
 
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 }
 
 
@@ -1610,7 +1620,7 @@ asmlinkage void do_dsp(struct pt_regs *regs)
 	if (cpu_has_dsp)
 		panic("Unexpected DSP exception");
 
-	force_sig(SIGILL, current);
+	force_sig(SIGILL);
 }
 
 asmlinkage void do_reserved(struct pt_regs *regs)

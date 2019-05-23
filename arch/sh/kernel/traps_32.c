@@ -618,7 +618,6 @@ asmlinkage void do_reserved_inst(void)
 {
 	struct pt_regs *regs = current_pt_regs();
 	unsigned long error_code;
-	struct task_struct *tsk = current;
 
 #ifdef CONFIG_SH_FPU_EMU
 	unsigned short inst = 0;
@@ -640,7 +639,7 @@ asmlinkage void do_reserved_inst(void)
 		/* Enable DSP mode, and restart instruction. */
 		regs->sr |= SR_DSP;
 		/* Save DSP mode */
-		tsk->thread.dsp_status.status |= SR_DSP;
+		current->thread.dsp_status.status |= SR_DSP;
 		return;
 	}
 #endif
@@ -648,7 +647,7 @@ asmlinkage void do_reserved_inst(void)
 	error_code = lookup_exception_vector();
 
 	local_irq_enable();
-	force_sig(SIGILL, tsk);
+	force_sig(SIGILL);
 	die_if_no_fixup("reserved instruction", regs, error_code);
 }
 
@@ -704,7 +703,6 @@ asmlinkage void do_illegal_slot_inst(void)
 {
 	struct pt_regs *regs = current_pt_regs();
 	unsigned long inst;
-	struct task_struct *tsk = current;
 
 	if (kprobe_handle_illslot(regs->pc) == 0)
 		return;
@@ -723,7 +721,7 @@ asmlinkage void do_illegal_slot_inst(void)
 	inst = lookup_exception_vector();
 
 	local_irq_enable();
-	force_sig(SIGILL, tsk);
+	force_sig(SIGILL);
 	die_if_no_fixup("illegal slot instruction", regs, inst);
 }
 

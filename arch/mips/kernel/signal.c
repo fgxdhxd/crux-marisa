@@ -610,7 +610,7 @@ asmlinkage void sys_sigreturn(nabi_no_regargs struct pt_regs regs)
 	if (sig < 0)
 		goto badframe;
 	else if (sig)
-		force_sig(sig, current);
+		force_sig(sig);
 
 	/*
 	 * Don't let your children do this ...
@@ -623,7 +623,7 @@ asmlinkage void sys_sigreturn(nabi_no_regargs struct pt_regs regs)
 	/* Unreached */
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 }
 #endif /* CONFIG_TRAD_SIGNALS */
 
@@ -645,7 +645,7 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
 	if (sig < 0)
 		goto badframe;
 	else if (sig)
-		force_sig(sig, current);
+		force_sig(sig);
 
 	if (restore_altstack(&frame->rs_uc.uc_stack))
 		goto badframe;
@@ -661,7 +661,7 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
 	/* Unreached */
 
 badframe:
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 }
 
 #ifdef CONFIG_TRAD_SIGNALS

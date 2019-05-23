@@ -319,6 +319,7 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
 		fi = UPT_FAULTINFO(regs);
 		clean_si.si_addr = (void __user *) FAULT_ADDRESS(*fi);
 		current->thread.arch.faultinfo = *fi;
+<<<<<<< HEAD
 #ifdef __ARCH_SI_TRAPNO
 		clean_si.si_trapno = si->si_trapno;
 #endif
@@ -326,6 +327,14 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
 	default:
 		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d)\n",
 			sig, si->si_code);
+=======
+		force_sig_fault(sig, code, (void __user *)FAULT_ADDRESS(*fi),
+				current);
+	} else {
+		printk(KERN_ERR "Attempted to relay unknown signal %d (si_code = %d) with errno %d\n",
+		       sig, code, err);
+		force_sig(sig);
+>>>>>>> 3cf5d076fb4d (signal: Remove task parameter from force_sig)
 	}
 
 	force_sig_info(sig, &clean_si, current);
