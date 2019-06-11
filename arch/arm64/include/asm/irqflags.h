@@ -59,11 +59,46 @@ static inline void arch_local_irq_disable(void)
 static inline unsigned long arch_local_save_flags(void)
 {
 	unsigned long flags;
-	asm volatile(
-		"mrs	%0, daif		// arch_local_save_flags"
-		: "=r" (flags)
+
+	asm volatile(ALTERNATIVE(
+		"mrs	%0, daif",
+		__mrs_s("%0", SYS_ICC_PMR_EL1),
+		ARM64_HAS_IRQ_PRIO_MASKING)
+		: "=&r" (flags)
 		:
 		: "memory");
+
+	return flags;
+}
+
+static inline int arch_irqs_disabled_flags(unsigned long flags)
+{
+	int res;
+
+	asm volatile(ALTERNATIVE(
+		"and	%w0, %w1, #" __stringify(PSR_I_BIT),
+		"eor	%w0, %w1, #" __stringify(GIC_PRIO_IRQON),
+		ARM64_HAS_IRQ_PRIO_MASKING)
+		: "=&r" (res)
+		: "r" ((int) flags)
+		: "memory");
+
+	return res;
+}
+
+static inline unsigned long arch_local_irq_save(void)
+{
+	unsigned long flags;
+
+	flags = arch_local_save_flags();
+
+	/*
+	 * There are too many states with IRQs disabled, just keep the current
+	 * state if interrupts are already disabled/masked.
+	 */
+	if (!arch_irqs_disabled_flags(flags))
+		arch_local_irq_disable();
+
 	return flags;
 }
 
@@ -78,31 +113,6 @@ static inline void arch_local_irq_restore(unsigned long flags)
 	: "r" (flags)
 	: "memory");
 }
-
-static inline int arch_irqs_disabled_flags(unsigned long flags)
-{
-	return flags & PSR_I_BIT;
-}
-
-/*
- * save and restore debug state
- */
-#define local_dbg_save(flags)						\
-	do {								\
-		typecheck(unsigned long, flags);			\
-		asm volatile(						\
-		"mrs    %0, daif		// local_dbg_save\n"	\
-		"msr    daifset, #8"					\
-		: "=r" (flags) : : "memory");				\
-	} while (0)
-
-#define local_dbg_restore(flags)					\
-	do {								\
-		typecheck(unsigned long, flags);			\
-		asm volatile(						\
-		"msr    daif, %0		// local_dbg_restore\n"	\
-		: : "r" (flags) : "memory");				\
-	} while (0)
 
 #endif
 #endif

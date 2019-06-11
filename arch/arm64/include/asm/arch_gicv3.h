@@ -146,5 +146,23 @@ static inline void gic_write_bpr1(u32 val)
 #define gits_write_vpendbaser(v, c)	writeq_relaxed(v, c)
 #define gits_read_vpendbaser(c)		readq_relaxed(c)
 
+static inline bool gic_prio_masking_enabled(void)
+{
+	return system_uses_irq_prio_masking();
+}
+
+static inline void gic_pmr_mask_irqs(void)
+{
+	BUILD_BUG_ON(GICD_INT_DEF_PRI < (GIC_PRIO_IRQOFF |
+					 GIC_PRIO_PSR_I_SET));
+	BUILD_BUG_ON(GICD_INT_DEF_PRI >= GIC_PRIO_IRQON);
+	gic_write_pmr(GIC_PRIO_IRQOFF);
+}
+
+static inline void gic_arch_enable_irqs(void)
+{
+	asm volatile ("msr daifclr, #2" : : : "memory");
+}
+
 #endif /* __ASSEMBLY__ */
 #endif /* __ASM_ARCH_GICV3_H */

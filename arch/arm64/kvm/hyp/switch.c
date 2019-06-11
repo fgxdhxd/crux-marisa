@@ -331,6 +331,74 @@ int __hyp_text __kvm_vcpu_run(struct kvm_vcpu *vcpu)
 	bool fp_enabled;
 	u64 exit_code;
 
+	host_ctxt = vcpu->arch.host_cpu_context;
+	host_ctxt->__hyp_running_vcpu = vcpu;
+	guest_ctxt = &vcpu->arch.ctxt;
+
+	sysreg_save_host_state_vhe(host_ctxt);
+
+	/*
+	 * ARM erratum 1165522 requires us to configure both stage 1 and
+	 * stage 2 translation for the guest context before we clear
+	 * HCR_EL2.TGE.
+	 *
+	 * We have already configured the guest's stage 1 translation in
+	 * kvm_vcpu_load_sysregs above.  We must now call __activate_vm
+	 * before __activate_traps, because __activate_vm configures
+	 * stage 2 translation, and __activate_traps clear HCR_EL2.TGE
+	 * (among other things).
+	 */
+	__activate_vm(vcpu->kvm);
+	__activate_traps(vcpu);
+
+	sysreg_restore_guest_state_vhe(guest_ctxt);
+	__debug_switch_to_guest(vcpu);
+
+	__set_guest_arch_workaround_state(vcpu);
+
+	do {
+		/* Jump in the fire! */
+		exit_code = __guest_enter(vcpu, host_ctxt);
+
+		/* And we're baaack! */
+	} while (fixup_guest_exit(vcpu, &exit_code));
+
+	__set_host_arch_workaround_state(vcpu);
+
+	sysreg_save_guest_state_vhe(guest_ctxt);
+
+	__deactivate_traps(vcpu);
+
+	sysreg_restore_host_state_vhe(host_ctxt);
+
+	if (vcpu->arch.flags & KVM_ARM64_FP_ENABLED)
+		__fpsimd_save_fpexc32(vcpu);
+
+	__debug_switch_to_host(vcpu);
+
+	return exit_code;
+}
+NOKPROBE_SYMBOL(kvm_vcpu_run_vhe);
+
+/* Switch to the guest for legacy non-VHE systems */
+int __hyp_text __kvm_vcpu_run_nvhe(struct kvm_vcpu *vcpu)
+{
+	struct kvm_cpu_context *host_ctxt;
+	struct kvm_cpu_context *guest_ctxt;
+	bool pmu_switch_needed;
+	u64 exit_code;
+
+	/*
+	 * Having IRQs masked via PMR when entering the guest means the GIC
+	 * will not signal the CPU of interrupts of lower priority, and the
+	 * only way to get out will be via guest exceptions.
+	 * Naturally, we want to avoid this.
+	 */
+	if (system_uses_irq_prio_masking()) {
+		gic_write_pmr(GIC_PRIO_IRQON | GIC_PRIO_PSR_I_SET);
+		dsb(sy);
+	}
+
 	vcpu = kern_hyp_va(vcpu);
 
 	host_ctxt = kern_hyp_va(vcpu->arch.host_cpu_context);
