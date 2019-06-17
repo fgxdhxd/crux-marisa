@@ -637,20 +637,38 @@ xfs_add_to_ioend(
 	struct writeback_control *wbc,
 	struct list_head	*iolist)
 {
-	if (!wpc->ioend || wpc->io_type != wpc->ioend->io_type ||
-	    bh->b_blocknr != wpc->last_block + 1 ||
+	struct xfs_inode	*ip = XFS_I(inode);
+	struct xfs_mount	*mp = ip->i_mount;
+	struct block_device	*bdev = xfs_find_bdev_for_inode(inode);
+	unsigned		len = i_blocksize(inode);
+	unsigned		poff = offset & (PAGE_SIZE - 1);
+	bool			merged, same_page = false;
+	sector_t		sector;
+
+	sector = xfs_fsb_to_db(ip, wpc->imap.br_startblock) +
+		((offset - XFS_FSB_TO_B(mp, wpc->imap.br_startoff)) >> 9);
+
+	if (!wpc->ioend ||
+	    wpc->fork != wpc->ioend->io_fork ||
+	    wpc->imap.br_state != wpc->ioend->io_state ||
+	    sector != bio_end_sector(wpc->ioend->io_bio) ||
 	    offset != wpc->ioend->io_offset + wpc->ioend->io_size) {
 		if (wpc->ioend)
 			list_add(&wpc->ioend->io_list, iolist);
 		wpc->ioend = xfs_alloc_ioend(inode, wpc->io_type, offset, bh);
 	}
 
-	/*
-	 * If the buffer doesn't fit into the bio we need to allocate a new
-	 * one.  This shouldn't happen more than once for a given buffer.
-	 */
-	while (xfs_bio_add_buffer(wpc->ioend->io_bio, bh) != bh->b_size)
-		xfs_chain_bio(wpc->ioend, wbc, bh);
+	merged = __bio_try_merge_page(wpc->ioend->io_bio, page, len, poff,
+			&same_page);
+
+	if (iop && !same_page)
+		atomic_inc(&iop->write_count);
+
+	if (!merged) {
+		if (bio_full(wpc->ioend->io_bio))
+			xfs_chain_bio(wpc->ioend, wbc, bdev, sector);
+		bio_add_page(wpc->ioend->io_bio, page, len, poff);
+	}
 
 	wpc->ioend->io_size += bh->b_size;
 	wpc->last_block = bh->b_blocknr;
