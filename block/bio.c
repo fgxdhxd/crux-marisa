@@ -807,7 +807,7 @@ static int __bio_add_pc_page(struct request_queue *q, struct bio *bio,
 			return 0;
 	}
 
-	if (bio_full(bio))
+	if (bio_full(bio, len))
 		return 0;
 
 	if (bio->bi_phys_segments >= queue_max_segments(q))
@@ -886,7 +886,7 @@ void __bio_add_page(struct bio *bio, struct page *page,
 	struct bio_vec *bv = &bio->bi_io_vec[bio->bi_vcnt];
 
 	WARN_ON_ONCE(bio_flagged(bio, BIO_CLONED));
-	WARN_ON_ONCE(bio_full(bio));
+	WARN_ON_ONCE(bio_full(bio, len));
 
 	bv->bv_page = page;
 	bv->bv_offset = off;
@@ -916,7 +916,7 @@ int bio_add_page(struct bio *bio, struct page *page,
 	bool same_page = false;
 
 	if (!__bio_try_merge_page(bio, page, len, offset, &same_page)) {
-		if (bio_full(bio))
+		if (bio_full(bio, len))
 			return 0;
 		__bio_add_page(bio, page, len, offset);
 	}
@@ -1040,7 +1040,11 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
 		bio_set_flag(bio, BIO_NO_PAGE_REF);
 
 	do {
-		int ret = __bio_iov_iter_get_pages(bio, iter);
+		if (is_bvec)
+			ret = __bio_iov_bvec_add_pages(bio, iter);
+		else
+			ret = __bio_iov_iter_get_pages(bio, iter);
+	} while (!ret && iov_iter_count(iter) && !bio_full(bio, 0));
 
 		if (unlikely(ret))
 			return bio->bi_vcnt > orig_vcnt ? 0 : ret;
