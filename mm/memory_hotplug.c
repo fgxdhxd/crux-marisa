@@ -263,14 +263,8 @@ static int __meminit __add_section(int nid, unsigned long phys_start_pfn,
 	if (pfn_valid(phys_start_pfn))
 		return -EEXIST;
 
-	ret = sparse_add_one_section(NODE_DATA(nid), phys_start_pfn, altmap);
-	if (ret < 0)
-		return ret;
-
-	if (!want_memblock)
-		return 0;
-
-	return hotplug_memory_register(nid, __pfn_to_section(phys_start_pfn));
+	ret = sparse_add_one_section(nid, phys_start_pfn, altmap);
+	return ret < 0 ? ret : 0;
 }
 
 /*
@@ -1168,7 +1162,23 @@ int __ref add_memory_resource(int nid, struct resource *res, bool online)
 	 */
 	memblock_add_node(start, size, nid);
 
-	new_node = !node_online(nid);
+	ret = __try_online_node(nid, start, false);
+	if (ret < 0)
+		goto error;
+	new_node = ret;
+
+	/* call arch's memory hotadd */
+	ret = arch_add_memory(nid, start, size, &restrictions);
+	if (ret < 0)
+		goto error;
+
+	/* create memory block devices after memory was added */
+	ret = create_memory_block_devices(start, size);
+	if (ret) {
+		arch_remove_memory(nid, start, size, NULL);
+		goto error;
+	}
+
 	if (new_node) {
 		pgdat = hotadd_new_pgdat(nid, start);
 		ret = -ENOMEM;
