@@ -839,7 +839,6 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_MEMORY_HOTREMOVE
 static void
 unregister_memory(struct memory_block *memory)
 {
@@ -885,7 +884,6 @@ int unregister_memory_section(struct mem_section *section)
 
 	return remove_memory_section(0, section, 0);
 }
-#endif /* CONFIG_MEMORY_HOTREMOVE */
 
 /* return true if the memory block is offlined, otherwise, return false */
 bool is_memblock_offlined(struct memory_block *mem)

@@ -1125,7 +1125,6 @@ void __ref vmemmap_free(unsigned long start, unsigned long end,
 	remove_pagetable(start, end, false, altmap);
 }
 
-#ifdef CONFIG_MEMORY_HOTREMOVE
 static void __meminit
 kernel_physical_mapping_remove(unsigned long start, unsigned long end)
 {
@@ -1153,7 +1152,6 @@ int __ref arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
 
 	return ret;
 }
-#endif
 #endif /* CONFIG_MEMORY_HOTPLUG */
 
 static struct kcore_list kcore_vsyscall;

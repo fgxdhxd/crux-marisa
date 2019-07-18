@@ -150,8 +150,8 @@ int arch_add_memory(int nid, u64 start, u64 size, struct vmem_altmap *altmap,
 	return __add_pages(nid, start_pfn, nr_pages, altmap, want_memblock);
 }
 
-#ifdef CONFIG_MEMORY_HOTREMOVE
-int arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
+void __ref arch_remove_memory(int nid, u64 start, u64 size,
+			     struct vmem_altmap *altmap)
 {
 	unsigned long start_pfn = start >> PAGE_SHIFT;
 	unsigned long nr_pages = size >> PAGE_SHIFT;
@@ -185,7 +185,6 @@ int arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
 	return ret;
 }
 #endif
-#endif /* CONFIG_MEMORY_HOTPLUG */
 
 /*
  * walk_memory_resource() needs to make sure there is no holes in a given
