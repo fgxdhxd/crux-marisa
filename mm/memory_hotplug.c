@@ -323,8 +323,8 @@ static unsigned long find_smallest_section_pfn(int nid, struct zone *zone,
 				     unsigned long start_pfn,
 				     unsigned long end_pfn)
 {
-	for (; start_pfn < end_pfn; start_pfn += PAGES_PER_SECTION) {
-		if (unlikely(!pfn_to_online_page(start_pfn)))
+	for (; start_pfn < end_pfn; start_pfn += PAGES_PER_SUBSECTION) {
+		if (unlikely(!pfn_valid(start_pfn)))
 			continue;
 
 		if (unlikely(pfn_to_nid(start_pfn) != nid))
@@ -348,8 +348,8 @@ static unsigned long find_biggest_section_pfn(int nid, struct zone *zone,
 
 	/* pfn is the end pfn of a memory section. */
 	pfn = end_pfn - 1;
-	for (; pfn >= start_pfn; pfn -= PAGES_PER_SECTION) {
-		if (unlikely(!pfn_to_online_page(pfn)))
+	for (; pfn >= start_pfn; pfn -= PAGES_PER_SUBSECTION) {
+		if (unlikely(!pfn_valid(pfn)))
 			continue;
 
 		if (unlikely(pfn_to_nid(pfn) != nid))
@@ -407,15 +407,15 @@ static void shrink_zone_span(struct zone *zone, unsigned long start_pfn,
 	 * it check the zone has only hole or not.
 	 */
 	pfn = zone_start_pfn;
-	for (; pfn < zone_end_pfn; pfn += PAGES_PER_SECTION) {
-		if (unlikely(!pfn_to_online_page(pfn)))
+	for (; pfn < zone_end_pfn; pfn += PAGES_PER_SUBSECTION) {
+		if (unlikely(!pfn_valid(pfn)))
 			continue;
 
 		if (page_zone(pfn_to_page(pfn)) != zone)
 			continue;
 
-		 /* If the section is current section, it continues the loop */
-		if (start_pfn == pfn)
+		/* Skip range to be removed */
+		if (pfn >= start_pfn && pfn < end_pfn)
 			continue;
 
 		/* If we find valid section, we have nothing to do */
