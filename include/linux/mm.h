@@ -473,6 +473,41 @@ struct vm_operations_struct {
 					  unsigned long addr);
 };
 
+static inline void vma_init(struct vm_area_struct *vma, struct mm_struct *mm)
+{
+	static const struct vm_operations_struct dummy_vm_ops = {};
+
+	memset(vma, 0, sizeof(*vma));
+	vma->vm_mm = mm;
+	vma->vm_ops = &dummy_vm_ops;
+	INIT_LIST_HEAD(&vma->anon_vma_chain);
+}
+
+static inline void vma_set_anonymous(struct vm_area_struct *vma)
+{
+	vma->vm_ops = NULL;
+}
+
+static inline bool vma_is_anonymous(struct vm_area_struct *vma)
+{
+	return !vma->vm_ops;
+}
+
+#ifdef CONFIG_SHMEM
+/*
+ * The vma_is_shmem is not inline because it is used only by slow
+ * paths in userfault.
+ */
+bool vma_is_shmem(struct vm_area_struct *vma);
+#else
+static inline bool vma_is_shmem(struct vm_area_struct *vma) { return false; }
+#endif
+
+int vma_is_stack_for_current(struct vm_area_struct *vma);
+
+/* flush_tlb_range() takes a vma, not a mm, and can care about flags */
+#define TLB_FLUSH_VMA(mm,flags) { .vm_mm = (mm), .vm_flags = (flags) }
+
 struct mmu_gather;
 struct inode;
 
@@ -1659,23 +1694,6 @@ void cancel_dirty_page(struct page *page);
 int clear_page_dirty_for_io(struct page *page);
 
 int get_cmdline(struct task_struct *task, char *buffer, int buflen);
-
-static inline bool vma_is_anonymous(struct vm_area_struct *vma)
-{
-	return !vma->vm_ops;
-}
-
-#ifdef CONFIG_SHMEM
-/*
- * The vma_is_shmem is not inline because it is used only by slow
- * paths in userfault.
- */
-bool vma_is_shmem(struct vm_area_struct *vma);
-#else
-static inline bool vma_is_shmem(struct vm_area_struct *vma) { return false; }
-#endif
-
-int vma_is_stack_for_current(struct vm_area_struct *vma);
 
 extern unsigned long move_page_tables(struct vm_area_struct *vma,
 		unsigned long old_addr, struct vm_area_struct *new_vma,
