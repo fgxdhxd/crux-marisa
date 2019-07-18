@@ -351,12 +351,24 @@ int release_resource(struct resource *old)
 
 EXPORT_SYMBOL(release_resource);
 
-/*
- * Finds the lowest iomem resource existing within [res->start.res->end).
- * The caller must specify res->start, res->end, res->flags, and optionally
- * desc.  If found, returns 0, res is overwritten, if not found, returns -1.
- * This function walks the whole tree and not just first level children until
- * and unless first_level_children_only is true.
+/**
+ * Finds the lowest iomem resource that covers part of [@start..@end].  The
+ * caller must specify @start, @end, @flags, and @desc (which may be
+ * IORES_DESC_NONE).
+ *
+ * If a resource is found, returns 0 and @*res is overwritten with the part
+ * of the resource that's within [@start..@end]; if none is found, returns
+ * -ENODEV.  Returns -EINVAL for invalid parameters.
+ *
+ * This function walks the whole tree and not just first level children
+ * unless @first_lvl is true.
+ *
+ * @start:	start address of the resource searched for
+ * @end:	end address of same resource
+ * @flags:	flags which the resource must have
+ * @desc:	descriptor the resource must have
+ * @first_lvl:	walk only the first level children, if set
+ * @res:	return ptr, if resource found
  */
 static int find_next_iomem_res(struct resource *res, unsigned long desc,
 			       bool first_level_children_only)
@@ -389,15 +401,16 @@ static int find_next_iomem_res(struct resource *res, unsigned long desc,
 			break;
 	}
 
+	if (p) {
+		/* copy data */
+		res->start = max(start, p->start);
+		res->end = min(end, p->end);
+		res->flags = p->flags;
+		res->desc = p->desc;
+	}
+
 	read_unlock(&resource_lock);
-	if (!p)
-		return -1;
-	/* copy data */
-	if (res->start < p->start)
-		res->start = p->start;
-	if (res->end > p->end)
-		res->end = p->end;
-	return 0;
+	return p ? 0 : -ENODEV;
 }
 
 /*
