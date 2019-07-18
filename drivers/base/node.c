@@ -414,7 +414,7 @@ static int __ref get_nid_for_pfn(unsigned long pfn)
 }
 
 /* register memory section under specified node if it spans that node */
-int register_mem_sect_under_node(struct memory_block *mem_blk, int nid,
+static int register_mem_sect_under_node(struct memory_block *mem_blk, int nid,
 				 bool check_nid)
 {
 	int ret;
