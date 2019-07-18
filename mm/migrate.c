@@ -436,8 +436,7 @@ static inline bool buffer_migrate_lock_buffers(struct buffer_head *head,
  */
 int migrate_page_move_mapping(struct address_space *mapping,
 		struct page *newpage, struct page *page,
-		struct buffer_head *head, enum migrate_mode mode,
-		int extra_count)
+		struct buffer_head *head, int extra_count)
 {
 	struct zone *oldzone, *newzone;
 	int dirty;
@@ -747,7 +746,7 @@ int migrate_page(struct address_space *mapping,
 
 	BUG_ON(PageWriteback(page));	/* Writeback must be complete */
 
-	rc = migrate_page_move_mapping(mapping, newpage, page, NULL, mode, 0);
+	rc = migrate_page_move_mapping(mapping, newpage, page, NULL, 0);
 
 	if (rc != MIGRATEPAGE_SUCCESS)
 		return rc;

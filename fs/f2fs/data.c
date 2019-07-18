@@ -4032,7 +4032,7 @@ int f2fs_migrate_page(struct address_space *mapping,
 	BUG_ON(PageWriteback(page));
 
 	rc = migrate_page_move_mapping(mapping, newpage,
-				page, NULL, mode, extra_count);
+				page, NULL, extra_count);
 	if (rc != MIGRATEPAGE_SUCCESS)
 		return rc;
 
