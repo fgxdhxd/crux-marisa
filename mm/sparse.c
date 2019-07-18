@@ -816,6 +816,7 @@ int __meminit sparse_add_one_section(struct pglist_data *pgdat,
 	memset(memmap, PAGE_POISON_PATTERN, sizeof(struct page) * PAGES_PER_SECTION);
 #endif
 
+	set_section_nid(section_nr, nid);
 	section_mark_present(ms);
 
 	ret = sparse_init_one_section(ms, section_nr, memmap, usemap);
