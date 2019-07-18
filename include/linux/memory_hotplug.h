@@ -324,7 +324,8 @@ static inline int offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 static inline void remove_memory(int nid, u64 start, u64 size) {}
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
-extern int walk_memory_range(unsigned long start_pfn, unsigned long end_pfn,
+extern void __ref free_area_init_core_hotplug(int nid);
+extern int walk_memory_blocks(unsigned long start, unsigned long size,
 		void *arg, int (*func)(struct memory_block *, void *));
 extern int __add_memory(int nid, u64 start, u64 size);
 extern int add_memory(int nid, u64 start, u64 size);
