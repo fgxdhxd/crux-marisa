@@ -374,6 +374,7 @@ static int find_next_iomem_res(struct resource *res, unsigned long desc,
 			       bool first_level_children_only)
 {
 	resource_size_t start, end;
+	bool siblings_only = true;
 	struct resource *p;
 	bool sibling_only = false;
 
@@ -388,17 +389,31 @@ static int find_next_iomem_res(struct resource *res, unsigned long desc,
 
 	read_lock(&resource_lock);
 
-	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
-		if ((p->flags & res->flags) != res->flags)
-			continue;
-		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
-			continue;
+	for (p = iomem_resource.child; p; p = next_resource(p, siblings_only)) {
+		/* If we passed the resource we are looking for, stop */
 		if (p->start > end) {
 			p = NULL;
 			break;
 		}
-		if ((p->end >= start) && (p->start < end))
-			break;
+
+		/* Skip until we find a range that matches what we look for */
+		if (p->end < start)
+			continue;
+
+		/*
+		 * Now that we found a range that matches what we look for,
+		 * check the flags and the descriptor. If we were not asked to
+		 * use only the first level, start looking at children as well.
+		 */
+		siblings_only = first_lvl;
+
+		if ((p->flags & flags) != flags)
+			continue;
+		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
+			continue;
+
+		/* Found a match, break */
+		break;
 	}
 
 	if (p) {
