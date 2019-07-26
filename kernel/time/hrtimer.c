@@ -1566,7 +1566,7 @@ static void __hrtimer_init_sleeper(struct hrtimer_sleeper *sl,
 
 	__hrtimer_init(&sl->timer, clock_id, mode);
 	sl->timer.function = hrtimer_wakeup;
-	sl->task = task;
+	sl->task = current;
 }
 
 /**
