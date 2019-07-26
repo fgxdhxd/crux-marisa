@@ -446,14 +446,10 @@ static int handle_vsoc_cond_wait(struct file *filp, struct vsoc_cond_wait *arg)
 		ts.tv_sec = arg->wake_time_sec;
 		ts.tv_nsec = arg->wake_time_nsec;
 
-		if (!timespec_valid(&ts))
-			return -EINVAL;
-		hrtimer_init_on_stack(&to->timer, CLOCK_MONOTONIC,
-				      HRTIMER_MODE_ABS);
-		hrtimer_set_expires_range_ns(&to->timer, timespec_to_ktime(ts),
+		hrtimer_init_sleeper_on_stack(to, CLOCK_MONOTONIC,
+					      HRTIMER_MODE_ABS);
+		hrtimer_set_expires_range_ns(&to->timer, wake_time,
 					     current->timer_slack_ns);
-
-		hrtimer_init_sleeper(to, current);
 	}
 
 	while (1) {
