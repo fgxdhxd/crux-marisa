@@ -17,8 +17,10 @@
 #define __ASM_IRQFLAGS_H
 
 #ifdef __KERNEL__
-
+#include <asm/alternative.h>
+#include <asm/barrier.h>
 #include <asm/ptrace.h>
+#include <asm/sysreg.h>
 
 /*
  * CPU interrupt mask handling.
@@ -44,13 +46,13 @@ static inline void arch_local_irq_enable(void)
 	}
 
 	asm volatile(ALTERNATIVE(
-		"msr	daifclr, #2		// arch_local_irq_enable\n"
-		"nop",
-		__msr_s(SYS_ICC_PMR_EL1, "%0")
-		"dsb	sy",
+		"msr	daifclr, #2		// arch_local_irq_enable",
+		__msr_s(SYS_ICC_PMR_EL1, "%0"),
 		ARM64_HAS_IRQ_PRIO_MASKING)
 		:
 		: "memory");
+
+	pmr_sync();
 }
 
 static inline void arch_local_irq_disable(void)
@@ -123,11 +125,15 @@ static inline unsigned long arch_local_irq_save(void)
  */
 static inline void arch_local_irq_restore(unsigned long flags)
 {
-	asm volatile(
-		"msr	daif, %0		// arch_local_irq_restore"
-	:
-	: "r" (flags)
-	: "memory");
+	asm volatile(ALTERNATIVE(
+		"msr	daif, %0",
+		__msr_s(SYS_ICC_PMR_EL1, "%0"),
+		ARM64_HAS_IRQ_PRIO_MASKING)
+		:
+		: "r" (flags)
+		: "memory");
+
+	pmr_sync();
 }
 
 #endif
