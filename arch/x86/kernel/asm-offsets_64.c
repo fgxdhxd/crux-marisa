@@ -5,15 +5,6 @@
 
 #include <asm/ia32.h>
 
-#define __SYSCALL_64(nr, sym, qual) [nr] = 1,
-static char syscalls_64[] = {
-#include <asm/syscalls_64.h>
-};
-#define __SYSCALL_I386(nr, sym, qual) [nr] = 1,
-static char syscalls_ia32[] = {
-#include <asm/syscalls_32.h>
-};
-
 #if defined(CONFIG_KVM_GUEST) && defined(CONFIG_PARAVIRT_SPINLOCKS)
 #include <asm/kvm_para.h>
 #endif
@@ -73,12 +64,5 @@ int main(void)
 	DEFINE(stack_canary_offset, offsetof(union irq_stack_union, stack_canary));
 	BLANK();
 #endif
-
-	DEFINE(__NR_syscall_max, sizeof(syscalls_64) - 1);
-	DEFINE(NR_syscalls, sizeof(syscalls_64));
-
-	DEFINE(__NR_syscall_compat_max, sizeof(syscalls_ia32) - 1);
-	DEFINE(IA32_NR_syscalls, sizeof(syscalls_ia32));
-
 	return 0;
 }
