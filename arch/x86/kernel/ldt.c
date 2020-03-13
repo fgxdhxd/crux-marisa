@@ -27,7 +27,6 @@
 #include <asm/tlb.h>
 #include <asm/desc.h>
 #include <asm/mmu_context.h>
-#include <asm/syscalls.h>
 
 static void refresh_ldt_segments(void)
 {
