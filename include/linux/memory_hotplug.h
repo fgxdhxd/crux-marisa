@@ -72,6 +72,15 @@ void pgdat_resize_init(struct pglist_data *pgdat)
 {
 	spin_lock_init(&pgdat->node_size_lock);
 }
+
+/*
+ * Extended parameters for memory hotplug:
+ * altmap: alternative allocator for memmap array (optional)
+ */
+struct mhp_params {
+	struct vmem_altmap *altmap;
+};
+
 /*
  * Zone resizing functions
  *
@@ -120,7 +129,18 @@ extern void __online_page_free(struct page *page);
 extern int try_online_node(int nid);
 extern bool try_online_one_block(int nid);
 
+<<<<<<< HEAD
 extern bool memhp_auto_online;
+=======
+extern int arch_add_memory(int nid, u64 start, u64 size,
+			   struct mhp_params *params);
+extern u64 max_mem_size;
+
+extern int memhp_online_type_from_str(const char *str);
+
+/* Default online_type (MMOP_*) when new memory blocks are added. */
+extern int memhp_default_online_type;
+>>>>>>> f5637d3b42ab0 (mm/memory_hotplug: rename mhp_restrictions to mhp_params)
 /* If movable_node boot option specified */
 extern bool movable_node_enabled;
 static inline bool movable_node_is_enabled(void)
@@ -136,6 +156,7 @@ extern void __remove_pages(struct zone *zone, unsigned long start_pfn,
 
 /* reasonably generic interface to expand the physical pages */
 extern int __add_pages(int nid, unsigned long start_pfn, unsigned long nr_pages,
+<<<<<<< HEAD
 		struct vmem_altmap *altmap, bool want_memblock);
 
 #ifndef CONFIG_ARCH_HAS_ADD_PAGES
@@ -148,6 +169,19 @@ static inline int add_pages(int nid, unsigned long start_pfn,
 #else /* ARCH_HAS_ADD_PAGES */
 int add_pages(int nid, unsigned long start_pfn, unsigned long nr_pages,
 		struct vmem_altmap *altmap, bool want_memblock);
+=======
+		       struct mhp_params *params);
+
+#ifndef CONFIG_ARCH_HAS_ADD_PAGES
+static inline int add_pages(int nid, unsigned long start_pfn,
+		unsigned long nr_pages, struct mhp_params *params)
+{
+	return __add_pages(nid, start_pfn, nr_pages, params);
+}
+#else /* ARCH_HAS_ADD_PAGES */
+int add_pages(int nid, unsigned long start_pfn, unsigned long nr_pages,
+	      struct mhp_params *params);
+>>>>>>> f5637d3b42ab0 (mm/memory_hotplug: rename mhp_restrictions to mhp_params)
 #endif /* ARCH_HAS_ADD_PAGES */
 
 #ifdef CONFIG_NUMA
