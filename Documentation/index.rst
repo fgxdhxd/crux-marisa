@@ -104,6 +104,19 @@ Chinese translations
 
    translations/zh_CN/index
 
+Other documentation
+-------------------
+
+There are several unsorted documents that don't seem to fit on other parts
+of the documentation body, or may require some adjustments and/or conversion
+to ReStructured Text format, or are simply too old.
+
+.. toctree::
+   :maxdepth: 2
+
+   staging/index
+
+
 Japanese translations
 ---------------------
 

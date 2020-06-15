@@ -7715,7 +7715,12 @@ M:	Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>
 M:	"David S. Miller" <davem@davemloft.net>
 M:	Masami Hiramatsu <mhiramat@kernel.org>
 S:	Maintained
+<<<<<<< HEAD
 F:	Documentation/kprobes.txt
+=======
+F:	Documentation/staging/kprobes.rst
+F:	include/asm-generic/kprobes.h
+>>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	include/linux/kprobes.h
 F:	include/asm-generic/kprobes.h
 F:	kernel/kprobes.c
@@ -11472,7 +11477,7 @@ L:	linux-remoteproc@vger.kernel.org
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ohad/remoteproc.git
 S:	Maintained
 F:	Documentation/devicetree/bindings/remoteproc/
-F:	Documentation/remoteproc.txt
+F:	Documentation/staging/remoteproc.rst
 F:	drivers/remoteproc/
 F:	include/linux/remoteproc.h
 
@@ -11482,6 +11487,12 @@ M:	Bjorn Andersson <bjorn.andersson@linaro.org>
 L:	linux-remoteproc@vger.kernel.org
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/ohad/rpmsg.git
 S:	Maintained
+<<<<<<< HEAD
+=======
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/andersson/remoteproc.git rpmsg-next
+F:	Documentation/ABI/testing/sysfs-bus-rpmsg
+F:	Documentation/staging/rpmsg.rst
+>>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	drivers/rpmsg/
 F:	Documentation/rpmsg.txt
 F:	include/linux/rpmsg.h
@@ -13188,6 +13199,11 @@ F:	drivers/media/rc/ttusbir.c
 TEE SUBSYSTEM
 M:	Jens Wiklander <jens.wiklander@linaro.org>
 S:	Maintained
+<<<<<<< HEAD
+=======
+F:	Documentation/staging/tee.rst
+F:	drivers/tee/
+>>>>>>> 8e2a46a40fa7 (docs: move remaining stuff under Documentation/*.txt to Documentation/staging)
 F:	include/linux/tee_drv.h
 F:	include/uapi/linux/tee.h
 F:	drivers/tee/
