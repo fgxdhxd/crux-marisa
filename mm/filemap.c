@@ -1013,7 +1013,19 @@ static int wake_page_function(wait_queue_entry_t *wait, unsigned mode, int sync,
 	if (test_bit(key->bit_nr, &key->page->flags))
 		return -1;
 
-	return autoremove_wake_function(wait, mode, sync, key);
+	wake_up_state(wait->private, mode);
+
+	/*
+	 * Ok, we have successfully done what we're waiting for,
+	 * and we can unconditionally remove the wait entry.
+	 *
+	 * Note that this has to be the absolute last thing we do,
+	 * since after list_del_init(&wait->entry) the wait entry
+	 * might be de-allocated and the process might even have
+	 * exited.
+	 */
+	list_del_init_careful(&wait->entry);
+	return ret;
 }
 
 static void wake_up_page_bit(struct page *page, int bit_nr)
