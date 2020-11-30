@@ -254,13 +254,16 @@ fh_clear_wcc(struct svc_fh *fhp)
  */
 static inline u64 nfsd4_change_attribute(struct inode *inode)
 {
-	u64 chattr;
+	if (IS_I_VERSION(inode)) {
+		u64 chattr;
 
-	chattr =  inode->i_ctime.tv_sec;
-	chattr <<= 30;
-	chattr += inode->i_ctime.tv_nsec;
-	chattr += inode->i_version;
-	return chattr;
+		chattr =  stat->ctime.tv_sec;
+		chattr <<= 30;
+		chattr += stat->ctime.tv_nsec;
+		chattr += inode_query_iversion(inode);
+		return chattr;
+	} else
+		return time_to_chattr(&stat->ctime);
 }
 
 /*
