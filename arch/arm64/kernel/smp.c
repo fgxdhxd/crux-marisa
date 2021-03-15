@@ -196,6 +196,7 @@ static void init_gic_priority_masking(void)
 	cpuflags = read_sysreg(daif);
 
 	WARN_ON(!(cpuflags & PSR_I_BIT));
+	WARN_ON(!(cpuflags & PSR_F_BIT));
 
 	/* We can only unmask PSR.I if we can take aborts */
 	if (!(cpuflags & PSR_A_BIT)) {
