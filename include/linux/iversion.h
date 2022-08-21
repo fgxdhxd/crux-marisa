@@ -123,17 +123,12 @@ inode_peek_iversion_raw(const struct inode *inode)
 static inline void
 inode_set_max_iversion_raw(struct inode *inode, u64 val)
 {
-	u64 cur, old;
+	u64 cur = inode_peek_iversion_raw(inode);
 
-	cur = inode_peek_iversion_raw(inode);
-	for (;;) {
+	do {
 		if (cur > val)
 			break;
-		old = atomic64_cmpxchg(&inode->i_version, cur, val);
-		if (likely(old == cur))
-			break;
-		cur = old;
-	}
+	} while (!atomic64_try_cmpxchg(&inode->i_version, &cur, val));
 }
 
 /**
