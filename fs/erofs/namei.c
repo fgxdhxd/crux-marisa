@@ -187,12 +187,11 @@ int erofs_namei(struct inode *dir,
 		return PTR_ERR(page);
 
 	data = kmap_atomic(page);
-	/* the target page has been mapped */
 	if (ndirents)
 		de = find_target_dirent(&qn, data, EROFS_BLKSIZ, ndirents);
 	else
-		de = (struct erofs_dirent *)data;
-
+		de = (struct erofs_dirent *)dta;
+a
 	if (!IS_ERR(de)) {
 		*nid = le64_to_cpu(de->nid);
 		*d_type = de->file_type;
@@ -204,9 +203,7 @@ int erofs_namei(struct inode *dir,
 	return PTR_ERR_OR_ZERO(de);
 }
 
-/* NOTE: i_mutex is already held by vfs */
-static struct dentry *erofs_lookup(struct inode *dir,
-				   struct dentry *dentry,
+static struct dentry *erofs_lookup(struct inode *dir, struct dentry *dentry,
 				   unsigned int flags)
 {
 	int err;
@@ -214,17 +211,11 @@ static struct dentry *erofs_lookup(struct inode *dir,
 	unsigned int d_type;
 	struct inode *inode;
 
-	DBG_BUGON(!d_really_is_negative(dentry));
-	/* dentry must be unhashed in lookup, no need to worry about */
-	DBG_BUGON(!d_unhashed(dentry));
-
 	trace_erofs_lookup(dir, dentry, flags);
 
-	/* file name exceeds fs limit */
 	if (dentry->d_name.len > EROFS_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
-	/* false uninitialized warnings on gcc 4.8.x */
 	err = erofs_namei(dir, &dentry->d_name, &nid, &d_type);
 
 	if (err == -ENOENT) {
