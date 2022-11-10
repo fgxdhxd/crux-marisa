@@ -224,5 +224,9 @@ source "drivers/mux/Kconfig"
 source "drivers/sensors/Kconfig"
 
 source "drivers/esoc/Kconfig"
+
 source "drivers/kernelsu/Kconfig"
+
+source "drivers/mihw/Kconfig"
+
 endmenu
