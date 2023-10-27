@@ -1483,6 +1483,8 @@ static int dwc3_probe(struct platform_device *pdev)
 	dwc3_debugfs_init(dwc);
 	dma_set_max_seg_size(dev, UINT_MAX);
 
+	dma_set_max_seg_size(dev, UINT_MAX);
+
 	return 0;
 
 err3:
