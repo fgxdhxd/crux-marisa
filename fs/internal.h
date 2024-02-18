@@ -212,3 +212,7 @@ static inline void global_filetable_delayed_print(struct mount *mnt)
 }
 
 #endif /* CONFIG_FILE_TABLE_DEBUG */
+
+int path_from_stashed(struct dentry **stashed, unsigned long ino,
+		      struct vfsmount *mnt, const struct file_operations *fops,
+		      void *data, struct path *path);

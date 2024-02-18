@@ -1394,3 +1394,237 @@ void generic_set_encrypted_ci_d_ops(struct dentry *dentry)
 #endif
 }
 EXPORT_SYMBOL(generic_set_encrypted_ci_d_ops);
+
+/**
+ * inode_maybe_inc_iversion - increments i_version
+ * @inode: inode with the i_version that should be updated
+ * @force: increment the counter even if it's not necessary?
+ *
+ * Every time the inode is modified, the i_version field must be seen to have
+ * changed by any observer.
+ *
+ * If "force" is set or the QUERIED flag is set, then ensure that we increment
+ * the value, and clear the queried flag.
+ *
+ * In the common case where neither is set, then we can return "false" without
+ * updating i_version.
+ *
+ * If this function returns false, and no other metadata has changed, then we
+ * can avoid logging the metadata.
+ */
+bool inode_maybe_inc_iversion(struct inode *inode, bool force)
+{
+	u64 cur, new;
+
+	/*
+	 * The i_version field is not strictly ordered with any other inode
+	 * information, but the legacy inode_inc_iversion code used a spinlock
+	 * to serialize increments.
+	 *
+	 * Here, we add full memory barriers to ensure that any de-facto
+	 * ordering with other info is preserved.
+	 *
+	 * This barrier pairs with the barrier in inode_query_iversion()
+	 */
+	smp_mb();
+	cur = inode_peek_iversion_raw(inode);
+	do {
+		/* If flag is clear then we needn't do anything */
+		if (!force && !(cur & I_VERSION_QUERIED))
+			return false;
+
+		/* Since lowest bit is flag, add 2 to avoid it */
+		new = (cur & ~I_VERSION_QUERIED) + I_VERSION_INCREMENT;
+	} while (!atomic64_try_cmpxchg(&inode->i_version, &cur, new));
+	return true;
+}
+EXPORT_SYMBOL(inode_maybe_inc_iversion);
+
+/**
+ * inode_query_iversion - read i_version for later use
+ * @inode: inode from which i_version should be read
+ *
+ * Read the inode i_version counter. This should be used by callers that wish
+ * to store the returned i_version for later comparison. This will guarantee
+ * that a later query of the i_version will result in a different value if
+ * anything has changed.
+ *
+ * In this implementation, we fetch the current value, set the QUERIED flag and
+ * then try to swap it into place with a cmpxchg, if it wasn't already set. If
+ * that fails, we try again with the newly fetched value from the cmpxchg.
+ */
+u64 inode_query_iversion(struct inode *inode)
+{
+	u64 cur, new;
+
+	cur = inode_peek_iversion_raw(inode);
+	do {
+		/* If flag is already set, then no need to swap */
+		if (cur & I_VERSION_QUERIED) {
+			/*
+			 * This barrier (and the implicit barrier in the
+			 * cmpxchg below) pairs with the barrier in
+			 * inode_maybe_inc_iversion().
+			 */
+			smp_mb();
+			break;
+		}
+
+		new = cur | I_VERSION_QUERIED;
+	} while (!atomic64_try_cmpxchg(&inode->i_version, &cur, new));
+	return cur >> I_VERSION_QUERIED_SHIFT;
+}
+EXPORT_SYMBOL(inode_query_iversion);
+
+ssize_t direct_write_fallback(struct kiocb *iocb, struct iov_iter *iter,
+		ssize_t direct_written, ssize_t buffered_written)
+{
+	struct address_space *mapping = iocb->ki_filp->f_mapping;
+	loff_t pos = iocb->ki_pos - buffered_written;
+	loff_t end = iocb->ki_pos - 1;
+	int err;
+
+	/*
+	 * If the buffered write fallback returned an error, we want to return
+	 * the number of bytes which were written by direct I/O, or the error
+	 * code if that was zero.
+	 *
+	 * Note that this differs from normal direct-io semantics, which will
+	 * return -EFOO even if some bytes were written.
+	 */
+	if (unlikely(buffered_written < 0)) {
+		if (direct_written)
+			return direct_written;
+		return buffered_written;
+	}
+
+	/*
+	 * We need to ensure that the page cache pages are written to disk and
+	 * invalidated to preserve the expected O_DIRECT semantics.
+	 */
+	err = filemap_write_and_wait_range(mapping, pos, end);
+	if (err < 0) {
+		/*
+		 * We don't know how much we wrote, so just return the number of
+		 * bytes which were direct-written
+		 */
+		iocb->ki_pos -= buffered_written;
+		if (direct_written)
+			return direct_written;
+		return err;
+	}
+	invalidate_mapping_pages(mapping, pos >> PAGE_SHIFT, end >> PAGE_SHIFT);
+	return direct_written + buffered_written;
+}
+EXPORT_SYMBOL_GPL(direct_write_fallback);
+
+/**
+ * simple_inode_init_ts - initialize the timestamps for a new inode
+ * @inode: inode to be initialized
+ *
+ * When a new inode is created, most filesystems set the timestamps to the
+ * current time. Add a helper to do this.
+ */
+struct timespec64 simple_inode_init_ts(struct inode *inode)
+{
+	struct timespec64 ts = inode_set_ctime_current(inode);
+
+	inode_set_atime_to_ts(inode, ts);
+	inode_set_mtime_to_ts(inode, ts);
+	return ts;
+}
+EXPORT_SYMBOL(simple_inode_init_ts);
+
+static inline struct dentry *get_stashed_dentry(struct dentry *stashed)
+{
+	struct dentry *dentry;
+
+	guard(rcu)();
+	dentry = READ_ONCE(stashed);
+	if (!dentry)
+		return NULL;
+	if (!lockref_get_not_dead(&dentry->d_lockref))
+		return NULL;
+	return dentry;
+}
+
+static struct dentry *stash_dentry(struct dentry **stashed, unsigned long ino,
+				   struct super_block *sb,
+				   const struct file_operations *fops,
+				   void *data)
+{
+	struct dentry *dentry;
+	struct inode *inode;
+
+	dentry = d_alloc_anon(sb);
+	if (!dentry)
+		return ERR_PTR(-ENOMEM);
+
+	inode = new_inode_pseudo(sb);
+	if (!inode) {
+		dput(dentry);
+		return ERR_PTR(-ENOMEM);
+	}
+
+	inode->i_ino = ino;
+	inode->i_flags |= S_IMMUTABLE;
+	inode->i_mode = S_IFREG | S_IRUGO;
+	inode->i_fop = fops;
+	inode->i_private = data;
+	simple_inode_init_ts(inode);
+
+	/* @data is now owned by the fs */
+	d_instantiate(dentry, inode);
+
+	if (cmpxchg(stashed, NULL, dentry)) {
+		d_delete(dentry); /* make sure ->d_prune() does nothing */
+		dput(dentry);
+		cpu_relax();
+		return ERR_PTR(-EAGAIN);
+	}
+
+	return dentry;
+}
+
+/**
+ * path_from_stashed - create path from stashed or new dentry
+ * @stashed:    where to retrieve or stash dentry
+ * @ino:        inode number to use
+ * @mnt:        mnt of the filesystems to use
+ * @fops:       file operations to use
+ * @data:       data to store in inode->i_private
+ * @path:       path to create
+ *
+ * The function tries to retrieve a stashed dentry from @stashed. If the dentry
+ * is still valid then it will be reused. If the dentry isn't able the function
+ * will allocate a new dentry and inode. It will then try to update @stashed
+ * with the newly added dentry. If it fails -EAGAIN is returned and the caller
+ * my retry.
+ *
+ * Special-purpose helper for nsfs and pidfs.
+ *
+ * Return: If 0 or an error is returned the caller can be sure that @data must
+ *         be cleaned up. If 1 or -EAGAIN is returned @data is owned by the
+ *         filesystem.
+ */
+int path_from_stashed(struct dentry **stashed, unsigned long ino,
+		      struct vfsmount *mnt, const struct file_operations *fops,
+		      void *data, struct path *path)
+{
+	struct dentry *dentry;
+	int ret = 0;
+
+	dentry = get_stashed_dentry(*stashed);
+	if (dentry)
+		goto out_path;
+
+	dentry = stash_dentry(stashed, ino, mnt->mnt_sb, fops, data);
+	if (IS_ERR(dentry))
+		return PTR_ERR(dentry);
+	ret = 1;
+
+out_path:
+	path->dentry = dentry;
+	path->mnt = mntget(mnt);
+	return ret;
+}
