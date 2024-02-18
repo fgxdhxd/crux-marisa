@@ -22,7 +22,8 @@ static const struct file_operations ns_file_operations = {
 static char *ns_dname(struct dentry *dentry, char *buffer, int buflen)
 {
 	struct inode *inode = d_inode(dentry);
-	const struct proc_ns_operations *ns_ops = dentry->d_fsdata;
+	struct ns_common *ns = inode->i_private;
+	const struct proc_ns_operations *ns_ops = ns->ops;
 
 	return dynamic_dname(dentry, buffer, buflen, "%s:[%lu]",
 		ns_ops->name, inode->i_ino);
@@ -33,7 +34,7 @@ static void ns_prune_dentry(struct dentry *dentry)
 	struct inode *inode = d_inode(dentry);
 	if (inode) {
 		struct ns_common *ns = inode->i_private;
-		atomic_long_set(&ns->stashed, 0);
+		WRITE_ONCE(ns->stashed, NULL);
 	}
 }
 
@@ -51,58 +52,6 @@ static void nsfs_evict(struct inode *inode)
 	ns->ops->put(ns);
 }
 
-static int __ns_get_path(struct path *path, struct ns_common *ns)
-{
-	struct vfsmount *mnt = nsfs_mnt;
-	struct dentry *dentry;
-	struct inode *inode;
-	unsigned long d;
-
-	rcu_read_lock();
-	d = atomic_long_read(&ns->stashed);
-	if (!d)
-		goto slow;
-	dentry = (struct dentry *)d;
-	if (!lockref_get_not_dead(&dentry->d_lockref))
-		goto slow;
-	rcu_read_unlock();
-	ns->ops->put(ns);
-got_it:
-	path->mnt = mntget(mnt);
-	path->dentry = dentry;
-	return 0;
-slow:
-	rcu_read_unlock();
-	inode = new_inode_pseudo(mnt->mnt_sb);
-	if (!inode) {
-		ns->ops->put(ns);
-		return -ENOMEM;
-	}
-	inode->i_ino = ns->inum;
-	inode->i_mtime = inode->i_atime = inode->i_ctime = current_time(inode);
-	inode->i_flags |= S_IMMUTABLE;
-	inode->i_mode = S_IFREG | S_IRUGO;
-	inode->i_fop = &ns_file_operations;
-	inode->i_private = ns;
-
-	dentry = d_alloc_pseudo(mnt->mnt_sb, &empty_name);
-	if (!dentry) {
-		iput(inode);
-		return -ENOMEM;
-	}
-	d_instantiate(dentry, inode);
-	dentry->d_flags |= DCACHE_RCUACCESS;
-	dentry->d_fsdata = (void *)ns->ops;
-	d = atomic_long_cmpxchg(&ns->stashed, 0, (unsigned long)dentry);
-	if (d) {
-		d_delete(dentry);	/* make sure ->d_prune() does nothing */
-		dput(dentry);
-		cpu_relax();
-		return -EAGAIN;
-	}
-	goto got_it;
-}
-
 int ns_get_path_cb(struct path *path, ns_get_path_helper_t *ns_get_cb,
 		     void *private_data)
 {
@@ -111,10 +60,17 @@ int ns_get_path_cb(struct path *path, ns_get_path_helper_t *ns_get_cb,
 	do {
 		struct ns_common *ns = ns_get_cb(private_data);
 		if (!ns)
-			return ERR_PTR(-ENOENT);
-		ret = __ns_get_path(path, ns);
-	} while (ret == ERR_PTR(-EAGAIN));
-	return ret;
+			return -ENOENT;
+		ret = path_from_stashed(&ns->stashed, ns->inum, nsfs_mnt,
+					&ns_file_operations, ns, path);
+		if (ret <= 0 && ret != -EAGAIN)
+			ns->ops->put(ns);
+	} while (ret == -EAGAIN);
+
+	if (ret < 0)
+		return ret;
+
+	return 0;
 }
 
 struct ns_get_path_task_args {
@@ -161,10 +117,13 @@ int open_related_ns(struct ns_common *ns,
 			return PTR_ERR(relative);
 		}
 
-		err = __ns_get_path(&path, relative);
+		err = path_from_stashed(&relative->stashed, relative->inum, nsfs_mnt,
+					&ns_file_operations, relative, &path);
+		if (err <= 0 && err != -EAGAIN)
+			relative->ops->put(relative);
 	} while (err == -EAGAIN);
 
-	if (err) {
+	if (err < 0) {
 		put_unused_fd(fd);
 		return err;
 	}
@@ -245,7 +204,8 @@ out_invalid:
 static int nsfs_show_path(struct seq_file *seq, struct dentry *dentry)
 {
 	struct inode *inode = d_inode(dentry);
-	const struct proc_ns_operations *ns_ops = dentry->d_fsdata;
+	const struct ns_common *ns = inode->i_private;
+	const struct proc_ns_operations *ns_ops = ns->ops;
 
 	seq_printf(seq, "%s:[%lu]", ns_ops->name, inode->i_ino);
 	return 0;
