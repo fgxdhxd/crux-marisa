@@ -1059,7 +1059,9 @@ static int dsi_panel_parse_timing(struct dsi_mode_info *mode,
 			"qcom,mdss-dsi-panel-clockrate", (u32 *)&tmp64);
 	}
 
-	mode->clk_rate_hz = 1650000000;
+	mode->clk_rate_hz = !rc ? tmp64 : 0;
+	if (tmp64 == 1650000000) 
+			mode->clk_rate_hz = 1650000000;
 	display_mode->priv_info->clk_rate_hz = mode->clk_rate_hz;
 
 	rc = utils->read_u32(utils->data, "qcom,mdss-mdp-transfer-time-us",
@@ -1075,17 +1077,12 @@ static int dsi_panel_parse_timing(struct dsi_mode_info *mode,
 				  &val);
 	priv_info->overlap_pixels = rc ? 0 : val;
 
-    mode->refresh_rate = 90;
 	rc = utils->read_u32(utils->data,
 				"qcom,mdss-dsi-panel-framerate",
 				&mode->refresh_rate);
-				
-	if (rc) {
-		pr_err("failed to read qcom,mdss-dsi-panel-framerate, rc=%d\n",
-		       rc);
-		goto error;
-	}
-    
+	if (rc) 
+	mode->refresh_rate = 90;
+	
 
 	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-panel-width",
 				  &mode->h_active);
