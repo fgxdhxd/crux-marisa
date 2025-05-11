@@ -35,6 +35,7 @@
 #include <linux/delayed_call.h>
 #include <linux/uuid.h>
 #include <linux/errseq.h>
+#include <linux/ioprio.h>
 
 #include <asm/byteorder.h>
 #include <uapi/linux/fs.h>
@@ -76,6 +77,7 @@ extern int sysctl_protected_symlinks;
 extern int sysctl_protected_hardlinks;
 extern int sysctl_protected_fifos;
 extern int sysctl_protected_regular;
+extern char *inode_name(struct inode *ino);
 
 typedef __kernel_rwf_t rwf_t;
 
@@ -152,6 +154,9 @@ typedef int (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
 
 /* File is stream-like */
 #define FMODE_STREAM		((__force fmode_t)0x200000)
+
+/* File hasn't page cache and can't be mmaped, for stackable filesystem */
+#define FMODE_NONMAPPABLE       ((__force fmode_t)0x400000)
 
 /* File was opened by fanotify and shouldn't generate fanotify events */
 #define FMODE_NONOTIFY		((__force fmode_t)0x4000000)
@@ -290,22 +295,14 @@ enum rw_hint {
 	WRITE_LIFE_EXTREME	= RWH_WRITE_LIFE_EXTREME,
 };
 
-/* Match RWF_* bits to IOCB bits */
-#define IOCB_HIPRI		(__force int) RWF_HIPRI
-#define IOCB_DSYNC		(__force int) RWF_DSYNC
-#define IOCB_SYNC		(__force int) RWF_SYNC
-#define IOCB_NOWAIT		(__force int) RWF_NOWAIT
-#define IOCB_APPEND		(__force int) RWF_APPEND
-/* kiocb is a read or write operation submitted by fs/aio.c. */
-#define IOCB_AIO_RW		(1 << 23)
-
-/* non-RWF related bits - start at 16 */
-#define IOCB_EVENTFD		(1 << 16)
-#define IOCB_DIRECT		(1 << 17)
-#define IOCB_WRITE		(1 << 18)
-/* iocb->ki_waitq is valid */
-#define IOCB_WAITQ		(1 << 19)
-#define IOCB_NOIO		(1 << 20)
+#define IOCB_EVENTFD		(1 << 0)
+#define IOCB_APPEND		(1 << 1)
+#define IOCB_DIRECT		(1 << 2)
+#define IOCB_HIPRI		(1 << 3)
+#define IOCB_DSYNC		(1 << 4)
+#define IOCB_SYNC		(1 << 5)
+#define IOCB_WRITE		(1 << 6)
+#define IOCB_NOWAIT		(1 << 7)
 
 struct kiocb {
 	struct file		*ki_filp;
@@ -313,7 +310,8 @@ struct kiocb {
 	void (*ki_complete)(struct kiocb *iocb, long ret, long ret2);
 	void			*private;
 	int			ki_flags;
-	enum rw_hint		ki_hint;
+	u16			ki_hint;
+	u16			ki_ioprio; /* See linux/ioprio.h */
 } __randomize_layout;
 
 static inline bool is_sync_kiocb(struct kiocb *kiocb)
@@ -908,6 +906,9 @@ struct file {
 	struct address_space	*f_mapping;
 	errseq_t		f_wb_err;
 	errseq_t		f_sb_err; /* for syncfs */
+#ifdef CONFIG_FILE_TABLE_DEBUG
+	struct hlist_node f_hash;
+#endif /* #ifdef CONFIG_FILE_TABLE_DEBUG */
 } __randomize_layout
   __attribute__((aligned(4)));	/* lest something weird decides that 2 is OK */
 
@@ -1662,13 +1663,6 @@ extern struct dentry *vfs_tmpfile(struct vfsmount *mnt,
 				  struct dentry *dentry, umode_t mode,
 				  int open_flag);
 
-#ifdef CONFIG_COMPAT
-extern long compat_ptr_ioctl(struct file *file, unsigned int cmd,
-					unsigned long arg);
-#else
-#define compat_ptr_ioctl NULL
-#endif
-
 /*
  * VFS file helper functions.
  */
@@ -1782,6 +1776,7 @@ struct file_operations {
 	long (*fallocate)(struct file *file, int mode, loff_t offset,
 			  loff_t len);
 	void (*show_fdinfo)(struct seq_file *m, struct file *f);
+	struct file* (*get_lower_file)(struct file *f);
 #ifndef CONFIG_MMU
 	unsigned (*mmap_capabilities)(struct file *);
 #endif
@@ -1991,12 +1986,22 @@ static inline enum rw_hint file_write_hint(struct file *file)
 
 static inline int iocb_flags(struct file *file);
 
+static inline u16 ki_hint_validate(enum rw_hint hint)
+{
+	typeof(((struct kiocb *)0)->ki_hint) max_hint = -1;
+
+	if (hint <= max_hint)
+		return hint;
+	return 0;
+}
+
 static inline void init_sync_kiocb(struct kiocb *kiocb, struct file *filp)
 {
 	*kiocb = (struct kiocb) {
 		.ki_filp = filp,
 		.ki_flags = iocb_flags(filp),
-		.ki_hint = file_write_hint(filp),
+		.ki_hint = ki_hint_validate(file_write_hint(filp)),
+		.ki_ioprio = IOPRIO_PRIO_VALUE(IOPRIO_CLASS_NONE, 0),
 	};
 }
 
@@ -2144,8 +2149,6 @@ static inline void file_accessed(struct file *file)
 	if (!(file->f_flags & O_NOATIME))
 		touch_atime(&file->f_path);
 }
-
-extern int file_modified(struct file *file);
 
 int sync_inode(struct inode *inode, struct writeback_control *wbc);
 int sync_inode_metadata(struct inode *inode, int wait);
@@ -3255,6 +3258,14 @@ extern int generic_file_fsync(struct file *, loff_t, loff_t, int);
 
 extern int generic_check_addressable(unsigned, u64);
 
+#ifdef CONFIG_UNICODE
+extern bool needs_casefold(const struct inode *dir);
+#else
+static inline bool needs_casefold(const struct inode *dir)
+{
+	return 0;
+}
+#endif
 extern void generic_set_encrypted_ci_d_ops(struct dentry *dentry);
 
 #ifdef CONFIG_MIGRATION
@@ -3311,32 +3322,21 @@ static inline int iocb_flags(struct file *file)
 
 static inline int kiocb_set_rw_flags(struct kiocb *ki, rwf_t flags)
 {
-	int kiocb_flags = 0;
-
-	/* make sure there's no overlap between RWF and private IOCB flags */
-	BUILD_BUG_ON((__force int)RWF_SUPPORTED & IOCB_EVENTFD);
-
-	if (!flags)
-		return 0;
 	if (unlikely(flags & ~RWF_SUPPORTED))
 		return -EOPNOTSUPP;
 
 	if (flags & RWF_NOWAIT) {
 		if (!(ki->ki_filp->f_mode & FMODE_NOWAIT))
 			return -EOPNOTSUPP;
-		kiocb_flags |= IOCB_NOIO;
+		ki->ki_flags |= IOCB_NOWAIT;
 	}
-	kiocb_flags |= (__force int)(flags & RWF_SUPPORTED);
+	if (flags & RWF_HIPRI)
+		ki->ki_flags |= IOCB_HIPRI;
+	if (flags & RWF_DSYNC)
+		ki->ki_flags |= IOCB_DSYNC;
 	if (flags & RWF_SYNC)
-		kiocb_flags |= IOCB_DSYNC;
-
-	ki->ki_flags |= kiocb_flags;
+		ki->ki_flags |= (IOCB_DSYNC | IOCB_SYNC);
 	return 0;
-}
-
-static inline rwf_t iocb_to_rw_flags(int ifl, int iocb_mask)
-{
-	return ifl & iocb_mask;
 }
 
 static inline ino_t parent_ino(struct dentry *dentry)
@@ -3390,7 +3390,7 @@ void simple_transaction_set(struct file *file, size_t n);
  * All attributes contain a text representation of a numeric value
  * that are accessed with the get() and set() functions.
  */
-#define DEFINE_SIMPLE_ATTRIBUTE_XSIGNED(__fops, __get, __set, __fmt, __is_signed)	\
+#define DEFINE_SIMPLE_ATTRIBUTE(__fops, __get, __set, __fmt)		\
 static int __fops ## _open(struct inode *inode, struct file *file)	\
 {									\
 	__simple_attr_check_format(__fmt, 0ull);			\
@@ -3401,15 +3401,9 @@ static const struct file_operations __fops = {				\
 	.open	 = __fops ## _open,					\
 	.release = simple_attr_release,					\
 	.read	 = simple_attr_read,					\
-	.write	 = (__is_signed) ? simple_attr_write_signed : simple_attr_write,	\
+	.write	 = simple_attr_write,					\
 	.llseek	 = generic_file_llseek,					\
 }
-
-#define DEFINE_SIMPLE_ATTRIBUTE(__fops, __get, __set, __fmt)		\
-	DEFINE_SIMPLE_ATTRIBUTE_XSIGNED(__fops, __get, __set, __fmt, false)
-
-#define DEFINE_SIMPLE_ATTRIBUTE_SIGNED(__fops, __get, __set, __fmt)	\
-	DEFINE_SIMPLE_ATTRIBUTE_XSIGNED(__fops, __get, __set, __fmt, true)
 
 static inline __printf(1, 2)
 void __simple_attr_check_format(const char *fmt, ...)
@@ -3425,8 +3419,6 @@ ssize_t simple_attr_read(struct file *file, char __user *buf,
 			 size_t len, loff_t *ppos);
 ssize_t simple_attr_write(struct file *file, const char __user *buf,
 			  size_t len, loff_t *ppos);
-ssize_t simple_attr_write_signed(struct file *file, const char __user *buf,
-				 size_t len, loff_t *ppos);
 
 struct ctl_table;
 int proc_nr_files(struct ctl_table *table, int write,
