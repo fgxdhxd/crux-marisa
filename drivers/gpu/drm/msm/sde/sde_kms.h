@@ -172,6 +172,20 @@ enum sde_kms_sui_misr_state {
 	SUI_MISR_DISABLE_REQ
 };
 
+/*
+ * @FRAME_DONE_WAIT_DEFAULT:	waits for frame N pp_done interrupt before
+ *                              triggering frame N+1.
+ * @FRAME_DONE_WAIT_SERIALIZE:	serialize pp_done and ctl_start irq for frame
+ *                              N without next frame trigger wait.
+ * @FRAME_DONE_WAIT_POSTED_START: Do not wait for pp_done interrupt for any
+ *                              frame. Wait will trigger only for error case.
+ */
+enum frame_trigger_mode_type {
+	FRAME_DONE_WAIT_DEFAULT,
+	FRAME_DONE_WAIT_SERIALIZE,
+	FRAME_DONE_WAIT_POSTED_START,
+};
+
 /**
  * struct sde_kms_smmu_state_data: stores the smmu state and transition type
  * @state: current state of smmu context banks
@@ -682,6 +696,13 @@ int sde_kms_handle_recovery(struct drm_encoder *encoder);
  * @crtc: crtc that splash resource to be released from
  */
 void sde_kms_release_splash_resource(struct sde_kms *sde_kms,
+		struct drm_crtc *crtc);
+/**
+ * sde_kms_trigger_early_wakeup - trigger early wake up
+ * @sde_kms: pointer to sde_kms structure
+ * @crtc: pointer to drm_crtc structure
+ */
+void sde_kms_trigger_early_wakeup(struct sde_kms *sde_kms,
 		struct drm_crtc *crtc);
 
 #endif /* __sde_kms_H__ */
