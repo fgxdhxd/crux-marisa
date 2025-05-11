@@ -1,4 +1,9 @@
-# SPDX-License-Identifier: GPL-2.0-only
-zram-y	:=	zcomp.o zram_drv.o
+# SPDX-License-Identifier: GPL-2.0
+all:
 
-obj-$(CONFIG_ZRAM)	+=	zram.o
+TEST_PROGS := zram.sh
+TEST_FILES := zram01.sh zram02.sh zram_lib.sh
+EXTRA_CLEAN := err.log
+
+include ../lib.mk
+
