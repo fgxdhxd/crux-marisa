@@ -1064,7 +1064,7 @@ static int dsi_panel_parse_timing(struct dsi_mode_info *mode,
 	mode->clk_rate_hz = !rc ? tmp64 : 0;
 	if (tmp64 == 1100000000 || tmp64 == 1103000000) {
         if (framerate_override == 7)
-			mode->clk_rate_hz = 1650000000; // 90hz
+			mode->clk_rate_hz = 1595000000; // 90hz
 		else if (framerate_override == 6)
 			mode->clk_rate_hz = 1540000000; // 84hz
 		else if (framerate_override == 5)
