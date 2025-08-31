@@ -37,6 +37,7 @@ static struct policydb *get_policydb(void)
 }
 
 static DEFINE_MUTEX(ksu_rules);
+
 void apply_kernelsu_rules()
 {
 	struct policydb *db;
@@ -142,6 +143,15 @@ void apply_kernelsu_rules()
 	// https://android-review.googlesource.com/c/platform/system/logging/+/3725346
 	ksu_dontaudit(db, "untrusted_app", KERNEL_SU_DOMAIN, "dir", "getattr");
 
+#ifdef CONFIG_KSU_SUSFS
+	// Allow umount in zygote process without installing zygisk
+	ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount");
+	susfs_set_kernel_sid();
+	susfs_set_init_sid();
+	susfs_set_ksu_sid();
+	susfs_set_zygote_sid();
+#endif
+
 	mutex_unlock(&ksu_rules);
 }
 
@@ -162,9 +172,9 @@ extern bool ksu_is_compat __read_mostly;
 
 // armv7l kernel compat
 #ifdef CONFIG_64BIT
-#define usize u64
+#define usize	u64
 #else
-#define usize u32
+#define usize	u32
 #endif
 
 struct sepol_data {
@@ -212,7 +222,7 @@ static int get_object(char *buf, char __user *user_object, size_t buf_sz,
 // reset avc cache table, otherwise the new rules will not take effect if already denied
 static void reset_avc_cache()
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0) || \
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0) ||	\
 	!defined(KSU_COMPAT_USE_SELINUX_STATE)
 	avc_ss_reset(0);
 	selnl_notify_policyload(0);
@@ -239,13 +249,11 @@ int handle_sepolicy(unsigned long arg3, void __user *arg4)
 	}
 
 	u32 cmd, subcmd;
-	char __user *sepol1, *sepol2, *sepol3, *sepol4, *sepol5, *sepol6,
-		*sepol7;
+	char __user *sepol1, *sepol2, *sepol3, *sepol4, *sepol5, *sepol6, *sepol7;
 
 	if (unlikely(ksu_is_compat)) {
 		struct sepol_data_compat data_compat;
-		if (copy_from_user(&data_compat, arg4,
-				   sizeof(struct sepol_data_compat))) {
+		if (copy_from_user(&data_compat, arg4, sizeof(struct sepol_data_compat))) {
 			pr_err("sepol: copy sepol_data failed.\n");
 			return -1;
 		}
@@ -303,7 +311,8 @@ int handle_sepolicy(unsigned long arg3, void __user *arg4)
 			goto exit;
 		}
 
-		if (get_object(perm_buf, sepol4, sizeof(perm_buf), &p) < 0) {
+		if (get_object(perm_buf, sepol4, sizeof(perm_buf), &p) <
+		    0) {
 			pr_err("sepol: copy perm failed.\n");
 			goto exit;
 		}
@@ -344,12 +353,13 @@ int handle_sepolicy(unsigned long arg3, void __user *arg4)
 			pr_err("sepol: copy cls failed.\n");
 			goto exit;
 		}
-		if (strncpy_from_user(operation, sepol4, sizeof(operation)) <
-		    0) {
+		if (strncpy_from_user(operation, sepol4,
+				      sizeof(operation)) < 0) {
 			pr_err("sepol: copy operation failed.\n");
 			goto exit;
 		}
-		if (strncpy_from_user(perm_set, sepol5, sizeof(perm_set)) < 0) {
+		if (strncpy_from_user(perm_set, sepol5, sizeof(perm_set)) <
+		    0) {
 			pr_err("sepol: copy perm_set failed.\n");
 			goto exit;
 		}
@@ -450,8 +460,8 @@ int handle_sepolicy(unsigned long arg3, void __user *arg4)
 		if (sepol5 == NULL) {
 			real_object = NULL;
 		} else {
-			if (strncpy_from_user(object, sepol5, sizeof(object)) <
-			    0) {
+			if (strncpy_from_user(object, sepol5,
+					      sizeof(object)) < 0) {
 				pr_err("sepol: copy object failed.\n");
 				goto exit;
 			}
@@ -510,7 +520,8 @@ int handle_sepolicy(unsigned long arg3, void __user *arg4)
 			pr_err("sepol: copy path failed.\n");
 			goto exit;
 		}
-		if (strncpy_from_user(context, sepol3, sizeof(context)) < 0) {
+		if (strncpy_from_user(context, sepol3, sizeof(context)) <
+		    0) {
 			pr_err("sepol: copy context failed.\n");
 			goto exit;
 		}
