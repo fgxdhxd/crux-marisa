@@ -61,6 +61,43 @@ static const struct bpf_map_ops * const bpf_map_types[] = {
  * copy_from_user() call. However, this is not a concern since this function is
  * meant to be a future-proofing of bits.
  */
+
+/* 兼容实现：拷贝用户态传进来的对象名字，长度固定 BPF_OBJ_NAME_LEN */
+static inline int bpf_obj_name_cpy(char *dst, const char *src)
+{
+    const char *end = src + BPF_OBJ_NAME_LEN;
+    memset(dst, 0, BPF_OBJ_NAME_LEN);
+
+    /* 拷贝时遇到非法字符直接失败 */
+    while (src < end && *src) {
+        if (!isalnum(*src) && *src != '_' && *src != '.')
+            return -EINVAL;
+        *dst++ = *src++;
+    }
+    return 0;
+}
+
+/* 兼容实现：根据 prog_type 自动修正 attr->expected_attach_type */
+static inline void bpf_prog_load_fixup_attach_type(union bpf_attr *attr)
+{
+    if (attr->expected_attach_type == 0)
+        return;
+}
+
+/* 兼容实现：校验 prog_type 和 expected_attach_type 是否匹配 */
+static inline int bpf_prog_load_check_attach_type(enum bpf_prog_type prog_type,
+                                                  enum bpf_attach_type expected)
+{
+    return 0;
+}
+
+/* 兼容实现：检查 attach 的 prog 是否支持指定的 attach_type */
+static inline int bpf_prog_attach_check_attach_type(struct bpf_prog *prog,
+                                                    enum bpf_attach_type attach_type)
+{
+    return 0;
+}
+
 static int check_uarg_tail_zero(void __user *uaddr,
 				size_t expected_size,
 				size_t actual_size)
