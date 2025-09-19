@@ -10,16 +10,11 @@
  * GNU General Public License for more details.
  *
  */
+#undef TRACE_SYSTEM
+#define TRACE_SYSTEM camera
 
 #if !defined(_CAM_TRACE_H) || defined(TRACE_HEADER_MULTI_READ)
 #define _CAM_TRACE_H
-
-#undef TRACE_SYSTEM
-#define TRACE_SYSTEM camera
-#undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH .
-#undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_FILE cam_trace
 
 #include <linux/tracepoint.h>
 #include <media/cam_req_mgr.h>
@@ -331,7 +326,11 @@ TRACE_EVENT(cam_cdm_cb,
 	)
 );
 
-#endif /* _CAM_TRACE_H */
 
-/* This part must be outside protection */
+#endif /* _CAM_TRACE_H */
+#undef TRACE_INCLUDE_PATH 
+#undef TRACE_INCLUDE_FILE 
+#define TRACE_INCLUDE_PATH ../../drivers/media/platform/msm/camera/cam_utils 
+#define TRACE_INCLUDE_FILE cam_trace 
 #include <trace/define_trace.h>
+

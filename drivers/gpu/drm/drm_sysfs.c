@@ -385,7 +385,11 @@ ssize_t dim_layer_enable_store(struct device *device,
 	if (!connector)
 		return 0;
 
-	kstrtobool(buf, &fod_dimlayer_enabled);
+	int ret;
+ret = kstrtobool(buf, &fod_dimlayer_enabled);
+if (ret)
+    pr_warn("Invalid boolean value: %s\n", buf);
+
 	set_fod_dimlayer_status(connector, fod_dimlayer_enabled);
 
 	pr_info("set fod dimlayer %s", fod_dimlayer_enabled ? "true" : "false");

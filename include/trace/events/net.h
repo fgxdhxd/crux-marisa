@@ -67,7 +67,7 @@ TRACE_EVENT(net_dev_start_xmit,
 		  "vlan_proto=0x%04x vlan_tci=0x%04x protocol=0x%04x\t"
 		  "ip_summed=%d len=%u data_len=%u network_offset=%d\t"
 		  "transport_offset_valid=%d transport_offset=%d tx_flags=%d\t"
-		  "gso_size=%d gso_segs=%d gso_type=%#x UTC: %ld",
+		  "gso_size=%d gso_segs=%d gso_type=%#x UTC: %lld",
 		  __get_str(name), __entry->queue_mapping, __entry->skbaddr,
 		  __entry->vlan_tagged, __entry->vlan_proto, __entry->vlan_tci,
 		  __entry->protocol, __entry->ip_summed, __entry->len,
@@ -75,7 +75,7 @@ TRACE_EVENT(net_dev_start_xmit,
 		  __entry->network_offset, __entry->transport_offset_valid,
 		  __entry->transport_offset, __entry->tx_flags,
 		  __entry->gso_size, __entry->gso_segs, __entry->gso_type,
-		  __entry->utctime)
+		  (long long)__entry->utctime)
 
 );
 
@@ -97,7 +97,7 @@ TRACE_EVENT(net_receive_skb_exit,
 
 	),
 
-	TP_printk(" skbaddr=%pK UTC = %ld", __entry->skbaddr, __entry->utctime)
+	TP_printk(" skbaddr=%pK UTC = %lld", __entry->skbaddr, (long long)__entry->utctime)
 );
 
 TRACE_EVENT(net_dev_xmit,
@@ -125,9 +125,9 @@ TRACE_EVENT(net_dev_xmit,
 		__entry->utctime = ktime_get_tai_ns();
 	),
 
-	TP_printk("dev=%s skbaddr=%pK len=%u rc=%d UTC: %ld",
+	TP_printk("dev=%s skbaddr=%pK len=%u rc=%d UTC: %lld",
 		  __get_str(name), __entry->skbaddr, __entry->len, __entry->rc,
-		  __entry->utctime)
+		 (long long)__entry->utctime)
 );
 
 DECLARE_EVENT_CLASS(net_dev_template,
@@ -150,9 +150,9 @@ DECLARE_EVENT_CLASS(net_dev_template,
 		__entry->utctime = ktime_get_tai_ns();
 	),
 
-	TP_printk("dev=%s skbaddr=%pK len=%u UTC: %ld",
+	TP_printk("dev=%s skbaddr=%pK len=%u UTC: %lld",
 		__get_str(name), __entry->skbaddr, __entry->len,
-		__entry->utctime)
+		(long long)__entry->utctime)
 )
 
 DEFINE_EVENT(net_dev_template, net_dev_queue,
@@ -231,7 +231,7 @@ DECLARE_EVENT_CLASS(net_dev_rx_verbose_template,
 		  "vlan_tagged=%d vlan_proto=0x%04x vlan_tci=0x%04x\t"
 		  "protocol=0x%04x ip_summed=%d hash=0x%08x l4_hash=%d\t"
 		  "len=%u data_len=%u truesize=%u mac_header_valid=%d\t"
-		  "mac_header=%d nr_frags=%d gso_size=%d gso_type=%#x UTC: %ld",
+		  "mac_header=%d nr_frags=%d gso_size=%d gso_type=%#x UTC: %lld",
 		  __get_str(name), __entry->napi_id, __entry->queue_mapping,
 		  __entry->skbaddr, __entry->vlan_tagged, __entry->vlan_proto,
 		  __entry->vlan_tci, __entry->protocol, __entry->ip_summed,
@@ -239,7 +239,7 @@ DECLARE_EVENT_CLASS(net_dev_rx_verbose_template,
 		  __entry->data_len, __entry->truesize,
 		  __entry->mac_header_valid, __entry->mac_header,
 		  __entry->nr_frags, __entry->gso_size, __entry->gso_type,
-		  __entry->utctime)
+		  (long long)__entry->utctime)
 );
 
 DEFINE_EVENT(net_dev_rx_verbose_template, napi_gro_frags_entry,

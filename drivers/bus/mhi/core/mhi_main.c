@@ -1382,7 +1382,7 @@ int mhi_process_tsync_ev_ring(struct mhi_controller *mhi_cntrl,
 	sequence = MHI_TRE_GET_EV_TSYNC_SEQ(dev_rp);
 	remote_time = MHI_TRE_GET_EV_TIME(dev_rp);
 
-	MHI_VERB("Received TSYNC event with seq:0x%llx time:0x%llx\n",
+	MHI_VERB("Received TSYNC event with seq:0x%x time:0x%llx\n",
 		 sequence, remote_time);
 
 	read_lock_bh(&mhi_cntrl->pm_lock);
@@ -1394,9 +1394,13 @@ int mhi_process_tsync_ev_ring(struct mhi_controller *mhi_cntrl,
 	mutex_lock(&mhi_cntrl->tsync_mutex);
 
 	if (unlikely(mhi_tsync->int_sequence != sequence)) {
-		MHI_ASSERT(1, "Unexpected response:0x%llx Expected:0x%llx\n",
-			   sequence, mhi_tsync->int_sequence);
+		char buf[128];
+snprintf(buf, sizeof(buf),
+         "Unexpected response:0x%llx Expected:0x%llx\n",
+         (unsigned long long)sequence,
+         (unsigned long long)mhi_tsync->int_sequence);
 
+MHI_ASSERT(1, buf);
 		mhi_device_put(mhi_cntrl->mhi_dev,
 			       MHI_VOTE_DEVICE | MHI_VOTE_BUS);
 
@@ -2735,7 +2739,7 @@ int mhi_get_remote_time(struct mhi_device *mhi_dev,
 
 	mhi_cntrl->lpm_enable(mhi_cntrl, mhi_cntrl->priv_data);
 
-	MHI_VERB("time DB request with seq:0x%llx\n", mhi_tsync->int_sequence);
+	MHI_VERB("time DB request with seq:0x%x\n", mhi_tsync->int_sequence);
 
 	mhi_tsync->db_response_pending = true;
 	init_completion(&mhi_tsync->db_completion);

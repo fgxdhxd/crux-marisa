@@ -74,7 +74,7 @@ struct f_qdss {
 	struct workqueue_struct *wq;
 };
 
-static void *_qdss_ipc_log;
+static void *_qdss_ipc_log __maybe_unused;
 
 #define NUM_PAGES	10 /* # of pages for ipc logging */
 

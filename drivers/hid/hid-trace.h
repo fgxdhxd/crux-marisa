@@ -16,10 +16,6 @@
 
 #undef TRACE_SYSTEM
 #define TRACE_SYSTEM hid
-#undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH .
-#undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_FILE hid-trace
 
 #include <linux/tracepoint.h>
 
@@ -51,6 +47,9 @@ TRACE_EVENT(qvr_recv_sensor,
 	);
 
 #endif /* _HID_TRACE_H */
+
+#undef TRACE_INCLUDE_FILE
+#define TRACE_INCLUDE_FILE hid-trace
 
 /* This part must be outside protection */
 #include <trace/define_trace.h>

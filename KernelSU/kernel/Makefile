@@ -22,6 +22,7 @@ ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-
 
 obj-$(CONFIG_KSU) += kernelsu.o
 obj-$(CONFIG_KSU_TRACEPOINT_HOOK) += ksu_trace_export.o
+CFLAGS_ksu_trace_export.o += -I$(srctree)/drivers/kernelsu
 
 obj-$(CONFIG_KPM) += kpm/
 
