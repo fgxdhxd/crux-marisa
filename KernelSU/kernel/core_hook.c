@@ -46,6 +46,7 @@
 #include "manager.h"
 #include "selinux/selinux.h"
 #include "throne_tracker.h"
+#include "throne_comm.h"
 #include "kernel_compat.h"
 #include "dynamic_manager.h"
 
@@ -60,10 +61,10 @@ extern int handle_sepolicy(unsigned long arg3, void __user *arg4);
 
 // sucompat.c
 static bool ksu_su_compat_enabled = true;
-extern void ksu_sucompat_init();
-extern void ksu_sucompat_exit();
+extern void ksu_sucompat_init(void);
+extern void ksu_sucompat_exit(void);
 
-static inline bool is_allow_su()
+static inline bool is_allow_su(void)
 {
 	if (is_manager()) {
 		// we are manager, allow!
@@ -140,8 +141,8 @@ static void disable_seccomp(struct task_struct *tsk)
 #ifdef CONFIG_SECCOMP
 	tsk->seccomp.mode = 0;
 	if (tsk->seccomp.filter) {
-		// TODO: Add kernel 6.11+ support
-		// 5.9+ have filter_count and use seccomp_filter_release
+	// TODO: Add kernel 6.11+ support
+	// 5.9+ have filter_count and use seccomp_filter_release
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 		seccomp_filter_release(tsk);
 		atomic_set(&tsk->seccomp.filter_count, 0);
@@ -242,12 +243,15 @@ int ksu_handle_rename(struct dentry *old_dentry, struct dentry *new_dentry)
 		new_dentry->d_iname, buf);
 
 	track_throne();
+	
+	// Also request userspace scan for next time
+	ksu_request_userspace_scan();
 
 	return 0;
 }
 
 #ifdef CONFIG_EXT4_FS
-static void nuke_ext4_sysfs()
+static void nuke_ext4_sysfs(void) 
 {
 	struct path path;
 	int err = kern_path("/data/adb/modules", 0, &path);
@@ -268,7 +272,7 @@ static void nuke_ext4_sysfs()
 	path_put(&path);
 }
 #else
-static inline void nuke_ext4_sysfs()
+static inline void nuke_ext4_sysfs(void)
 {
 }
 #endif
@@ -425,6 +429,8 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 				post_fs_data_lock = true;
 				pr_info("post-fs-data triggered\n");
 				on_post_fs_data();
+				// Initialize throne communication
+				ksu_throne_comm_init();
 				// Initializing Dynamic Signatures
         		ksu_dynamic_manager_init();
         		pr_info("Dynamic manager config loaded during post-fs-data\n");
@@ -693,12 +699,13 @@ static int ksu_sys_umount(const char *mnt, int flags)
 	return ret;
 }
 
-#define ksu_umount_mnt(mnt, __unused, flags) \
-	({                                   \
-		path_put(__unused);          \
-		ksu_sys_umount(mnt, flags);  \
+#define ksu_umount_mnt(mnt, __unused, flags)		\
+	({						\
+		int ret;				\
+		path_put(__unused);			\
+		ret = ksu_sys_umount(mnt, flags);	\
+		ret;					\
 	})
-
 #endif
 
 static void try_umount(const char *mnt, bool check_mnt, int flags)
@@ -839,25 +846,10 @@ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
 }
 
 #ifndef MODULE
-extern int __ksu_handle_devpts(struct inode *inode);
-static int ksu_inode_permission(struct inode *inode, int mask)
-{
-	if (unlikely(inode->i_sb &&
-		     inode->i_sb->s_magic == DEVPTS_SUPER_MAGIC)) {
-#ifdef CONFIG_KSU_DEBUG
-		pr_info("%s: devpts inode accessed with mask: %x\n", __func__,
-			mask);
-#endif
-		__ksu_handle_devpts(inode);
-	}
-	return 0;
-}
-
 static struct security_hook_list ksu_hooks[] = {
 	LSM_HOOK_INIT(task_prctl, ksu_task_prctl),
 	LSM_HOOK_INIT(inode_rename, ksu_inode_rename),
 	LSM_HOOK_INIT(task_fix_setuid, ksu_task_fix_setuid),
-	LSM_HOOK_INIT(inode_permission, ksu_inode_permission),
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) || \
 	defined(CONFIG_IS_HW_HISI) || defined(CONFIG_KSU_ALLOWLIST_WORKAROUND)
 	LSM_HOOK_INIT(key_permission, ksu_key_permission)
@@ -1076,4 +1068,5 @@ void __init ksu_core_init(void)
 
 void ksu_core_exit(void)
 {
+	ksu_throne_comm_exit();
 }

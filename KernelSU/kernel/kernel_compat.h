@@ -7,6 +7,35 @@
 #include "ss/policydb.h"
 #include "linux/key.h"
 
+/**
+ * list_count_nodes - count the number of nodes in a list
+ * @head: the head of the list
+ *
+ * This function iterates over the list starting from @head and counts
+ * the number of nodes in the list. It does not modify the list.
+ *
+ * Context: Any context. The function is safe to call in any context,
+ *          including interrupt context, as it does not sleep or allocate
+ *          memory.
+ *
+ * Return: the number of nodes in the list (excluding the head)
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
+static inline __maybe_unused size_t list_count_nodes(const struct list_head *head)
+{
+    const struct list_head *pos;
+    size_t count = 0;
+
+    if (!head)
+        return 0;
+
+    list_for_each(pos, head)
+        count++;
+
+	return count;
+}
+#endif
+
 /*
  * Adapt to Huawei HISI kernel without affecting other kernels ,
  * Huawei Hisi Kernel EBITMAP Enable or Disable Flag ,
@@ -40,7 +69,7 @@ extern long ksu_strncpy_from_user_retry(char *dst,
 extern struct key *init_session_keyring;
 #endif
 
-extern void ksu_android_ns_fs_check();
+extern void ksu_android_ns_fs_check(void);
 extern struct file *ksu_filp_open_compat(const char *filename, int flags,
 					 umode_t mode);
 extern ssize_t ksu_kernel_read_compat(struct file *p, void *buf, size_t count,
