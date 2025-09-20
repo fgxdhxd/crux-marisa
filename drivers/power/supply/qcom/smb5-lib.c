@@ -6874,7 +6874,7 @@ static void smblib_handle_hvdcp_3p0_auth_done(struct smb_charger *chg,
 		if (!chg->apsd_ext_timeout &&
 				!timer_pending(&chg->apsd_timer)) {
 			smblib_dbg(chg, PR_MISC,
-				"APSD Extented timer started at %lld\n",
+				"APSD Extented timer started at %d\n",
 				jiffies_to_msecs(jiffies));
 
 			mod_timer(&chg->apsd_timer,
@@ -9016,7 +9016,7 @@ static void apsd_timer_cb(unsigned long data)
 {
 	struct smb_charger *chg = (struct smb_charger *)data;
 
-	smblib_dbg(chg, PR_MISC, "APSD Extented timer timeout at %lld\n",
+	smblib_dbg(chg, PR_MISC, "APSD Extented timer timeout at %d\n",
 			jiffies_to_msecs(jiffies));
 
 	chg->apsd_ext_timeout = true;
