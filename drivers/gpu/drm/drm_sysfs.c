@@ -378,6 +378,7 @@ ssize_t dim_layer_enable_store(struct device *device,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
+	int ret;
 	struct drm_connector *connector = NULL;
 	bool fod_dimlayer_enabled = false;
 
@@ -385,7 +386,6 @@ ssize_t dim_layer_enable_store(struct device *device,
 	if (!connector)
 		return 0;
 
-	int ret;
 ret = kstrtobool(buf, &fod_dimlayer_enabled);
 if (ret)
     pr_warn("Invalid boolean value: %s\n", buf);

@@ -411,7 +411,7 @@ static int cam_jpeg_insert_cdm_change_base(
 
 	if (config_args->hw_update_entries[CAM_JPEG_CHBASE].offset >=
 		ch_base_len) {
-		CAM_ERR(CAM_JPEG, "Not enough buf offset %d len %d",
+		CAM_ERR(CAM_JPEG, "Not enough buf offset %u len %zu",
 			config_args->hw_update_entries[CAM_JPEG_CHBASE].offset,
 			ch_base_len);
 		return -EINVAL;

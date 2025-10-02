@@ -715,7 +715,7 @@ int sde_connector_update_hbm(struct sde_connector *c_conn)
 
 	dsi_display = c_conn->display;
 	if (!dsi_display || !dsi_display->panel || !dsi_display->drm_dev) {
-		SDE_ERROR("Invalid params(s) dsi_display %pK, panel %pK\n",
+		SDE_ERROR("Invalid params(s) dsi_display %pK, panel %pK\n, drm_dev %pK\n", 
 			dsi_display,
 			((dsi_display) ? dsi_display->panel : NULL),
 			((dsi_display) ? dsi_display->drm_dev : NULL));
@@ -2166,7 +2166,7 @@ static int sde_connector_atomic_check(struct drm_connector *connector,
 	return 0;
 }
 
-static irqreturn_t esd_err_irq_handle(int irq, void *data)
+static __maybe_unused irqreturn_t esd_err_irq_handle(int irq, void *data)
 {
 	struct sde_connector *c_conn = data;
 	struct drm_event event;

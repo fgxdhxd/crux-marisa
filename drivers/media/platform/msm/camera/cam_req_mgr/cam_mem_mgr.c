@@ -802,7 +802,7 @@ int cam_mem_mgr_map(struct cam_mem_mgr_map_cmd *cmd)
 
 	dmabuf = dma_buf_get(cmd->fd);
 	if (IS_ERR_OR_NULL((void *)(dmabuf))) {
-		CAM_ERR(CAM_MEM, "Failed to import dma_buf fd %d, rc %d",
+		CAM_ERR(CAM_MEM, "Failed to import dma_buf fd %d, rc %ld",
 			cmd->fd, (IS_ERR(dmabuf) ? PTR_ERR(dmabuf) : 0));
 		return -EINVAL;
 	}
@@ -1031,9 +1031,9 @@ static int cam_mem_util_unmap(int32_t idx,
 				tbl.bufq[idx].kmdvaddr);
 			if (rc)
 				CAM_ERR(CAM_MEM,
-					"Failed, dmabuf=%pK, kmdvaddr=%llxK",
+					"Failed, dmabuf=%pK, kmdvaddr=%lxK",
 					tbl.bufq[idx].dma_buf,
-					tbl.bufq[idx].kmdvaddr);
+					(unsigned long)tbl.bufq[idx].kmdvaddr);
 		}
 	}
 

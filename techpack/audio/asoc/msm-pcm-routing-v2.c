@@ -1142,12 +1142,20 @@ static int msm_routing_get_adm_topology(int fedai_id, int session_type,
 {
 	int topology = NULL_COPP_TOPOLOGY;
 	int app_type = 0, acdb_dev_id = 0;
+	int i;
 
 	pr_debug("%s: fedai_id %d, session_type %d, be_id %d\n",
 	       __func__, fedai_id, session_type, be_id);
 
-	if (cal_data == NULL)
-		goto done;
+    for (i = 0; i < MAX_ROUTING_CAL_TYPES; i++) {
+        if (cal_data[i] != NULL)
+            break;
+    }
+
+    if (i == MAX_ROUTING_CAL_TYPES) {
+        pr_debug("%s: no calibration data available\n", __func__);
+        return -EINVAL;
+    }
 
 	app_type = fe_dai_app_type_cfg[fedai_id][session_type][be_id].app_type;
 	acdb_dev_id =
@@ -1169,7 +1177,6 @@ static int msm_routing_get_adm_topology(int fedai_id, int session_type,
 		if (topology < 0)
 			topology = NULL_COPP_TOPOLOGY;
 	}
-done:
 	pr_debug("%s: Using topology %d\n", __func__, topology);
 	return topology;
 }

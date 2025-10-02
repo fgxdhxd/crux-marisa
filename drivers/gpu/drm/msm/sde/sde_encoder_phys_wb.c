@@ -136,10 +136,12 @@ static void sde_encoder_phys_wb_set_qos_remap(
 	qos_params.client_type = phys_enc->in_clone_mode ?
 					VBIF_CWB_CLIENT : VBIF_NRT_CLIENT;
 
-	SDE_DEBUG("[qos_remap] wb:%d vbif:%d xin:%d rt:%d clone:%d\n",
-			qos_params.num,
-			qos_params.vbif_idx,
-			qos_params.xin_id, qos_params.client_type);
+	SDE_DEBUG("[qos_remap] wb:%u vbif:%u xin:%u rt:%u clone:%u\n",
+			(unsigned int)qos_params.num,
+			(unsigned int)qos_params.vbif_idx,
+			(unsigned int)qos_params.xin_id, 
+			(unsigned int)qos_params.client_type,
+			(unsigned int)phys_enc->in_clone_mode);
 
 	sde_vbif_set_qos_remap(phys_enc->sde_kms, &qos_params);
 }

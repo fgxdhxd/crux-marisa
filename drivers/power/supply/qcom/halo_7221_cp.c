@@ -29,6 +29,7 @@
 #include <linux/regulator/of_regulator.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <linux/kernel.h>
 
 #define DEVICE_NAME  "HALO7221_cp"
 
@@ -198,7 +199,7 @@ static ssize_t chip_enable_show(struct device *dev,
 
 	dev_info(chip->dev, "chip enable gpio: %d\n", ret);
 
-	return snprintf(buf, sizeof(buf), "Chip enable: %d\n", ret);
+	return scnprintf(buf, PAGE_SIZE, "Chip enable: %d\n", ret);
 }
 
 static ssize_t chip_enable_store(struct device *dev,
@@ -231,7 +232,7 @@ static ssize_t chip_init_show(struct device *dev,
 		dev_err(chip->dev, "%s: chip hw init error [%d]\n",
 				__func__, ret);
 	}
-	return snprintf(buf, sizeof(buf), "Chip init: %d\n", ret);
+	return scnprintf(buf, PAGE_SIZE, "Chip init: %d\n", ret);
 }
 
 /*
@@ -622,7 +623,7 @@ static const struct power_supply_desc halo_psy_desc = {
 static int halo7221_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct halo7221_dev *chip;
-	int rc = 0, ret = 0;
+	int ret = 0;
 	struct power_supply_config halo_cfg = {};
 	//vuc chipid;
 
@@ -674,7 +675,10 @@ static int halo7221_probe(struct i2c_client *client, const struct i2c_device_id 
 	}
 */
 
-	sysfs_create_group(&client->dev.kobj, &halo7221_sysfs_group);
+	ret = sysfs_create_group(&client->dev.kobj, &halo7221_sysfs_group);
+if (ret)
+    dev_err(&client->dev, "Failed to create sysfs group: %d\n", ret);
+
 
 	halo_cfg.drv_data = chip;
 	chip->halo_psy = power_supply_register(chip->dev,
@@ -687,7 +691,7 @@ static int halo7221_probe(struct i2c_client *client, const struct i2c_device_id 
 cleanup:
 	i2c_set_clientdata(client, NULL);
 
-	return rc;
+	return ret;
 
 }
 

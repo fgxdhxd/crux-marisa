@@ -626,7 +626,7 @@ QDF_STATUS ucfg_mc_cp_stats_cca_stats_get(struct wlan_objmgr_vdev *vdev,
 }
 
 QDF_STATUS ucfg_mc_cp_stats_set_rate_flags(struct wlan_objmgr_vdev *vdev,
-					   uint32_t flags)
+					   enum tx_rate_info rate_flags)
 {
 	struct vdev_mc_cp_stats *vdev_mc_stats;
 	struct vdev_cp_stats *vdev_cp_stats_priv;
@@ -639,7 +639,7 @@ QDF_STATUS ucfg_mc_cp_stats_set_rate_flags(struct wlan_objmgr_vdev *vdev,
 
 	wlan_cp_stats_vdev_obj_lock(vdev_cp_stats_priv);
 	vdev_mc_stats = vdev_cp_stats_priv->vdev_stats;
-	vdev_mc_stats->tx_rate_flags = flags;
+	vdev_mc_stats->tx_rate_flags = rate_flags ;
 	wlan_cp_stats_vdev_obj_unlock(vdev_cp_stats_priv);
 
 	return QDF_STATUS_SUCCESS;

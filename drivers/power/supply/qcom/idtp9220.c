@@ -597,7 +597,7 @@ static ssize_t vout_regulator_store(struct device *dev,
 
 	vout = (int)simple_strtoul(buf, NULL, 10);
 	if ((vout <= VOUT_MIN_4900_MV) || (vout > VOUT_MAX_10000_MV)) {
-		dev_err(di->dev, "Store Val %s : %ld is invalid!\n", buf, vout );
+		dev_err(di->dev, "Store Val %s : %d is invalid!\n", buf, vout );
 		return count;
 	}
 	idtp9220_set_vout_regulator(di, vout);

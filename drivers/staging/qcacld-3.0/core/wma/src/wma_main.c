@@ -6312,17 +6312,14 @@ static void wma_print_populate_soc_caps(struct target_psoc_info *tgt_hdl)
 	WMA_LOGD("%s: <====== HW mode cap printing starts ======>", __func__);
 	/* print cap of each hw mode */
 	for (i = 0; i < total_mac_phy_cnt; i++) {
-		if (&mac_phy_cap[i]) {
 			WMA_LOGD("====>: hw mode id[%d], phy id[%d]",
 				 mac_phy_cap[i].hw_mode_id,
 				 mac_phy_cap[i].phy_id);
 			tmp = &mac_phy_cap[i];
 			wma_print_mac_phy_capabilities(tmp, i);
-		}
 	}
 	WMA_LOGD("%s: <====== HW mode cap printing ends ======>\n", __func__);
 }
-
 /**
  * wma_map_wmi_channel_width_to_hw_mode_bw() - returns bandwidth
  * in terms of hw_mode_bandwidth

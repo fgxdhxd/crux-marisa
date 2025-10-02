@@ -1035,9 +1035,9 @@ verify_rq_based:
 	return 0;
 }
 
-enum dm_queue_mode dm_table_get_type(struct dm_table *t)
+unsigned dm_table_get_type(struct dm_table *t)
 {
-	return t->type;
+	return (unsigned)t->type;
 }
 
 struct target_type *dm_table_get_immutable_target_type(struct dm_table *t)

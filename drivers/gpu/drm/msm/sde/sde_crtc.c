@@ -935,8 +935,10 @@ static ssize_t measured_fps_show(struct device *device,
 	fps_int = (uint64_t) sde_crtc->fps_info.measured_fps;
 	fps_decimal = do_div(fps_int, 10);
 	return scnprintf(buf, PAGE_SIZE,
-	"fps: %d.%d duration:%d frame_count:%llu\n", fps_int, fps_decimal,
-			(unsigned long long)sde_crtc->fps_info.fps_periodic_duration, (unsigned long long)frame_count);
+	"fps: %llu.%llu duration:%llu frame_count:%llu\n", 
+	fps_int, fps_decimal,
+	(unsigned long long)sde_crtc->fps_info.fps_periodic_duration, 
+	(unsigned long long)frame_count);
 }
 
 static ssize_t vsync_event_show(struct device *device,

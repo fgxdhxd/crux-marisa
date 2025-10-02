@@ -39,6 +39,9 @@
 *.symtypes
 *.tar
 *.xz
+*.patch
+*.rej
+build.log
 Module.symvers
 modules.builtin
 
@@ -130,3 +133,4 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+out/

@@ -151,7 +151,7 @@ static int32_t encode_qmi(int32_t val)
 	temp_val &= ~(1 << shift);
 
 	local_val |= temp_val << (QMI_MANTISSA_MSB - shift);
-	pr_debug("inp:%d shift:%d out:%x temp_val:%x\n",
+	pr_debug("inp:%d shift:%d out:%lx temp_val:%lx\n",
 			val, shift, local_val, temp_val);
 
 	return local_val;
@@ -400,7 +400,7 @@ static int qmi_register_sensor_device(struct qmi_sensor *qmi_sens)
 	if (IS_ERR(qmi_sens->tz_dev)) {
 		ret = PTR_ERR(qmi_sens->tz_dev);
 		if (ret != -ENODEV)
-			pr_err("sensor register failed for %s, ret:%ld\n",
+			pr_err("sensor register failed for %s, ret:%d\n",
 				qmi_sens->qmi_name, ret);
 		qmi_sens->tz_dev = NULL;
 		return ret;

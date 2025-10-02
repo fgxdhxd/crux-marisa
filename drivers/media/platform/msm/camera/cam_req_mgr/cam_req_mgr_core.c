@@ -1155,7 +1155,7 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 		 */
 		if (req_id > sync_req_id) {
 			CAM_INFO(CAM_CRM,
-				"Timing issue, the sof event delayed of link %x sof ts:0x%x sync link handle:0x%x sync sof:0x%x req:%lld sync reqid:%lld",
+				"Timing issue, the sof event delayed of link %x sof ts:0x%llx sync link handle:0x%x sync sof:0x%llx req:%lld sync reqid:%lld",
 				link->link_hdl,
 				link->sof_timestamp,
 				link->sync_link->link_hdl,

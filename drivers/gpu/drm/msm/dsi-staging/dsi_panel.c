@@ -5907,14 +5907,14 @@ static int dsi_panel_get_lockdown_from_cmdline(unsigned char *plockdowninfo)
 	if (match && plockdowninfo) {
 		memcpy(lockdown_str, (match + strlen("msm_drm.panel_lockdown=")),
 			sizeof(lockdown_str) - 1);
-		if (sscanf(lockdown_str, "0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,0x%02x",
+		if (sscanf(lockdown_str, "0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx",
 				&plockdowninfo[0], &plockdowninfo[1], &plockdowninfo[2], &plockdowninfo[3],
 				&plockdowninfo[4], &plockdowninfo[5], &plockdowninfo[6], &plockdowninfo[7])
 					!= 8) {
 			pr_err("failed to parse lockdown info from cmdline !\n");
 		} else {
-			pr_info("lockdown info from cmdline = 0x%02x,0x%02x,0x%02x,0x%02x,0x%02x,"
-					"0x%02x,0x%02x,0x%02x",
+			pr_info("lockdown info from cmdline = 0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,0x%02hhx,"
+					"0x%02hhx,0x%02hhx,0x%02hhx",
 					plockdowninfo[0], plockdowninfo[1], plockdowninfo[2], plockdowninfo[3],
 					plockdowninfo[4], plockdowninfo[5], plockdowninfo[6], plockdowninfo[7]);
 			ret = 0;
@@ -6312,7 +6312,7 @@ ssize_t dsi_panel_mipi_reg_write(struct dsi_panel *panel,
 			goto exit_free0;
 		}
 		if (tmp_data > sizeof(g_dsi_read_cfg.rbuf)) {
-			pr_err("read size exceeding the limit %d\n",
+			pr_err("read size exceeding the limit %zu\n",
 					sizeof(g_dsi_read_cfg.rbuf));
 			goto exit_free0;
 		}

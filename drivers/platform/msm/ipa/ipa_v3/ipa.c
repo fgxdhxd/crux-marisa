@@ -331,27 +331,38 @@ static int ipa3_active_clients_log_init(void)
 	int i;
 
 	spin_lock_init(&ipa3_ctx->ipa3_active_clients_logging.lock);
+
+	/* 分配大块内存，后续切分给每行使用 */
 	ipa3_ctx->ipa3_active_clients_logging.log_buffer[0] = kcalloc(
 			IPA3_ACTIVE_CLIENTS_LOG_BUFFER_SIZE_LINES,
-			sizeof(char[IPA3_ACTIVE_CLIENTS_LOG_LINE_LEN]),
+			IPA3_ACTIVE_CLIENTS_LOG_LINE_LEN,
 			GFP_KERNEL);
-	active_clients_table_buf = kzalloc(sizeof(
-			char[IPA3_ACTIVE_CLIENTS_TABLE_BUF_SIZE]), GFP_KERNEL);
-	if (ipa3_ctx->ipa3_active_clients_logging.log_buffer == NULL) {
-		pr_err("Active Clients Logging memory allocation failed");
+
+	active_clients_table_buf = kzalloc(
+			IPA3_ACTIVE_CLIENTS_TABLE_BUF_SIZE, GFP_KERNEL);
+
+	if (!ipa3_ctx->ipa3_active_clients_logging.log_buffer[0] ||
+	    !active_clients_table_buf) {
+		pr_err("Active Clients Logging memory allocation failed\n");
 		goto bail;
 	}
+
+	/* 按行切分内存 */
 	for (i = 0; i < IPA3_ACTIVE_CLIENTS_LOG_BUFFER_SIZE_LINES; i++) {
 		ipa3_ctx->ipa3_active_clients_logging.log_buffer[i] =
 			ipa3_ctx->ipa3_active_clients_logging.log_buffer[0] +
 			(IPA3_ACTIVE_CLIENTS_LOG_LINE_LEN * i);
 	}
+
 	ipa3_ctx->ipa3_active_clients_logging.log_head = 0;
 	ipa3_ctx->ipa3_active_clients_logging.log_tail =
-			IPA3_ACTIVE_CLIENTS_LOG_BUFFER_SIZE_LINES - 1;
+		IPA3_ACTIVE_CLIENTS_LOG_BUFFER_SIZE_LINES - 1;
+
 	hash_init(ipa3_ctx->ipa3_active_clients_logging.htable);
+
 	atomic_notifier_chain_register(&panic_notifier_list,
 			&ipa3_active_clients_panic_blk);
+
 	ipa3_ctx->ipa3_active_clients_logging.log_rdy = 1;
 
 	return 0;
@@ -7168,7 +7179,7 @@ static int ipa3_pre_init(const struct ipa3_plat_drv_res *resource_p,
 	}
 
 	IPADBG(
-	    "base(0x%x)+offset(0x%x)=(0x%x) mapped to (0x%x) with len (0x%x)\n",
+	    "base(0x%x)+offset(0x%x)=(0x%x) mapped to (%p) with len (0x%x)\n",
 	    resource_p->ipa_mem_base,
 	    ipa3_ctx->ctrl->ipa_reg_base_ofst,
 	    resource_p->ipa_mem_base + ipa3_ctx->ctrl->ipa_reg_base_ofst,

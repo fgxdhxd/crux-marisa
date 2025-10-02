@@ -167,17 +167,19 @@ static int print_mem_entry(void *data, void *ptr)
 		kgsl_get_egl_counts(entry, &egl_surface_count,
 						&egl_image_count);
 
-	seq_printf(s, "%#llx %pK %16llu %5d %9s %10s %16s %5d %16d %6d %6d",
-			(uint64_t *)(uintptr_t) m->gpuaddr,
-			/*
-			 * Show zero for the useraddr - we can't reliably track
-			 * that value for multiple vmas anyway
-			 */
-			m->gpuaddr,(void *)0, m->size, entry->id, flags,
-			memtype_str(usermem_type),
-			usage, (m->sgt ? m->sgt->nents : 0),
-			atomic_read(&entry->map_count),
-			egl_surface_count, egl_image_count);
+seq_printf(s, "%#llx %pK %16llu %5d %5lu %9s %10s %5d %16d %6d %6d\n",
+    (unsigned long long)m->gpuaddr,          /* %#llx: 64-bit GPU address */
+    (void *)0,                               /* %pK: useraddr -> show NULL */
+    (unsigned long long)m->size,             /* %16llu: size (as unsigned long long) */
+    (int)entry->id,                          /* %5d: id (int) */
+    (unsigned long)flags,                     /* %5u: flags (unsigned long) */
+    memtype_str(usermem_type),               /* %9s: memtype string */
+    usage,                                   /* %10s: usage string (must be char *) */
+    (int)(m->sgt ? m->sgt->nents : 0),       /* %5d: nents (int) */
+    (int)atomic_read(&entry->map_count),     /* %16d: map_count (int) */
+    (int)egl_surface_count,                  /* %6d: egl_surface_count (int) */
+    (int)egl_image_count);                   /* %6d: egl_image_count (int) */
+
 
 	if (entry->metadata[0] != 0)
 		seq_printf(s, " %s", entry->metadata);

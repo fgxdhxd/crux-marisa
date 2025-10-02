@@ -307,8 +307,8 @@ static int mem_change_refresh_state(struct memory_notify *mn,
 
 	if (mem_sec_state[idx] == state) {
 		/* we shouldn't be getting this request */
-		pr_warn("mem-offline: state of mem%d block already in %s state. Ignoring refresh state change request\n",
-				sec_nr, online ? "online" : "offline");
+		pr_warn("mem-offline: state of mem%lu block already in %s state. Ignoring refresh state change request\n",
+				(unsigned long)sec_nr, online ? "online" : "offline");
 		return 0;
 	}
 
@@ -353,9 +353,9 @@ static int mem_event_callback(struct notifier_block *self,
 
 	if (sec_nr > end_section_nr || sec_nr < start_section_nr) {
 		if (action == MEM_ONLINE || action == MEM_OFFLINE)
-			pr_info("mem-offline: %s mem%d, but not our block. Not performing any action\n",
+			pr_info("mem-offline: %s mem%lu, but not our block. Not performing any action\n",
 				action == MEM_ONLINE ? "Onlined" : "Offlined",
-				sec_nr);
+				(unsigned long)sec_nr);
 		return NOTIFY_OK;
 	}
 	switch (action) {
@@ -383,8 +383,8 @@ static int mem_event_callback(struct notifier_block *self,
 			(void *)sec_nr);
 		break;
 	case MEM_GOING_OFFLINE:
-		pr_debug("mem-offline: MEM_GOING_OFFLINE : start = 0x%lx end = 0x%lx",
-				start_addr, end_addr);
+		pr_debug("mem-offline: MEM_GOING_OFFLINE : start = %pa end = %pa",
+				&start_addr, &end_addr);
 		++mem_info[(sec_nr - start_section_nr + MEMORY_OFFLINE *
 			   idx) / sections_per_block].fail_count;
 		cur = ktime_get();

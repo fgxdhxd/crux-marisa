@@ -11,23 +11,25 @@
 #
 
 if [ "$1" = "-p" ] ; then
-	with_patchlevel=1;
-	shift;
+    with_patchlevel=1
+    shift
 fi
 
 compiler="$*"
 
 if [ ${#compiler} -eq 0 ]; then
-	echo "Error: No compiler specified."
-	printf "Usage:\n\t$0 <gcc-command>\n"
-	exit 1
+    echo "Error: No compiler specified."
+    printf "Usage:\n\t$0 <gcc-command>\n"
+    exit 1
 fi
 
-MAJOR=$(echo __GNUC__ | $compiler -E -x c - | tail -n 1)
-MINOR=$(echo __GNUC_MINOR__ | $compiler -E -x c - | tail -n 1)
+# 使用 -xc -E 来获取 GCC 内置宏，不显示多余警告信息
+MAJOR=$($compiler -dM -E - < /dev/null 2>/dev/null | awk '/__GNUC__/ {print $3}' | head -n1)
+MINOR=$($compiler -dM -E - < /dev/null 2>/dev/null | awk '/__GNUC_MINOR__/ {print $3}' | head -n1)
+PATCHLEVEL=$($compiler -dM -E - < /dev/null 2>/dev/null | awk '/__GNUC_PATCHLEVEL__/ {print $3}' | head -n1)
+
 if [ "x$with_patchlevel" != "x" ] ; then
-	PATCHLEVEL=$(echo __GNUC_PATCHLEVEL__ | $compiler -E -x c - | tail -n 1)
-	printf "%02d%02d%02d\\n" $MAJOR $MINOR $PATCHLEVEL
+    printf "%02d%02d%02d\n" $MAJOR $MINOR $PATCHLEVEL
 else
-	printf "%02d%02d\\n" $MAJOR $MINOR
+    printf "%02d%02d\n" $MAJOR $MINOR
 fi
