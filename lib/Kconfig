@@ -1,3 +1,4 @@
+source "lib/lz4k_oplus/Kconfig"
 #
 # Library configuration
 #
