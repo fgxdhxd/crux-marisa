@@ -34,7 +34,7 @@
 #include <linux/falloc.h>
 #include <linux/uio.h>
 #include <scsi/scsi_proto.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <target/target_core_base.h>
 #include <target/target_core_backend.h>

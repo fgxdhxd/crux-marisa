@@ -29,7 +29,7 @@
 #include <linux/types.h>
 #include <linux/module.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/byteorder.h>
 
 #include <net/irda/irda.h>

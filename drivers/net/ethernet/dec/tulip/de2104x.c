@@ -50,7 +50,7 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <linux/uaccess.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /* These identify the driver base version and may not be removed. */
 static char version[] =

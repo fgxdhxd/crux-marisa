@@ -19,7 +19,7 @@
 #include <linux/decompress/mm.h>
 #include <linux/compiler.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * Note: Uncompressed chunk size is used in the compressor side

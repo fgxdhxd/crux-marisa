@@ -29,7 +29,7 @@
 #include <uapi/linux/mhi.h>
 #include <linux/io.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "configfs.h"
 #include "u_rmnet.h"

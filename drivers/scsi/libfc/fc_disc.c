@@ -38,7 +38,7 @@
 #include <linux/export.h>
 #include <linux/rculist.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/fc/fc_gs.h>
 

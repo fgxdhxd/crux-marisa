@@ -23,7 +23,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/ctype.h>
 #include <linux/string.h>
 #include <linux/firmware.h>

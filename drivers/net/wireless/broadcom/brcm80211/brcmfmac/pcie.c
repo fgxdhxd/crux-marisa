@@ -23,7 +23,7 @@
 #include <linux/bcma/bcma.h>
 #include <linux/sched.h>
 #include <linux/io.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <soc.h>
 #include <chipcommon.h>

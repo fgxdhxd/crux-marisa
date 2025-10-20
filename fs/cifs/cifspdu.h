@@ -23,7 +23,7 @@
 #define _CIFSPDU_H
 
 #include <net/sock.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "smbfsctl.h"
 
 #ifdef CONFIG_CIFS_WEAK_PW_HASH

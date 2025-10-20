@@ -21,7 +21,7 @@
 
 #include <linux/usb/composite.h>
 #include <linux/usb/otg.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "u_os_desc.h"
 

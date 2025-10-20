@@ -10,8 +10,8 @@
 #include <linux/kernel.h>
 #include <linux/rmi.h>
 #include <linux/firmware.h>
-#include <asm/unaligned.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/bitops.h>
 
 #include "rmi_driver.h"

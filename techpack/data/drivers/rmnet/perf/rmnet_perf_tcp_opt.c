@@ -19,7 +19,7 @@
 #include <net/ip6_checksum.h>
 #include <net/tcp.h>
 #include <linux/module.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <../drivers/net/ethernet/qualcomm/rmnet/rmnet_map.h>
 #include "rmnet_perf_opt.h"
 #include "rmnet_perf_tcp_opt.h"

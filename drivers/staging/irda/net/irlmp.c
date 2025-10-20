@@ -43,7 +43,7 @@
 #include <net/irda/irlmp.h>
 #include <net/irda/irlmp_frame.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 static __u8 irlmp_find_free_slsap(void);
 static int irlmp_slsap_inuse(__u8 slsap_sel);

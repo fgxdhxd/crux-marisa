@@ -67,7 +67,7 @@
 #include <linux/export.h>
 #include <linux/rculist.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/libfc.h>
 #include <scsi/fc_encode.h>

@@ -55,7 +55,7 @@
 #include <linux/interrupt.h>
 #include <linux/aer.h>
 #include <linux/raid_class.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "mpt3sas_base.h"
 

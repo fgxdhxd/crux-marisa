@@ -47,7 +47,7 @@
 
 #include <asm/byteorder.h>
 #include <asm/irq.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define DRIVER_AUTHOR "Yuan-Hsin Chen"
 #define DRIVER_DESC "FOTG210 Host Controller (EHCI) Driver"

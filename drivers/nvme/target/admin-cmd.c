@@ -16,7 +16,7 @@
 #include <linux/rculist.h>
 
 #include <generated/utsrelease.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "nvmet.h"
 
 u32 nvmet_get_log_page_len(struct nvme_command *cmd)

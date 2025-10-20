@@ -27,7 +27,7 @@
 #include <asm/blackfin.h>
 #include <linux/gpio.h>
 #include <linux/io.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define pr_devinit(fmt, args...) \
 		({ static const char __fmt[] = fmt; printk(__fmt, ## args); })

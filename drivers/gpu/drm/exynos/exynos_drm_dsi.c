@@ -10,7 +10,7 @@
  * published by the Free Software Foundation.
 */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <drm/drmP.h>
 #include <drm/drm_crtc_helper.h>

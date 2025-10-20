@@ -11,7 +11,7 @@
 
 /* ARC700 can't handle unaligned Data accesses. */
 
-#include <asm-generic/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/ptrace.h>
 
 #ifdef CONFIG_ARC_EMUL_UNALIGNED

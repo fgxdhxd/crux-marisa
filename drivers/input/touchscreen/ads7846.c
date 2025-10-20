@@ -35,7 +35,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/module.h>
 #include <asm/irq.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * This code has been heavily tested on a Nokia 770, and lightly

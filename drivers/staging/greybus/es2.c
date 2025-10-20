@@ -12,7 +12,7 @@
 #include <linux/kfifo.h>
 #include <linux/debugfs.h>
 #include <linux/list.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "arpc.h"
 #include "greybus.h"

@@ -15,7 +15,7 @@
 
 #include <linux/uio.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/scatterlist.h>
 
 struct rpc_rqst;

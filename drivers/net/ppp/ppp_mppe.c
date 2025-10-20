@@ -55,7 +55,7 @@
 #include <linux/ppp_defs.h>
 #include <linux/ppp-comp.h>
 #include <linux/scatterlist.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "ppp_mppe.h"
 

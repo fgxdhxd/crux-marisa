@@ -2,7 +2,7 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/usb/input.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * Version Information

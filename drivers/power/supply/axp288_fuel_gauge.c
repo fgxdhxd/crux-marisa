@@ -29,7 +29,7 @@
 #include <linux/iio/consumer.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define CHRG_STAT_BAT_SAFE_MODE		(1 << 3)
 #define CHRG_STAT_BAT_VALID			(1 << 4)

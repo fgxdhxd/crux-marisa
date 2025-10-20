@@ -23,7 +23,7 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/firmware.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "gs_fpgaboot.h"
 #include "io.h"

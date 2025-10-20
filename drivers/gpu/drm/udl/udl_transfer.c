@@ -14,7 +14,7 @@
 #include <linux/slab.h>
 #include <linux/fb.h>
 #include <linux/prefetch.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <drm/drmP.h>
 #include "udl_drv.h"

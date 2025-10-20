@@ -25,7 +25,7 @@
 #include <linux/mmc/slot-gpio.h>
 
 #include <asm/sizes.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "mvsdio.h"
 

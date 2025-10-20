@@ -84,7 +84,7 @@
 #include <linux/pci.h>
 #include <linux/uaccess.h>
 #include <linux/atomic.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/bitops.h>
 #include <linux/spinlock.h>
 #include <linux/init.h>

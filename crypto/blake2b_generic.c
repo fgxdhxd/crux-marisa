@@ -18,7 +18,7 @@
  * handling.
  */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/kernel.h>

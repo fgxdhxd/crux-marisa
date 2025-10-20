@@ -34,7 +34,7 @@
 #include <linux/slab.h>
 
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <net/irda/irda.h>
 #include <net/irda/irttp.h>

@@ -20,7 +20,7 @@
 #include <linux/slab.h>
 #include <asm/byteorder.h>
 #include <asm/sn/sn_sal.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "snsc.h"
 
 static struct subch_data_s *event_sd;

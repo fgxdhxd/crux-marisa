@@ -41,7 +41,7 @@
 
 #include <asm/cacheflush.h>
 #include <asm/io.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * Superset of MCI IP registers integrated in Atmel AT91 Processor

@@ -21,7 +21,7 @@
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/version.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <media/v4l2-common.h>
 

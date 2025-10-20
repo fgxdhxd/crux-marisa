@@ -19,7 +19,7 @@
 #include <linux/device.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define EC_COMMAND_RETRIES	50
 

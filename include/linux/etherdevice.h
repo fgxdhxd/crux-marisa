@@ -25,7 +25,7 @@
 #include <linux/if_ether.h>
 #include <linux/netdevice.h>
 #include <linux/random.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/bitsperlong.h>
 
 #ifdef __KERNEL__

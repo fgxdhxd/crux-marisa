@@ -32,7 +32,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/iopoll.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define TEGRA_I2C_TIMEOUT (msecs_to_jiffies(1000))
 #define BYTES_PER_FIFO_WORD 4

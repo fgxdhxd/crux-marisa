@@ -23,7 +23,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define PCA953X_INPUT		0
 #define PCA953X_OUTPUT		1

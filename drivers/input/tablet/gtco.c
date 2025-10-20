@@ -57,7 +57,7 @@ Scott Hill shill@gtcocalcomp.com
 #include <linux/input.h>
 #include <linux/usb.h>
 #include <linux/uaccess.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/byteorder.h>
 #include <linux/bitops.h>
 

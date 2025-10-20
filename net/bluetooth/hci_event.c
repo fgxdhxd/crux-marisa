@@ -24,7 +24,7 @@
 
 /* Bluetooth HCI event handling. */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/crypto.h>
 #include <crypto/algapi.h>
 

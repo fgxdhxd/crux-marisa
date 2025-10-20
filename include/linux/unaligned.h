@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-#ifndef __ASM_GENERIC_UNALIGNED_H
-#define __ASM_GENERIC_UNALIGNED_H
+#ifndef __LINUX_UNALIGNED_H
+#define __LINUX_UNALIGNED_H
 
 /*
  * This is the most generic implementation of unaligned accesses
@@ -33,4 +33,4 @@
 # error need to define endianess
 #endif
 
-#endif /* __ASM_GENERIC_UNALIGNED_H */
+#endif /* __LINUX_UNALIGNED_H */

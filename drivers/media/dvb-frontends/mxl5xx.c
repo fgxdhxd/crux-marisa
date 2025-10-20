@@ -31,7 +31,7 @@
 #include <linux/mutex.h>
 #include <linux/vmalloc.h>
 #include <asm/div64.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "dvb_frontend.h"
 #include "mxl5xx.h"

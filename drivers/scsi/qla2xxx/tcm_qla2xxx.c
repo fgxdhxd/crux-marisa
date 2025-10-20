@@ -35,7 +35,7 @@
 #include <linux/string.h>
 #include <linux/configfs.h>
 #include <linux/ctype.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <scsi/scsi.h>
 #include <scsi/scsi_host.h>
 #include <scsi/scsi_device.h>

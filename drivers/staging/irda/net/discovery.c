@@ -40,7 +40,7 @@
 
 #include <net/irda/discovery.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * Function irlmp_add_discovery (cachelog, discovery)

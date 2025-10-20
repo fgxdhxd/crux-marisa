@@ -7,7 +7,7 @@
 #include <asm/unaligned-sh4a.h>
 #else
 /* Otherwise, SH can't handle unaligned accesses. */
-#include <asm-generic/unaligned.h>
+#include <linux/unaligned.h>
 #endif
 
 #endif /* _ASM_SH_UNALIGNED_H */

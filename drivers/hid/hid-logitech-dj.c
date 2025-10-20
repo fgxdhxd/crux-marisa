@@ -27,7 +27,7 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/kfifo.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "hid-ids.h"
 
 #define DJ_MAX_PAIRED_DEVICES			6

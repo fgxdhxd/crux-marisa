@@ -27,7 +27,7 @@
 #include <crypto/algapi.h>
 #include <crypto/hash.h>
 #include <crypto/internal/hash.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <asm/dma.h>
 #include <asm/portmux.h>

@@ -38,7 +38,7 @@
 #include <asm/byteorder.h>
 #include <linux/uaccess.h>
 #include <linux/io.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "ide-floppy.h"
 

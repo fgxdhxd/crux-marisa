@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  ******************************************************************************/
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <scsi/scsi_proto.h>
 #include <scsi/iscsi_proto.h>
 #include <target/target_core_base.h>

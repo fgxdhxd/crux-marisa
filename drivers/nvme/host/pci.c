@@ -31,7 +31,7 @@
 #include <linux/timer.h>
 #include <linux/types.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/sed-opal.h>
 
 #include "nvme.h"

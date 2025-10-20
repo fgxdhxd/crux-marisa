@@ -27,7 +27,7 @@
 #include <linux/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/siginfo.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 void show_backtrace(struct pt_regs *, unsigned long);
 

@@ -22,7 +22,7 @@
 #include <linux/of_gpio.h>
 #include <linux/ieee802154.h>
 #include <linux/crc-ccitt.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <net/mac802154.h>
 #include <net/cfg802154.h>

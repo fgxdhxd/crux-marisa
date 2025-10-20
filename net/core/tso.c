@@ -3,7 +3,7 @@
 #include <linux/if_vlan.h>
 #include <net/ip.h>
 #include <net/tso.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /* Calculate expected number of TX descriptors */
 int tso_count_descs(struct sk_buff *skb)

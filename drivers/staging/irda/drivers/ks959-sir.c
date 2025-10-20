@@ -121,7 +121,7 @@
 #include <linux/device.h>
 #include <linux/crc32.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/byteorder.h>
 #include <linux/uaccess.h>
 

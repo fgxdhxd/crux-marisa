@@ -31,7 +31,7 @@
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/card.h>
 #include <linux/mfd/rtsx_pci.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 struct realtek_pci_sdmmc {
 	struct platform_device	*pdev;

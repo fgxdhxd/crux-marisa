@@ -471,7 +471,7 @@
 #include <asm/io.h>
 #include <asm/dma.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/uaccess.h>
 #ifdef CONFIG_PPC_PMAC
 #include <asm/machdep.h>

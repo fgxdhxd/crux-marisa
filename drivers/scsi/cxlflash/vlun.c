@@ -14,7 +14,7 @@
 
 #include <linux/syscalls.h>
 #include <misc/cxl.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/bitsperlong.h>
 
 #include <scsi/scsi_cmnd.h>

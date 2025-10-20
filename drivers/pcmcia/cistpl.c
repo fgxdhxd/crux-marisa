@@ -25,7 +25,7 @@
 #include <linux/ioport.h>
 #include <linux/io.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <pcmcia/ss.h>
 #include <pcmcia/cisreg.h>

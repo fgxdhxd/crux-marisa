@@ -26,7 +26,7 @@
 #include <asm/cacheflush.h>
 #include <asm/traps.h>
 #include <linux/uaccess.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <arch/abi.h>
 #include <arch/spr_def.h>
 #include <arch/opcode.h>

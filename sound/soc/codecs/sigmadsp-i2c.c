@@ -10,7 +10,7 @@
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "sigmadsp.h"
 

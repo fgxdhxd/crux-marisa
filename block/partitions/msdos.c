@@ -31,7 +31,7 @@
  * the nr_sects and start_sect partition table entries are
  * at a 2 (mod 4) address.
  */
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define SYS_IND(p)	get_unaligned(&p->sys_ind)
 

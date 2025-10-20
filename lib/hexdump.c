@@ -12,7 +12,7 @@
 #include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/export.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 const char hex_asc[] = "0123456789abcdef";
 EXPORT_SYMBOL(hex_asc);

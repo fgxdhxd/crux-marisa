@@ -24,7 +24,7 @@
 
 #include <asm/pgtable.h>
 #include <asm/tlbflush.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "mm.h"
 

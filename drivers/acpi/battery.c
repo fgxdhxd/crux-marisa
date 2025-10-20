@@ -31,7 +31,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #ifdef CONFIG_ACPI_PROCFS_POWER
 #include <linux/proc_fs.h>

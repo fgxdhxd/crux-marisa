@@ -9,7 +9,7 @@
 #ifndef __BLACKFIN_FLAT_H__
 #define __BLACKFIN_FLAT_H__
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define	flat_argvp_envp_on_stack()		0
 #define	flat_old_ram_flag(flags)		(flags)

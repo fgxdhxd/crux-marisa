@@ -22,7 +22,7 @@
 
 #include <linux/gfp.h>
 #include <linux/slab.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/usb/phy.h>
 
 #include "xhci.h"

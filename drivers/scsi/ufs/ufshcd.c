@@ -43,7 +43,7 @@
 #include <linux/nls.h>
 #include <linux/of.h>
 #include <linux/blkdev.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "ufshcd.h"
 #include "ufs_quirks.h"

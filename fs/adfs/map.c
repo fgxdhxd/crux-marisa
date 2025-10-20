@@ -8,7 +8,7 @@
  * published by the Free Software Foundation.
  */
 #include <linux/buffer_head.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "adfs.h"
 
 /*

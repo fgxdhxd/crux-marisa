@@ -34,7 +34,7 @@
 #include <linux/in.h>
 #include <linux/export.h>
 #include <linux/t10-pi.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <net/sock.h>
 #include <net/tcp.h>
 #include <scsi/scsi_common.h>

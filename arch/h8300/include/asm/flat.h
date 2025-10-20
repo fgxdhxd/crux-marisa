@@ -6,7 +6,7 @@
 #ifndef __H8300_FLAT_H__
 #define __H8300_FLAT_H__
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define	flat_argvp_envp_on_stack()		1
 #define	flat_old_ram_flag(flags)		1

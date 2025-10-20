@@ -30,7 +30,7 @@
 #include <linux/list.h>
 #include <linux/genhd.h>
 #include <linux/fs.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <asm/byteorder.h>
 
 struct parsed_partitions;

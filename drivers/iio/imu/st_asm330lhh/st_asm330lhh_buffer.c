@@ -14,7 +14,7 @@
 #include <linux/iio/kfifo_buf.h>
 #include <linux/iio/events.h>
 #include <linux/iio/buffer.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/iio/buffer.h>
 #include <linux/of.h>
 #include <asm/arch_timer.h>

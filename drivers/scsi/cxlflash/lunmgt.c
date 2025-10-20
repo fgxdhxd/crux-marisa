@@ -13,7 +13,7 @@
  */
 
 #include <misc/cxl.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/scsi_host.h>
 #include <uapi/scsi/cxlflash_ioctl.h>

@@ -8,7 +8,7 @@
 #include <linux/bootmem.h>
 #include <linux/random.h>
 #include <asm/dmi.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 struct kobject *dmi_kobj;
 EXPORT_SYMBOL_GPL(dmi_kobj);

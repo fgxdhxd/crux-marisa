@@ -15,7 +15,7 @@
 #include <linux/of.h>
 #include <linux/acpi.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define AD5593R_MODE_CONF		(0 << 4)
 #define AD5593R_MODE_DAC_WRITE		(1 << 4)

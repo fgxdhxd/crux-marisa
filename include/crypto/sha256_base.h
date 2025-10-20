@@ -13,7 +13,7 @@
 #include <linux/crypto.h>
 #include <linux/module.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 typedef void (sha256_block_fn)(struct sha256_state *sst, u8 const *src,
 			       int blocks);

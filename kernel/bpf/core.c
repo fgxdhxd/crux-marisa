@@ -32,7 +32,7 @@
 #include <linux/kallsyms.h>
 #include <linux/rcupdate.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /* Registers */
 #define BPF_R0	regs[BPF_REG_0]

@@ -16,7 +16,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/iio/common/st_sensors.h>
 
 #include "st_sensors_core.h"

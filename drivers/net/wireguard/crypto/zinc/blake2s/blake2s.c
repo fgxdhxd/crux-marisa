@@ -17,7 +17,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/bug.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 static const u32 blake2s_iv[8] = {
 	0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL, 0xA54FF53AUL,

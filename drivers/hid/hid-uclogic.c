@@ -16,7 +16,7 @@
 #include <linux/hid.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include "usbhid/usbhid.h"
 
 #include "hid-ids.h"

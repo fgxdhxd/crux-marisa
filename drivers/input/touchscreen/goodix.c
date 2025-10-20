@@ -29,7 +29,7 @@
 #include <linux/slab.h>
 #include <linux/acpi.h>
 #include <linux/of.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 struct goodix_ts_data {
 	struct i2c_client *client;

@@ -18,7 +18,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define WACOM_CMD_QUERY0	0x04
 #define WACOM_CMD_QUERY1	0x00

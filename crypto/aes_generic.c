@@ -54,7 +54,7 @@
 #include <linux/errno.h>
 #include <linux/crypto.h>
 #include <asm/byteorder.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 static inline u8 byte(const u32 x, const unsigned n)
 {

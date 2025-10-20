@@ -16,7 +16,7 @@
 #include <linux/file.h>
 #include <linux/syscalls.h>
 #include <misc/cxl.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/scsi.h>
 #include <scsi/scsi_host.h>

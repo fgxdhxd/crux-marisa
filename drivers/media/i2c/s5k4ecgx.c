@@ -24,7 +24,7 @@
 #include <linux/module.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <media/media-entity.h>
 #include <media/i2c/s5k4ecgx.h>

@@ -10,7 +10,7 @@
  * published by the Free Software Foundation.
  */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <mach/uncompress.h>
 
 /*

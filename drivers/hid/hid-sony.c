@@ -37,7 +37,7 @@
 #include <linux/idr.h>
 #include <linux/input/mt.h>
 #include <linux/crc32.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "hid-ids.h"
 

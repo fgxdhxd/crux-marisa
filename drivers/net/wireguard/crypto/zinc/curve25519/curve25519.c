@@ -12,7 +12,7 @@
 #include <zinc/curve25519.h>
 #include "../selftest/run.h"
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/string.h>
 #include <linux/random.h>
 #include <linux/module.h>

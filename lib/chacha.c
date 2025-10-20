@@ -13,7 +13,7 @@
 #include <linux/export.h>
 #include <linux/bitops.h>
 #include <linux/cryptohash.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <crypto/chacha.h>
 
 static void chacha_permute(u32 *x, int nrounds)

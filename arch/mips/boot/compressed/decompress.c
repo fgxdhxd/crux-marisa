@@ -19,7 +19,7 @@
 #include <linux/libfdt.h>
 
 #include <asm/addrspace.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * These two variables specify the free mem region

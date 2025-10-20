@@ -10,7 +10,7 @@
 
 #include <asm/neon.h>
 #include <asm/simd.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <crypto/aes.h>
 #include <crypto/scatterwalk.h>
 #include <crypto/internal/aead.h>

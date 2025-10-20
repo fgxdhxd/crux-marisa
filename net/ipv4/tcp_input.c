@@ -74,7 +74,7 @@
 #include <net/tcp.h>
 #include <net/inet_common.h>
 #include <linux/ipsec.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/errqueue.h>
 
 int sysctl_tcp_fack __read_mostly;

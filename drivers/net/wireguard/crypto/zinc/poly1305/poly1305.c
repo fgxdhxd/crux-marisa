@@ -10,7 +10,7 @@
 #include <zinc/poly1305.h>
 #include "../selftest/run.h"
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/kernel.h>
 #include <linux/string.h>
 #include <linux/module.h>

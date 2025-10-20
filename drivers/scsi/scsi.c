@@ -55,7 +55,7 @@
 #include <linux/cpu.h>
 #include <linux/mutex.h>
 #include <linux/async.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/scsi.h>
 #include <scsi/scsi_cmnd.h>

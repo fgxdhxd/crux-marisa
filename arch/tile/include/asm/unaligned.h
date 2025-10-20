@@ -23,7 +23,7 @@
  * specific unaligned data access functions.  Given these functions
  * are not often called, we'll stick with the generic version.
  */
-#include <asm-generic/unaligned.h>
+#include <linux/unaligned.h>
 
 /*
  * Is the kernel doing fixups of unaligned accesses?  If <0, no kernel

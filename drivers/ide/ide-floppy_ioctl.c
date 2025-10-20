@@ -8,7 +8,7 @@
 #include <linux/cdrom.h>
 #include <linux/mutex.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <scsi/scsi_ioctl.h>
 

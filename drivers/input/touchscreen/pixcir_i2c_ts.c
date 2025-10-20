@@ -25,7 +25,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/of_device.h>
 #include <linux/platform_data/pixcir_i2c_ts.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define PIXCIR_MAX_SLOTS       5 /* Max fingers supported by driver */
 

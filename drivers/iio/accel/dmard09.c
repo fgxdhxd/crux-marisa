@@ -13,7 +13,7 @@
  * more details.
  */
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/module.h>
 #include <linux/i2c.h>
 #include <linux/iio/iio.h>

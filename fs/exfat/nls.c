@@ -10,7 +10,7 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 #include <linux/vmalloc.h>
 #endif
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "exfat_raw.h"
 #include "exfat_fs.h"

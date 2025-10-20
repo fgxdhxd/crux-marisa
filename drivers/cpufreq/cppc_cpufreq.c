@@ -23,7 +23,7 @@
 #include <linux/time.h>
 #include <linux/vmalloc.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include <acpi/cppc_acpi.h>
 

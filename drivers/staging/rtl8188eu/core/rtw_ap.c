@@ -20,7 +20,7 @@
 #include <drv_types.h>
 #include <wifi.h>
 #include <ieee80211.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #ifdef CONFIG_88EU_AP_MODE
 

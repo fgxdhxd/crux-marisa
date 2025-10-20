@@ -11,7 +11,7 @@
  */
 
 #include <linux/siphash.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #ifdef __LITTLE_ENDIAN

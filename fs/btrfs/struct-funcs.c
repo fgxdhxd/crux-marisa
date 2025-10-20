@@ -17,7 +17,7 @@
  */
 
 #include <linux/highmem.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #include "ctree.h"
 

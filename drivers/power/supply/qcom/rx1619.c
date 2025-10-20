@@ -16,7 +16,7 @@
 #include <linux/i2c.h>
 #include <linux/sysfs.h>
 #include <linux/power_supply.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>

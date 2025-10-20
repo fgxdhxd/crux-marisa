@@ -31,7 +31,7 @@
 #include <trace/events/skb.h>
 #include <trace/events/napi.h>
 
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 #define TRACE_ON 1
 #define TRACE_OFF 0
