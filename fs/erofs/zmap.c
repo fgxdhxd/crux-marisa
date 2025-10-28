@@ -4,7 +4,7 @@
  *             https://www.huawei.com/
  */
 #include "internal.h"
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <trace/events/erofs.h>
 
 int z_erofs_fill_inode(struct inode *inode)
