@@ -8610,7 +8610,7 @@ static void afe_release_uevent_data(struct kobject *kobj)
 	kfree(data);
 }
 
-// #ifdef CONFIG_SND_SOC_TFA9874_FOR_DAVI
+//#ifdef CONFIG_SND_SOC_TFA9874_FOR_DAVI
 
 int send_tfa_cal_apr(void *buf, int cmd_size, bool bRead)
 {
@@ -8813,7 +8813,7 @@ int send_tfa_cal_set_tx_enable(void *buf, int cmd_size)
 }
 EXPORT_SYMBOL(send_tfa_cal_set_tx_enable);
 
-// #endif /*CONFIG_SND_SOC_TFA9874_FOR_DAVI*/
+//#endif /*CONFIG_SND_SOC_TFA9874_FOR_DAVI*/
 
 int __init afe_init(void)
 {
