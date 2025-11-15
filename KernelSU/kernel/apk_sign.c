@@ -25,10 +25,7 @@ struct sdesc {
 	char ctx[];
 };
 
-static struct apk_sign_key {
-	unsigned size;
-	const char *sha256;
-} apk_sign_keys[] = {
+static apk_sign_key_t apk_sign_keys[] = {
 	{ EXPECTED_SIZE_SHIRKNEKO, EXPECTED_HASH_SHIRKNEKO }, // SukiSU
 #ifdef EXPECTED_SIZE
 	{ EXPECTED_SIZE, EXPECTED_HASH }, // Custom
@@ -132,7 +129,7 @@ static bool check_block(struct file *fp, u32 *size4, loff_t *pos, u32 *offset,
 			int *matched_index)
 {
 	int i;
-	struct apk_sign_key sign_key;
+	apk_sign_key_t sign_key;
 	bool signature_valid = false;
 
 	ksu_kernel_read_compat(fp, size4, 0x4, pos); // signer-sequence length
