@@ -439,7 +439,6 @@ retry:
 		goto out;
 
 	inode = d_backing_inode(path.dentry);
-	mnt = path.mnt;
 
 	if ((mode & MAY_EXEC) && S_ISREG(inode->i_mode)) {
 		/*
@@ -451,7 +450,7 @@ retry:
 			goto out_path_release;
 	}
 
-	res = inode_permission2(mnt, inode, mode | MAY_ACCESS);
+	res = inode_permission(inode, mode | MAY_ACCESS);
 	/* SuS v2 requires we report a read only fs too */
 	if (res || !(mode & S_IWOTH) || special_file(inode->i_mode))
 		goto out_path_release;
