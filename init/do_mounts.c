@@ -411,7 +411,7 @@ static int __init do_mount_root(char *name, char *fs, int flags, void *data)
 
 	place_marker("M - DRIVER F/S Init");
 
-	err = sys_mount((char __user *)name, (char __user *)"/root",
+	err = ksys_mount((char __user *)name, (char __user *)"/root",
 			(char __user *)fs, (unsigned long)flags,
 						(void __user *)data);
 	if (err)
@@ -436,7 +436,7 @@ static int do_mount_part(char *name, char *fs, int flags,
 {
 	int err;
 
-	err = sys_mount((char __user *)name, (char __user *)mnt_point,
+	err = ksys_mount((char __user *)name, (char __user *)mnt_point,
 			(char __user *)fs, (unsigned long)flags,
 						(void __user *)data);
 	if (err) {
