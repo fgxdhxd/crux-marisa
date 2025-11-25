@@ -2141,7 +2141,7 @@ bad_fork_cgroup_threadgroup_change_end:
 	cgroup_threadgroup_change_end(current);
 bad_fork_put_pidfd:
 	if (clone_flags & CLONE_PIDFD)
-		sys_close(pidfd);
+		ksys_close(pidfd);
 bad_fork_free_pid:
 	if (pid != &init_struct_pid)
 		free_pid(pid);
