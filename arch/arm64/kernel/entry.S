@@ -915,6 +915,24 @@ el0_error_naked:
 	enable_dbg
 	mov	x0, sp
 	bl	do_serror
+/*
+ * This is the fast syscall return path.  We do as little as possible here,
+ * and this includes saving x0 back into the kernel stack.
+ */
+ret_fast_syscall:
+	disable_daif
+#ifndef CONFIG_DEBUG_RSEQ
+	ldr	x1, [tsk, #TSK_TI_FLAGS]	// re-check for syscall tracing
+	and	x2, x1, #_TIF_SYSCALL_WORK
+	cbnz	x2, ret_fast_syscall_trace
+	and	x2, x1, #_TIF_WORK_MASK
+	cbnz	x2, work_pending
+	enable_step_tsk x1, x2
+	kernel_exit 0
+
+#endif /* CONFIG_DEBUG_RSEQ */
+
+ret_fast_syscall_trace:
 	enable_daif
 	ct_user_exit
 	b	ret_to_user
