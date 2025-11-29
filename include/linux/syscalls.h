@@ -82,6 +82,15 @@ union bpf_attr;
 #include <linux/personality.h>
 #include <trace/syscall.h>
 
+/*
+ * Fallback definition for ALLOW_ERROR_INJECTION.
+ * In most cases, architectures can use the error-injection framework,
+ * but for those that don't provide it, this macro should be empty.
+ */
+#ifndef ALLOW_ERROR_INJECTION
+#define ALLOW_ERROR_INJECTION(name, class)
+#endif
+
 #ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 /*
  * It may be useful for an architecture to override the definitions of the

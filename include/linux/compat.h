@@ -52,6 +52,12 @@
 #define __SC_DELOUSE(t,v) ((__force t)(unsigned long)(v))
 #endif
 
+/*
+ * Only define the old compat syscall macros if the architecture
+ * does not have its own syscall wrapper.
+ */
+#if !defined(CONFIG_ARCH_HAS_SYSCALL_WRAPPER) || !CONFIG_ARCH_HAS_SYSCALL_WRAPPER
+
 #ifndef COMPAT_SYSCALL_DEFINE0
 #define COMPAT_SYSCALL_DEFINE0(name) \
 	asmlinkage long compat_sys_##name(void); \
@@ -91,6 +97,8 @@
 	}									\
 	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
 #endif /* COMPAT_SYSCALL_DEFINEx */
+
+#endif /* !CONFIG_ARCH_HAS_SYSCALL_WRAPPER || !defined(CONFIG_ARCH_HAS_SYSCALL_WRAPPER) */
 
 #ifndef compat_user_stack_pointer
 #define compat_user_stack_pointer() current_user_stack_pointer()
