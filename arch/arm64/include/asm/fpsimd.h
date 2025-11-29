@@ -70,6 +70,18 @@ extern void fpsimd_flush_task_state(struct task_struct *target);
 /* For use by EFI runtime services calls only */
 extern void __efi_fpsimd_begin(void);
 extern void __efi_fpsimd_end(void);
+#
+#ifndef system_supports_sve
+static inline bool system_supports_sve(void) { return false; }
+#endif
+
+#ifndef TIF_SVE
+#define TIF_SVE 0
+#endif
+
+#ifndef sve_user_disable
+static inline void sve_user_disable(void) { }
+#endif
 
 #endif
 
