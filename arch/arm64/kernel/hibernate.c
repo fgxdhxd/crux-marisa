@@ -339,7 +339,7 @@ int swsusp_arch_suspend(void)
 		}
 	}
 
-	local_dbg_restore(flags);
+	local_daif_restore(flags);
 	place_marker("PM: Kernel restore start!");
 
 	return ret;
