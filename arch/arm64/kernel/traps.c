@@ -347,9 +347,11 @@ exit:
 void force_signal_inject(int signal, int code, unsigned long address,
 			 unsigned long err)
 {
-	siginfo_t info;
 	const char *desc;
 	struct pt_regs *regs = current_pt_regs();
+
+	if (WARN_ON(!user_mode(regs)))
+		return;
 
 	switch (signal) {
 	case SIGILL:
@@ -363,20 +365,13 @@ void force_signal_inject(int signal, int code, unsigned long address,
 		break;
 	}
 
-	if (unhandled_signal(current, signal) &&
-	    show_unhandled_signals_ratelimited()) {
-		pr_info("%s[%d]: %s: pc=%08llx\n",
-			current->comm, task_pid_nr(current), desc, regs->pc);
-		dump_instr(KERN_INFO, regs);
+	/* Force signals we don't understand to SIGKILL */
+	if (WARN_ON(signal != SIGKILL &&
+		    siginfo_layout(signal, code) != SIL_FAULT)) {
+		signal = SIGKILL;
 	}
 
-	clear_siginfo(&info);
-	info.si_signo = signal;
-	info.si_errno = 0;
-	info.si_code  = code;
-	info.si_addr  = (void __user *)address;
-
-	arm64_notify_die(desc, regs, &info, err);
+	arm64_notify_die(desc, regs, signal, code, (void __user *)address, err);
 }
 
 /*

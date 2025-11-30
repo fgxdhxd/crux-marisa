@@ -47,7 +47,7 @@ u8 debug_monitors_arch(void)
 static void mdscr_write(u32 mdscr)
 {
 	unsigned long flags;
-	local_daif_save(flags);
+	flags = local_daif_save();
 	write_sysreg(mdscr, mdscr_el1);
 	local_daif_restore(flags);
 }

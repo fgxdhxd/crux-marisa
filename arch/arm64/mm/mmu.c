@@ -778,23 +778,16 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
 			void *p = NULL;
 
 			p = vmemmap_alloc_block_buf(PMD_SIZE, node);
-			if (!p) {
-#ifdef CONFIG_MEMORY_HOTPLUG
-				vmemmap_free(start, end);
-#endif
-				ret = -ENOMEM;
-				break;
-			}
+			if (!p) 
+				return -ENOMEM;
 
 			pmd_set_huge(pmdp, __pa(p), __pgprot(PROT_SECT_NORMAL));
 		} else
 			vmemmap_verify((pte_t *)pmdp, node, addr, next);
 	} while (addr = next, addr != end);
 
-	if (ret)
-		return vmemmap_populate_basepages(start, end, node);
-	else
-		return ret;
+	return 0;
+
 }
 #endif	/* CONFIG_ARM64_64K_PAGES */
 void vmemmap_free(unsigned long start, unsigned long end,

@@ -122,6 +122,7 @@
 #endif
 #ifndef GET_TAGGED_ADDR_CTRL
 # define GET_TAGGED_ADDR_CTRL()		(-EINVAL)
+#endif
 #ifndef SVE_SET_VL
 # define SVE_SET_VL(a)		(-EINVAL)
 #endif
