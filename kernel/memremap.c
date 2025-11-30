@@ -402,6 +402,7 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 	if (altmap) {
 		memcpy(&page_map->altmap, altmap, sizeof(*altmap));
 		pgmap->altmap = &page_map->altmap;
+		altmap = pgmap->altmap;
 	}
 	pgmap->ref = ref;
 	pgmap->res = &page_map->res;
@@ -451,7 +452,7 @@ void *devm_memremap_pages(struct device *dev, struct resource *res,
 		mem_hotplug_done();
 		goto err_kasan;
 	}
-	error = arch_add_memory(nid, align_start, align_size, false);
+	error = arch_add_memory(nid, align_start, align_size, altmap, false);
 	if (!error)
 		move_pfn_range_to_zone(&NODE_DATA(nid)->node_zones[ZONE_DEVICE],
 					align_start >> PAGE_SHIFT,

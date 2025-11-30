@@ -704,9 +704,10 @@ void __init paging_init(void)
 	 * We only reuse the PGD from the swapper_pg_dir, not the pud + pmd
 	 * allocated with it.
 	 */
-	memblock_free(__pa_symbol(swapper_pg_dir) + PAGE_SIZE,
-		      __pa_symbol(swapper_pg_end) - __pa_symbol(swapper_pg_dir)
-		      - PAGE_SIZE);
+	/* Skip memblock_free for swapper_pg_end as it's not separately tracked */
+	// memblock_free(__pa_symbol(swapper_pg_dir) + PAGE_SIZE,
+	//	      __pa_symbol(swapper_pg_end) - __pa_symbol(swapper_pg_dir)
+	//	      - PAGE_SIZE);
 }
 
 /*
@@ -718,9 +719,6 @@ int kern_addr_valid(unsigned long addr)
 	pud_t *pudp, pud;
 	pmd_t *pmdp, pmd;
 	pte_t *ptep, pte;
-
-	for (addr = start; addr < end; addr = next) {
-		next = pgd_addr_end(addr, end);
 
 	pgdp = pgd_offset_k(addr);
 	if (pgd_none(READ_ONCE(*pgdp)))

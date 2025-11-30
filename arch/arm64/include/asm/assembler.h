@@ -63,6 +63,11 @@
 	msr	daifclr, #(8 | 4)
 	.endm
 
+	/* Enable D and F (debug and FIQ) */
+	.macro enable_da_f
+	msr	daifclr, #(8 | 4)
+	.endm
+
 /*
  * Save/restore interrupts.
  */
@@ -80,7 +85,7 @@
  */
 	.macro	save_and_disable_irqs, olddaif
 	mrs	\olddaif, daif
-	disable_irq
+	msr	daifset, #3
 	.endm
 
 	.macro	restore_irqs, olddaif

@@ -298,18 +298,17 @@ static int __meminit __add_section(int nid, unsigned long phys_start_pfn,
  * add the new pages.
  */
 int __ref __add_pages(int nid, unsigned long phys_start_pfn,
-			unsigned long nr_pages, bool want_memblock)
+		unsigned long nr_pages, struct vmem_altmap *altmap,
+		bool want_memblock)
 {
 	unsigned long i;
 	int err = 0;
 	int start_sec, end_sec;
-	struct vmem_altmap *altmap;
 
 	/* during initialize mem_map, align hot-added range to section */
 	start_sec = pfn_to_section_nr(phys_start_pfn);
 	end_sec = pfn_to_section_nr(phys_start_pfn + nr_pages - 1);
 
-	altmap = to_vmem_altmap((unsigned long) pfn_to_page(phys_start_pfn));
 	if (altmap) {
 		/*
 		 * Validate altmap is within bounds of the total request
@@ -340,7 +339,6 @@ int __ref __add_pages(int nid, unsigned long phys_start_pfn,
 out:
 	return err;
 }
-EXPORT_SYMBOL_GPL(__add_pages);
 
 #ifdef CONFIG_MEMORY_HOTREMOVE
 /* find the smallest valid pfn in the range [start_pfn, end_pfn) */
@@ -1192,7 +1190,7 @@ int __ref add_memory_resource(int nid, struct resource *res, bool online)
 	}
 
 	/* call arch's memory hotadd */
-	ret = arch_add_memory(nid, start, size, true);
+	ret = arch_add_memory(nid, start, size, NULL, true);
 
 	if (ret < 0)
 		goto error;

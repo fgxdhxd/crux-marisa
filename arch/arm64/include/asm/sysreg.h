@@ -364,8 +364,8 @@
 			 (_BITUL(29)))
 #define SCTLR_EL2_RES0	((_BITUL(6))  | (_BITUL(7))  | (_BITUL(8))  | (_BITUL(9))  | \
 			 (_BITUL(10)) | (_BITUL(13)) | (_BITUL(14)) | (_BITUL(15)) | \
-			 (_BITUL(17)) | (_BITUL(20)) | (_BITUL(24)) | (_BITUL(26)) | \
-			 (_BITUL(27)) | (_BITUL(30)) | (_BITUL(31)) | \
+			 (_BITUL(17)) | (_BITUL(20)) | (_BITUL(21)) | (_BITUL(24)) | \
+			 (_BITUL(26)) | (_BITUL(27)) | (_BITUL(30)) | (_BITUL(31)) | \
 			 (0xffffefffUL << 32))
 
 #ifdef CONFIG_CPU_BIG_ENDIAN
@@ -403,7 +403,7 @@
 #define SCTLR_EL1_RES1	((_BITUL(11)) | (_BITUL(20)) | (_BITUL(22)) | (_BITUL(28)) | \
 			 (_BITUL(29)))
 #define SCTLR_EL1_RES0  ((_BITUL(6))  | (_BITUL(10)) | (_BITUL(13)) | (_BITUL(17)) | \
-			 (_BITUL(27)) | (_BITUL(30)) | (_BITUL(31)) | \
+			 (_BITUL(21)) | (_BITUL(27)) | (_BITUL(30)) | (_BITUL(31)) | \
 			 (0xffffefffUL << 32))
 
 #ifdef CONFIG_CPU_BIG_ENDIAN

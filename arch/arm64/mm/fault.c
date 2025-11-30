@@ -313,7 +313,7 @@ static void __do_user_fault(struct siginfo *info, unsigned int esr)
 {
 	current->thread.fault_address = (unsigned long)info->si_addr;
 	current->thread.fault_code = esr;
-	arm64_force_sig_info(info, esr_to_fault_info(esr)->name, current);
+	force_sig_info(info->si_signo, info, current);
 }
 
 static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
@@ -538,7 +538,7 @@ done:
 		return 0;
 	}
 
-	clear_siginfo(&si);
+	memset(&si, 0, sizeof(si));
 	si.si_addr = (void __user *)addr;
 
 	if (fault & VM_FAULT_SIGBUS) {

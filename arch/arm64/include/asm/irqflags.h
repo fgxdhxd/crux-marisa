@@ -21,6 +21,8 @@
 #include <asm/barrier.h>
 #include <asm/ptrace.h>
 #include <asm/sysreg.h>
+#include <asm/cpufeature.h>
+
 
 /*
  * Aarch64 has flags for masking: Debug, Asynchronous (serror), Interrupts and
@@ -36,17 +38,6 @@
 /*
  * CPU interrupt mask handling.
  */
-static inline unsigned long arch_local_irq_save(void)
-{
-	unsigned long flags;
-	asm volatile(
-		"mrs	%0, daif		// arch_local_irq_save\n"
-		"msr	daifset, #2"
-		: "=r" (flags)
-		:
-		: "memory");
-	return flags;
-}
 
 static inline void arch_local_irq_enable(void)
 {
@@ -57,10 +48,11 @@ static inline void arch_local_irq_enable(void)
 	}
 
 	asm volatile(ALTERNATIVE(
-		"msr	daifclr, #3		// arch_local_irq_enable",
-		__msr_s(SYS_ICC_PMR_EL1, "%0"),
+		"msr\tdaifclr, #3\t\t// arch_local_irq_enable",
+		"msr\tICC_PMR_EL1, %0",
 		ARM64_HAS_IRQ_PRIO_MASKING)
 		:
+		: "r" ((unsigned long) GIC_PRIO_IRQON)
 		: "memory");
 
 	pmr_sync();
@@ -75,10 +67,11 @@ static inline void arch_local_irq_disable(void)
 	}
 
 	asm volatile(ALTERNATIVE(
-		"msr	daifset, #3		// arch_local_irq_disable",
-		__msr_s(SYS_ICC_PMR_EL1, "%0"),
+		"msr\tdaifset, #3\t\t// arch_local_irq_disable",
+		"msr\tICC_PMR_EL1, %0",
 		ARM64_HAS_IRQ_PRIO_MASKING)
 		:
+		: "r" ((unsigned long) GIC_PRIO_IRQOFF)
 		: "memory");
 }
 
@@ -90,8 +83,8 @@ static inline unsigned long arch_local_save_flags(void)
 	unsigned long flags;
 
 	asm volatile(ALTERNATIVE(
-		"mrs	%0, daif",
-		__mrs_s("%0", SYS_ICC_PMR_EL1),
+		"mrs\t%0, daif",
+		"mrs\t%0, ICC_PMR_EL1",
 		ARM64_HAS_IRQ_PRIO_MASKING)
 		: "=&r" (flags)
 		:
@@ -137,8 +130,8 @@ static inline unsigned long arch_local_irq_save(void)
 static inline void arch_local_irq_restore(unsigned long flags)
 {
 	asm volatile(ALTERNATIVE(
-		"msr	daif, %0",
-		__msr_s(SYS_ICC_PMR_EL1, "%0"),
+		"msr\tdaif, %0",
+		"msr\tICC_PMR_EL1, %0",
 		ARM64_HAS_IRQ_PRIO_MASKING)
 		:
 		: "r" (flags)

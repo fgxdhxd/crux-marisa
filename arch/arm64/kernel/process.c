@@ -58,6 +58,7 @@
 #include <asm/cacheflush.h>
 #include <asm/exec.h>
 #include <asm/fpsimd.h>
+#include <linux/irqchip/arm-gic-v3.h>
 #include <asm/mmu_context.h>
 #include <asm/processor.h>
 #include <asm/scs.h>

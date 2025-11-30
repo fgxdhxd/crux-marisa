@@ -23,6 +23,7 @@
 #include <linux/hardirq.h>
 #include <linux/init.h>
 #include <linux/ptrace.h>
+#include <asm/debug-monitors.h>
 #include <linux/kprobes.h>
 #include <linux/stat.h>
 #include <linux/uaccess.h>
@@ -46,9 +47,9 @@ u8 debug_monitors_arch(void)
 static void mdscr_write(u32 mdscr)
 {
 	unsigned long flags;
-	local_dbg_save(flags);
+	local_daif_save(flags);
 	write_sysreg(mdscr, mdscr_el1);
-	local_dbg_restore(flags);
+	local_daif_restore(flags);
 }
 NOKPROBE_SYMBOL(mdscr_write);
 

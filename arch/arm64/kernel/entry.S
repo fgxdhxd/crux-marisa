@@ -204,7 +204,7 @@
 	/* Save the task's original addr_limit and set USER_DS */
 	ldr	x20, [tsk, #TSK_TI_ADDR_LIMIT]
 	str	x20, [sp, #S_ORIG_ADDR_LIMIT]
-	mov	x20, #USER_DS
+	mov	x20, #-1  // USER_DS is now set to all 1s (max address)
 	str	x20, [tsk, #TSK_TI_ADDR_LIMIT]
 	/* No need to reset PSTATE.UAO, hardware's already set it to 0 for us */
 	.endif /* \el == 0 */
@@ -287,11 +287,11 @@ alternative_else_nop_endif
 
 	/* Restore pmr */
 alternative_if ARM64_HAS_IRQ_PRIO_MASKING
-	ldr	x20, [sp, #S_PMR_SAVE]
-	msr_s	SYS_ICC_PMR_EL1, x20
-	mrs_s	x21, SYS_ICC_CTLR_EL1
-	tbz	x21, #6, .L__skip_pmr_sync\@	// Check for ICC_CTLR_EL1.PMHE
-	dsb	sy				// Ensure priority change is seen by redistributor
+	// ldr	x20, [sp, #S_PMR_SAVE]
+	// msr_s	SYS_ICC_PMR_EL1, x20
+	// mrs_s	x21, SYS_ICC_CTLR_EL1
+	// tbz	x21, #6, .L__skip_pmr_sync\@	// Check for ICC_CTLR_EL1.PMHE
+	// dsb	sy				// Ensure priority change is seen by redistributor
 .L__skip_pmr_sync\@:
 alternative_else_nop_endif
 
@@ -1049,7 +1049,7 @@ el0_error_naked:
 	bl	do_serror
 	enable_da
 	b	ret_to_user
-SYM_CODE_END(el0_error)
+// SYM_CODE_END(el0_error)
 
 /*
  * This is the fast syscall return path.  We do as little as possible here,

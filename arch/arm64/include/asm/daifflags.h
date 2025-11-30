@@ -17,19 +17,6 @@
 #define __ASM_DAIFFLAGS_H
 
 #include <linux/irqflags.h>
-/*
- * Backwards-compat fallback definitions for DAIF_PROCCTX flags.
- * Some trees expect DAIF_PROCCTX and DAIF_PROCCTX_NOIRQ to be defined
- * (precomputed DAIF values for process-context restores). If they are
- * missing, provide safe defaults to allow the tree to compile. These
- * defaults enable IRQs when restored which matches the behavior of
- * a conservative fallback; they may need to be adjusted for full
- * architectural correctness on real hardware.
- */
-#ifndef DAIF_PROCCTX
-#define DAIF_PROCCTX 0UL
-#endif
-
 #include <asm/arch_gicv3.h>
 #include <asm/barrier.h>
 #include <asm/cpufeature.h>

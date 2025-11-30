@@ -428,7 +428,7 @@ ret:
 
 fault:
 	pr_debug("SWP{B} emulation: access caused memory abort!\n");
-	arm64_notify_segfault(regs, address);
+	arm64_notify_segfault(address);
 
 	return 0;
 }

@@ -145,7 +145,6 @@ extern void sve_save_state(void *state, u32 *pfpsr);
 extern void sve_load_state(void const *state, u32 const *pfpsr,
 			   unsigned long vq_minus_1);
 extern unsigned int sve_get_vl(void);
-extern int sve_kernel_enable(void *);
 
 extern int __ro_after_init sve_max_vl;
 
@@ -201,18 +200,6 @@ static inline void sve_setup(void) { }
 /* For use by EFI runtime services calls only */
 extern void __efi_fpsimd_begin(void);
 extern void __efi_fpsimd_end(void);
-#
-#ifndef system_supports_sve
-static inline bool system_supports_sve(void) { return false; }
-#endif
-
-#ifndef TIF_SVE
-#define TIF_SVE 0
-#endif
-
-#ifndef sve_user_disable
-static inline void sve_user_disable(void) { }
-#endif
 
 #endif
 

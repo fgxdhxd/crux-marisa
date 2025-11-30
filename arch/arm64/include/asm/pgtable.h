@@ -254,8 +254,8 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
 	 * valid ptes without going through an invalid entry).
 	 */
 	old_pte = READ_ONCE(*ptep);
-	if (IS_ENABLED(CONFIG_DEBUG_VM) && pte_valid(old_pte) && pte_valid(pte) &&
-	   (mm == current->active_mm || atomic_read(&mm->mm_users) > 1)) {
+#ifdef CONFIG_DEBUG_VM
+	if (pte_valid(old_pte) && pte_valid(pte) && mm) {
 		VM_WARN_ONCE(!pte_young(pte),
 			     "%s: racy access flag clearing: 0x%016llx -> 0x%016llx",
 			     __func__, pte_val(old_pte), pte_val(pte));
@@ -263,6 +263,7 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
 			     "%s: racy dirty state clearing: 0x%016llx -> 0x%016llx",
 			     __func__, pte_val(old_pte), pte_val(pte));
 	}
+#endif
 
 	set_pte(ptep, pte);
 }
