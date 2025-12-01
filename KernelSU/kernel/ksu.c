@@ -1,25 +1,43 @@
 #include <linux/export.h>
 #include <linux/fs.h>
+#include <linux/printk.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
+#include <linux/workqueue.h>
 #include <generated/utsrelease.h>
 #include <generated/compile.h>
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION macros */
-#include <linux/workqueue.h>
 
 #include "allowlist.h"
 #include "arch.h"
-#include "core_hook.h"
 #include "feature.h"
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "throne_tracker.h"
-#include "sucompat.h"
+#include "syscall_hook_manager.h"
 #include "ksud.h"
 #include "supercalls.h"
 
-// Global workqueue for KSU operations
-struct workqueue_struct *ksu_workqueue = NULL;
+#include "throne_comm.h"
+#include "dynamic_manager.h"
+
+static struct workqueue_struct *ksu_workqueue;
+
+bool ksu_queue_work(struct work_struct *work)
+{
+    return queue_work(ksu_workqueue, work);
+}
+
+void sukisu_custom_config_init(void)
+{
+}
+
+void sukisu_custom_config_exit(void)
+{
+    ksu_uid_exit();
+    ksu_throne_comm_exit();
+    ksu_dynamic_manager_exit();
+}
 
 extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 					void *argv, void *envp, int *flags);
@@ -35,8 +53,10 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 
 int __init kernelsu_init(void)
 {
+#ifndef DDK_ENV
 	pr_info("Initialized on: %s (%s) with driver version: %u\n",
 		UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
+#endif
 
 #ifdef CONFIG_KSU_DEBUG
 	pr_alert("*************************************************************");
@@ -48,24 +68,19 @@ int __init kernelsu_init(void)
 	pr_alert("*************************************************************");
 #endif
 
-	// Create the global workqueue for KSU operations
-	ksu_workqueue = alloc_workqueue("ksu_wq", WQ_UNBOUND, 1);
-	if (!ksu_workqueue) {
-		pr_err("failed to create ksu workqueue\n");
-		return -ENOMEM;
-	}
-
 	ksu_feature_init();
 
 	ksu_supercalls_init();
 
-	ksu_core_init();
+	sukisu_custom_config_init();
+
+	ksu_syscall_hook_manager_init();
+
+	ksu_workqueue = alloc_ordered_workqueue("kernelsu_work_queue", 0);
 
 	ksu_allowlist_init();
 
 	ksu_throne_tracker_init();
-
-	ksu_sucompat_init();
 
 	ksu_ksud_init();
 
@@ -86,17 +101,16 @@ void kernelsu_exit(void)
 
 	ksu_observer_exit();
 
-	if (ksu_workqueue) {
-		destroy_workqueue(ksu_workqueue);
-		ksu_workqueue = NULL;
-	}
+	destroy_workqueue(ksu_workqueue);
 
 	ksu_ksud_exit();
 
-	ksu_sucompat_exit();
+	ksu_syscall_hook_manager_exit();
 
-	ksu_core_exit();
-	
+	sukisu_custom_config_exit();
+
+	ksu_supercalls_exit();
+
 	ksu_feature_exit();
 }
 

@@ -3,6 +3,8 @@
 
 #include <linux/fs.h>
 #include <linux/version.h>
+#include <linux/task_work.h>
+#include <linux/fdtable.h>
 #include "ss/policydb.h"
 #include "linux/key.h"
 
@@ -27,21 +29,9 @@
 #endif
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) && defined(KSU_KPROBE_HOOK)
-#define KSU_SHOULD_USE_NEW_TP
-#endif
-
 extern long ksu_strncpy_from_user_nofault(char *dst,
 					  const void __user *unsafe_addr,
 					  long count);
-extern long ksu_strncpy_from_user_retry(char *dst,
-					const void __user *unsafe_addr,
-					long count);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||                           \
-	defined(CONFIG_IS_HW_HISI) || defined(CONFIG_KSU_ALLOWLIST_WORKAROUND)
-extern struct key *init_session_keyring;
-#endif
 
 extern struct file *ksu_filp_open_compat(const char *filename, int flags,
 					 umode_t mode);
@@ -67,9 +57,9 @@ static long ksu_copy_from_user_retry(void *to,
 	return copy_from_user(to, from, count);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-extern void ksu_seccomp_clear_cache(struct seccomp_filter *filter, int nr);
-extern void ksu_seccomp_allow_cache(struct seccomp_filter *filter, int nr);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||                           \
+	defined(CONFIG_IS_HW_HISI) || defined(CONFIG_KSU_ALLOWLIST_WORKAROUND)
+extern struct key *init_session_keyring;
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
@@ -77,5 +67,24 @@ extern void ksu_seccomp_allow_cache(struct seccomp_filter *filter, int nr);
 #else
 #define ksu_access_ok(addr, size) access_ok(VERIFY_READ, addr, size)
 #endif
+
+// Linux >= 5.7
+// task_work_add (struct, struct, enum)
+// Linux pre-5.7
+// task_work_add (struct, struct, bool)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+#ifndef TWA_RESUME
+#define TWA_RESUME	true
+#endif
+#endif
+
+static inline int do_close_fd(unsigned int fd)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+	return close_fd(fd);
+#else
+	return __close_fd(current->files, fd);
+#endif
+}
 
 #endif

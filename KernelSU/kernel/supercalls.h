@@ -3,11 +3,12 @@
 
 #include <linux/types.h>
 #include <linux/ioctl.h>
-#include "ksu.h"
+#include "app_profile.h"
 
 #ifdef CONFIG_KPM
 #include "kpm/kpm.h"
 #endif
+#include "ksu.h"
 
 // Magic numbers for reboot hook to install fd
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
@@ -77,6 +78,10 @@ struct ksu_set_feature_cmd {
     __u64 value; // Input: feature value/state to set
 };
 
+struct ksu_nuke_ext4_sysfs_cmd {
+    __aligned_u64 arg; // Input: mnt pointer
+};
+
 // Other command structures
 struct ksu_get_full_version_cmd {
     char version_full[KSU_FULL_VERSION_STRING]; // Output: full version string
@@ -105,9 +110,30 @@ struct ksu_enable_uid_scanner_cmd {
 };
 
 struct ksu_get_wrapper_fd_cmd {
-	__u32 fd;
-	__u32 flags; // CLOEXEC
+	__u32 fd; // Input: userspace fd
+	__u32 flags; // Input: flags of userspace fd
 };
+
+struct ksu_manage_mark_cmd {
+	__u32 operation; // Input: KSU_MARK_*
+	__s32 pid; // Input: target pid (0 for all processes)
+	__u32 result; // Output: for get operation - mark status or reg_count
+};
+
+#define KSU_MARK_GET 1
+#define KSU_MARK_MARK 2
+#define KSU_MARK_UNMARK 3
+#define KSU_MARK_REFRESH 4
+
+struct ksu_add_try_umount_cmd {
+	__aligned_u64 arg; // char ptr, this is the mountpoint
+	__u32 flags; // this is the flag we use for it
+	__u8 mode; // denotes what to do with it 0:wipe_list 1:add_to_list 2:delete_entry
+};
+
+#define KSU_UMOUNT_WIPE 0 // ignore everything and wipe list
+#define KSU_UMOUNT_ADD 1 // add entry (path + flags)
+#define KSU_UMOUNT_DEL 2 // delete entry, strcmp
 
 // IOCTL command definitions
 #define KSU_IOCTL_GRANT_ROOT _IOC(_IOC_NONE, 'K', 1, 0)
@@ -124,7 +150,10 @@ struct ksu_get_wrapper_fd_cmd {
 #define KSU_IOCTL_SET_APP_PROFILE _IOC(_IOC_WRITE, 'K', 12, 0)
 #define KSU_IOCTL_GET_FEATURE _IOC(_IOC_READ|_IOC_WRITE, 'K', 13, 0)
 #define KSU_IOCTL_SET_FEATURE _IOC(_IOC_WRITE, 'K', 14, 0)
-#define KSU_IOCTL_PROXY_FILE _IOC(_IOC_NONE, 'K', 15, 0)
+#define KSU_IOCTL_GET_WRAPPER_FD _IOC(_IOC_WRITE, 'K', 15, 0)
+#define KSU_IOCTL_MANAGE_MARK _IOC(_IOC_READ | _IOC_WRITE, 'K', 16, 0)
+#define KSU_IOCTL_NUKE_EXT4_SYSFS _IOC(_IOC_WRITE, 'K', 17, 0)
+#define KSU_IOCTL_ADD_TRY_UMOUNT _IOC(_IOC_WRITE, 'K', 18, 0)
 // Other IOCTL command definitions
 #define KSU_IOCTL_GET_FULL_VERSION _IOC(_IOC_READ, 'K', 100, 0)
 #define KSU_IOCTL_HOOK_TYPE _IOC(_IOC_READ, 'K', 101, 0)
@@ -148,6 +177,6 @@ struct ksu_ioctl_cmd_map {
 // Install KSU fd to current process
 int ksu_install_fd(void);
 
-void ksu_supercalls_init();
-
+void ksu_supercalls_init(void);
+void ksu_supercalls_exit(void);
 #endif // __KSU_H_SUPERCALLS

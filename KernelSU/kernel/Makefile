@@ -1,17 +1,22 @@
 kernelsu-objs := ksu.o
 kernelsu-objs += allowlist.o
 kernelsu-objs += dynamic_manager.o
+kernelsu-objs += app_profile.o
 kernelsu-objs += apk_sign.o
 kernelsu-objs += sucompat.o
+kernelsu-objs += syscall_hook_manager.o
 kernelsu-objs += throne_tracker.o
 kernelsu-objs += pkg_observer.o
-kernelsu-objs += core_hook.o
+kernelsu-objs += setuid_hook.o
+kernelsu-objs += lsm_hooks.o
+kernelsu-objs += kernel_compat.o
+kernelsu-objs += kernel_umount.o
 kernelsu-objs += supercalls.o
 kernelsu-objs += feature.o
 kernelsu-objs += throne_tracker.o
 kernelsu-objs += ksud.o
 kernelsu-objs += embed_ksud.o
-kernelsu-objs += kernel_compat.o
+kernelsu-objs += seccomp_cache.o
 kernelsu-objs += file_wrapper.o
 kernelsu-objs += throne_comm.o
 
@@ -84,14 +89,33 @@ endif
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
 
+# RKSU: checks for available hook
+## Logic flipped for HAVE_KSU_HOOK: 0 is success, 1 is failure, but not with KSU_DRY_RUN
+HAVE_KSU_HOOK ?= 1
+KSU_DRY_RUN ?= 0
+
 # Checks hooks state
+ifeq ($(CONFIG_KSU_SHOULD_USE_NEW_TP), y)
+$(info -- KernelSU: SHOULD_USE_NEW_TP)
+ccflags-y += -DKSU_SHOULD_USE_NEW_TP
+# Let's make it 0, so it would pass.
+HAVE_KSU_HOOK := 0
+endif
+
 ifeq ($(CONFIG_KSU_MANUAL_HOOK), y)
-ccflags-y += -DKSU_MANUAL_HOOK
-$(info -- SukiSU: KSU_MANUAL_HOOK)
+HAVE_KSU_HOOK := $(shell grep -q "ksu_handle_faccessat" $(srctree)/fs/open.c; echo $$?)
+ifeq ($(HAVE_KSU_HOOK),0)
+$(info -- KernelSU: CONFIG_KSU_MANUAL_HOOK)
+endif
+endif
+
+ifeq ($(KSU_DRY_RUN),0)
+ifneq ($(HAVE_KSU_HOOK),0)
+$(error -- KernelSU: No hooks were defined, bail!)
+endif
 else
-ccflags-y += -DKSU_HAVE_SYSCALL_TRACEPOINTS_HOOK
-ccflags-y += -DKSU_KPROBES_HOOK
-$(info -- SukiSU: KSU_TRACEPOINT_HOOK)
+$(info -- KernelSU in dry run mode, skip hook checks)
+
 endif
 
 # SELinux drivers check
@@ -121,16 +145,19 @@ endif
 ifeq ($(shell grep -q "task_security_struct\s\+\*selinux_cred" $(srctree)/security/selinux/include/objsec.h; echo $$?),0)
 ccflags-y += -DKSU_OPTIONAL_SELINUX_CRED
 endif
-
-# Check if __poll_t exists in linux or uapi types headers (handles backports)
-ifneq ($(shell grep -q "__poll_t" \
-    $(srctree)/include/linux/types.h \
-    $(srctree)/include/uapi/linux/types.h; echo $$?),0)
-ccflags-y += -DKSU_NO___POLL_T
+# seccomp_types.h were added on 6.7
+ifeq ($(shell grep -q "atomic_t\s\+filter_count" $(srctree)/include/linux/seccomp.h $(srctree)/include/linux/seccomp_types.h; echo $$?),0)
+ccflags-y += -DKSU_OPTIONAL_SECCOMP_FILTER_CNT
 endif
-
+# some old kernel backport this, let's check if put_seccomp_filter still exist
+ifneq ($(shell grep -wq "put_seccomp_filter" $(srctree)/kernel/seccomp.c $(srctree)/include/linux/seccomp.h; echo $$?),0)
+ccflags-y += -DKSU_OPTIONAL_SECCOMP_FILTER_RELEASE
+endif
 ifeq ($(shell grep -q "anon_inode_getfd_secure" $(srctree)/fs/anon_inodes.c; echo $$?),0)
 ccflags-y += -DKSU_HAS_GETFD_SECURE
+endif
+ifeq ($(shell grep -A1 "^int vfs_getattr" $(srctree)/fs/stat.c | grep -q "query_flags"; echo $$?),0)
+ccflags-y += -DKSU_HAS_NEW_VFS_GETATTR
 endif
 
 # Checks Samsung
