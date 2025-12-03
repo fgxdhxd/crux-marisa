@@ -116,7 +116,7 @@ static int sdcardfs_remount_fs(struct super_block *sb, int *flags, char *options
 	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
 	 * SILENT, but anything else left over is an error.
 	 */
-	if ((*flags & ~(MS_RDONLY | MS_MANDLOCK | MS_SILENT)) != 0) {
+	if ((*flags & ~(SB_RDONLY | SB_MANDLOCK | SB_SILENT)) != 0) {
 		pr_err("sdcardfs: remount flags 0x%x unsupported\n", *flags);
 		err = -EINVAL;
 	}
@@ -140,12 +140,12 @@ static int sdcardfs_remount_fs2(struct vfsmount *mnt, struct super_block *sb,
 	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
 	 * SILENT, but anything else left over is an error.
 	 */
-	if ((*flags & ~(MS_RDONLY | MS_MANDLOCK | MS_SILENT | MS_REMOUNT)) != 0) {
+	if ((*flags & ~(SB_RDONLY | SB_MANDLOCK | SB_SILENT | SB_REMOUNT)) != 0) {
 		pr_err("sdcardfs: remount flags 0x%x unsupported\n", *flags);
 		err = -EINVAL;
 	}
 	pr_info("Remount options were %s for vfsmnt %pK.\n", options, mnt);
-	err = parse_options_remount(sb, options, *flags & ~MS_SILENT, mnt->data);
+	err = parse_options_remount(sb, options, *flags & ~SB_SILENT, mnt->data);
 
 
 	return err;

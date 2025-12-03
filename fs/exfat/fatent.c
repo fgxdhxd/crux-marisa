@@ -30,7 +30,7 @@ static int exfat_mirror_bh(struct super_block *sb, sector_t sec,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 		if (sb->s_flags & SB_SYNCHRONOUS)
 #else
-		if (sb->s_flags & MS_SYNCHRONOUS)
+		if (sb->s_flags & SB_SYNCHRONOUS)
 #endif
 			err = sync_dirty_buffer(c_bh);
 		brelse(c_bh);
@@ -83,7 +83,7 @@ int exfat_ent_set(struct super_block *sb, unsigned int loc,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	exfat_update_bh(bh, sb->s_flags & SB_SYNCHRONOUS);
 #else
-	exfat_update_bh(bh, sb->s_flags & MS_SYNCHRONOUS);
+	exfat_update_bh(bh, sb->s_flags & SB_SYNCHRONOUS);
 #endif
 	exfat_mirror_bh(sb, sec, bh);
 	brelse(bh);

@@ -1221,7 +1221,7 @@ again:
 	if (!i_done || ret)
 		goto out;
 
-	if (!(inode->i_sb->s_flags & MS_ACTIVE))
+	if (!(inode->i_sb->s_flags & SB_ACTIVE))
 		goto out;
 
 	/*
@@ -1380,7 +1380,7 @@ int btrfs_defrag_file(struct inode *inode, struct file *file,
 		 * make sure we stop running if someone unmounts
 		 * the FS
 		 */
-		if (!(inode->i_sb->s_flags & MS_ACTIVE))
+		if (!(inode->i_sb->s_flags & SB_ACTIVE))
 			break;
 
 		if (btrfs_defrag_cancelled(fs_info)) {

@@ -129,7 +129,7 @@ static int exfat_set_vol_flags(struct super_block *sb, unsigned short new_flags)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	if (sb_rdonly(sb))
 #else
-	if (sb->s_flags & MS_RDONLY)
+	if (sb->s_flags & SB_RDONLY)
 #endif
 		return 0;
 
@@ -238,7 +238,7 @@ static int exfat_remount(struct super_block *sb, int *flags, char *data)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	*flags |= SB_NODIRATIME;
 #else
-	*flags |= MS_NODIRATIME;
+	*flags |= SB_NODIRATIME;
 #endif
 
 	sync_filesystem(sb);
@@ -946,7 +946,7 @@ static int exfat_fill_super(struct super_block *sb, void *data, int silent)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	sb->s_flags |= SB_NODIRATIME;
 #else
-	sb->s_flags |= MS_NODIRATIME;
+	sb->s_flags |= SB_NODIRATIME;
 #endif
 	sb->s_magic = EXFAT_SUPER_MAGIC;
 	sb->s_op = &exfat_sops;
