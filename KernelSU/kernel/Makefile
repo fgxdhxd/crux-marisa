@@ -109,15 +109,6 @@ $(info -- KernelSU: CONFIG_KSU_MANUAL_HOOK)
 endif
 endif
 
-ifeq ($(KSU_DRY_RUN),0)
-ifneq ($(HAVE_KSU_HOOK),0)
-$(error -- KernelSU: No hooks were defined, bail!)
-endif
-else
-$(info -- KernelSU in dry run mode, skip hook checks)
-
-endif
-
 # SELinux drivers check
 ifeq ($(shell grep -q "current_sid(void)" $(srctree)/security/selinux/include/objsec.h; echo $$?),0)
 ccflags-y += -DKSU_COMPAT_HAS_CURRENT_SID
