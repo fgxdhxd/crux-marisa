@@ -140,7 +140,7 @@ static int sdcardfs_remount_fs2(struct vfsmount *mnt, struct super_block *sb,
 	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
 	 * SILENT, but anything else left over is an error.
 	 */
-	if ((*flags & ~(SB_RDONLY | SB_MANDLOCK | SB_SILENT | SB_REMOUNT)) != 0) {
+	if ((*flags & ~(SB_RDONLY | SB_MANDLOCK | SB_SILENT | MS_REMOUNT)) != 0) {
 		pr_err("sdcardfs: remount flags 0x%x unsupported\n", *flags);
 		err = -EINVAL;
 	}
