@@ -99,11 +99,6 @@ static inline int register_mem_sect_under_node(struct memory_block *mem_blk,
 {
 	return 0;
 }
-static inline int unregister_memory_block_under_nodes(struct memory_block *mem_blk)
-{
-	return 0;
-}
-
 static inline void unregister_memory_block_under_nodes(struct memory_block *mem_blk)
 {
 }
