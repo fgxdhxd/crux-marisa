@@ -469,18 +469,24 @@ static int register_mem_sect_under_node(struct memory_block *mem_blk, int nid,
 	return 0;
 }
 
-/* unregister memory section under all nodes that it spans
- * Has to be called with mem_sysfs_mutex held (due to unlinked_nodes).
+/*
+ * Unregister memory block device under all nodes that it spans.
  */
-void unregister_mem_sect_under_nodes(struct memory_block *mem_blk,
-				    unsigned long phys_index)
+int unregister_memory_block_under_nodes(struct memory_block *mem_blk)
 {
 	unsigned long pfn, sect_start_pfn, sect_end_pfn;
 	static nodemask_t unlinked_nodes;
 
-	nodes_clear(unlinked_nodes);
-	sect_start_pfn = section_nr_to_pfn(phys_index);
-	sect_end_pfn = sect_start_pfn + PAGES_PER_SECTION - 1;
+	if (!mem_blk) {
+		NODEMASK_FREE(unlinked_nodes);
+		return -EFAULT;
+	}
+	if (!unlinked_nodes)
+		return -ENOMEM;
+	nodes_clear(*unlinked_nodes);
+
+	sect_start_pfn = section_nr_to_pfn(mem_blk->start_section_nr);
+	sect_end_pfn = section_nr_to_pfn(mem_blk->end_section_nr);
 	for (pfn = sect_start_pfn; pfn <= sect_end_pfn; pfn++) {
 		int nid;
 

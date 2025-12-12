@@ -1933,6 +1933,10 @@ void __ref remove_memory(int nid, u64 start, u64 size)
 	memblock_remove(start, size);
 
 	arch_remove_memory(start, size, NULL);
+	/* remove memory block devices before removing memory */
+	remove_memory_block_devices(start, size);
+
+	__release_memory_resource(start, size);
 
 	try_offline_node(nid);
 
