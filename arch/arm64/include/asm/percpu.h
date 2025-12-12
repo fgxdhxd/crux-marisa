@@ -48,7 +48,6 @@ static inline unsigned long __my_cpu_offset(void)
 }
 #define __my_cpu_offset __my_cpu_offset()
 
-#define PERCPU_OP(op, asm_op)						\
 #define PERCPU_RW_OPS(sz)						\
 static inline unsigned long __percpu_read_##sz(void *ptr)		\
 {									\
@@ -59,6 +58,7 @@ static inline void __percpu_write_##sz(void *ptr, unsigned long val)	\
 {									\
 	WRITE_ONCE(*(u##sz *)ptr, (u##sz)val);				\
 }
+
 #define __PERCPU_OP_CASE(w, sfx, name, sz, op_llsc, op_lse)		\
 static inline void							\
 __percpu_##name##_case_##sz(void *ptr, unsigned long val)		\
