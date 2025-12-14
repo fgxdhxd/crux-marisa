@@ -31,7 +31,7 @@
 #include <linux/security.h>
 #include <linux/seqlock.h>
 #include <linux/swap.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/fs_struct.h>
 #include <linux/hardirq.h>
 #include <linux/bit_spinlock.h>

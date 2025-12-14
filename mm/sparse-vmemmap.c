@@ -20,7 +20,7 @@
  */
 #include <linux/mm.h>
 #include <linux/mmzone.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/memremap.h>
 #include <linux/highmem.h>

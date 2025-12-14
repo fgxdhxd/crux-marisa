@@ -18,7 +18,7 @@
 #include <linux/mm.h>
 #include <linux/spinlock.h>
 #include <linux/list.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/rmap.h>
 #include <linux/pagemap.h>
 #include <linux/mutex.h>

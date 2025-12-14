@@ -23,7 +23,7 @@
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/major.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/highmem.h>
 #include <linux/seq_file.h>
 #include <linux/serial.h>

@@ -15,7 +15,7 @@
 #include <linux/console.h>
 #include <linux/pci_regs.h>
 #include <linux/pci_ids.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/io.h>
 #include <asm/pci-direct.h>

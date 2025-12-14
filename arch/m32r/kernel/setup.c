@@ -15,7 +15,7 @@
 #include <linux/sched/mm.h>
 #include <linux/ioport.h>
 #include <linux/mm.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/console.h>
 #include <linux/initrd.h>
 #include <linux/major.h>

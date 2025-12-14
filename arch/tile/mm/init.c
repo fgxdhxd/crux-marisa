@@ -30,7 +30,7 @@
 #include <linux/highmem.h>
 #include <linux/pagemap.h>
 #include <linux/poison.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
 #include <linux/efi.h>

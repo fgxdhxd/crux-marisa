@@ -9,7 +9,7 @@
  * for more details.
  */
 #include <linux/export.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/mm.h>
 #include <linux/numa.h>

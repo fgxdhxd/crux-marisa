@@ -24,7 +24,7 @@
  */
 
 #include <linux/errno.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/kernel.h>
 #include <linux/gfp.h>
 #include <linux/init.h>

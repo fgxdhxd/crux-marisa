@@ -15,7 +15,7 @@
 #include <linux/sched.h>
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/module.h>
 #include <linux/node.h>
 #include <linux/cpu.h>

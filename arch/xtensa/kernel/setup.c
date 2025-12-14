@@ -20,7 +20,7 @@
 #include <linux/mm.h>
 #include <linux/proc_fs.h>
 #include <linux/screen_info.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/kernel.h>
 #include <linux/percpu.h>
 #include <linux/cpu.h>

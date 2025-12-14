@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <linux/init.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/printk.h>
 
 void __init early_init_dt_add_memory_arch(u64 base, u64 size)

@@ -13,7 +13,7 @@
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
 #include <linux/cpumask.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/slab.h>
 #include <linux/node.h>

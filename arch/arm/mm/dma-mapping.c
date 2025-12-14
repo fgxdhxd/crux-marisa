@@ -9,7 +9,7 @@
  *
  *  DMA uncached mapping support.
  */
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/genalloc.h>

@@ -25,7 +25,7 @@
 #include <linux/smp.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 
 #include <asm/cacheflush.h>
 #include <asm/cachepart.h>

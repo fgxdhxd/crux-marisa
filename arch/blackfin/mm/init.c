@@ -6,7 +6,7 @@
 
 #include <linux/gfp.h>
 #include <linux/swap.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/uaccess.h>
 #include <linux/export.h>
 #include <asm/bfin-global.h>

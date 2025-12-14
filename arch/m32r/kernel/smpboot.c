@@ -48,7 +48,7 @@
 #include <linux/sched/task.h>
 #include <linux/err.h>
 #include <linux/irq.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/delay.h>
 
 #include <asm/io.h>

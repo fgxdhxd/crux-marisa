@@ -5,7 +5,7 @@
  */
 #include <linux/mmzone.h>
 #include <linux/init.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/mm.h>
 #include <asm/pgtable.h>
 #include <asm/page.h>

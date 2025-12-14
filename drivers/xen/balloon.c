@@ -46,7 +46,7 @@
 #include <linux/freezer.h>
 #include <linux/kthread.h>
 #include <linux/mm.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/pagemap.h>
 #include <linux/highmem.h>
 #include <linux/mutex.h>

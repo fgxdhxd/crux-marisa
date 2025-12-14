@@ -4,7 +4,7 @@
  *    Author(s): Heiko Carstens <heiko.carstens@de.ibm.com>
  */
 
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/pfn.h>
 #include <linux/mm.h>
 #include <linux/init.h>

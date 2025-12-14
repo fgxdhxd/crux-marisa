@@ -19,7 +19,7 @@
 #include <linux/mm.h>
 #include <linux/nmi.h>
 #include <linux/swap.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/acpi.h>
 #include <linux/efi.h>
 #include <linux/nodemask.h>

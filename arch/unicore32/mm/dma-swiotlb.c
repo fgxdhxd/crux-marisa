@@ -13,7 +13,7 @@
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
 #include <linux/swiotlb.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 
 #include <asm/dma.h>
 

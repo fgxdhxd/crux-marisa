@@ -8,7 +8,7 @@
 #include <linux/efi.h>
 #include <linux/slab.h>
 #include <linux/memblock.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/acpi.h>
 #include <linux/dmi.h>
 

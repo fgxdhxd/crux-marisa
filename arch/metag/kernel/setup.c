@@ -6,7 +6,7 @@
  */
 
 #include <linux/export.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/console.h>
 #include <linux/cpu.h>
 #include <linux/delay.h>

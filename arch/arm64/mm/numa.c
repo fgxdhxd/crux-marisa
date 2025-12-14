@@ -20,7 +20,7 @@
 #define pr_fmt(fmt) "NUMA: " fmt
 
 #include <linux/acpi.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/module.h>
 #include <linux/of.h>

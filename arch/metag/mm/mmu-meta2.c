@@ -10,7 +10,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/io.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/syscore_ops.h>
 
 #include <asm/mmu.h>

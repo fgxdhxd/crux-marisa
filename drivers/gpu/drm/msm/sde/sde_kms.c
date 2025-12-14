@@ -26,7 +26,7 @@
 #include <linux/of_irq.h>
 #include <linux/dma-buf.h>
 #include <linux/memblock.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 
 #include "msm_drv.h"
 #include "msm_mmu.h"

@@ -37,7 +37,7 @@
 #include <linux/file.h>
 #include <linux/msm_kgsl.h>
 #include <linux/major.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/memblock.h>
 #include <linux/iopoll.h>
 #include <linux/clk/msm-clk.h>

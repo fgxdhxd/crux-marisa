@@ -22,7 +22,7 @@
 #include <linux/kobject.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/mailbox_client.h>
 #include <linux/mailbox/qmp.h>
 #include <soc/qcom/rpm-smd.h>

@@ -25,7 +25,7 @@
 #include <linux/initrd.h>
 #include <linux/highmem.h>
 #include <linux/pagemap.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/gfp.h>
 
 #include <asm/processor.h>

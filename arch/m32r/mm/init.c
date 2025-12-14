@@ -14,7 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/pagemap.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/swap.h>
 #include <linux/highmem.h>
 #include <linux/bitops.h>

@@ -13,7 +13,7 @@
 
 #include <linux/init.h>
 #include <linux/mm.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <asm/pgtable.h>
 #include <linux/seq_file.h>
 #include <linux/screen_info.h>

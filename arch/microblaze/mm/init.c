@@ -7,7 +7,7 @@
  * for more details.
  */
 
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/memblock.h>

@@ -8,7 +8,7 @@
  */
 
 #include <linux/mm.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/mmzone.h>
 #include <linux/initrd.h>
 #include <linux/nodemask.h>

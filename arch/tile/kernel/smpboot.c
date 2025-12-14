@@ -19,7 +19,7 @@
 #include <linux/sched/mm.h>
 #include <linux/sched/task.h>
 #include <linux/kernel_stat.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/notifier.h>
 #include <linux/cpu.h>
 #include <linux/percpu.h>
