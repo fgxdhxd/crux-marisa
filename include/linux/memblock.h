@@ -15,6 +15,19 @@
 
 #include <linux/init.h>
 #include <linux/mm.h>
+#include <asm/dma.h>
+
+extern unsigned long max_low_pfn;
+extern unsigned long min_low_pfn;
+
+/*
+ * highest page
+ */
+extern unsigned long max_pfn;
+/*
+ * highest possible page
+ */
+extern unsigned long long max_possible_pfn;
 
 /**
  * enum memblock_flags - definition of memory region attributes
