@@ -7940,7 +7940,7 @@ void *__init alloc_large_system_hash(const char *tablename,
 							   SMP_CACHE_BYTES);
 		} else if (hashdist) {
 			table = __vmalloc(size, gfp_flags, PAGE_KERNEL);
-		else {
+		} else {
 			/*
 			 * If bucketsize is not a power-of-two, we may free
 			 * some pages at the end of hash table which

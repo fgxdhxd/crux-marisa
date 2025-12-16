@@ -17,8 +17,6 @@
 #include <linux/mm.h>
 #include <asm/dma.h>
 
-void memblock_free_all(void);
-
 extern unsigned long max_low_pfn;
 extern unsigned long min_low_pfn;
 
@@ -126,6 +124,8 @@ int memblock_clear_hotplug(phys_addr_t base, phys_addr_t size);
 int memblock_mark_mirror(phys_addr_t base, phys_addr_t size);
 int memblock_mark_nomap(phys_addr_t base, phys_addr_t size);
 int memblock_clear_nomap(phys_addr_t base, phys_addr_t size);
+
+unsigned long memblock_free_all(void);
 #ifdef CONFIG_MEMORY_HOTPLUG
 int memblock_dump_aligned_blocks_addr(char *buf);
 int memblock_dump_aligned_blocks_num(char *buf);
