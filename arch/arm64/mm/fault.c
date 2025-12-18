@@ -601,8 +601,8 @@ static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 
 static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 {
-	struct siginfo info;
 	const struct fault_info *inf;
+	void __user *siaddr;
 
 	inf = esr_to_fault_info(esr);
 
@@ -612,14 +612,11 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
 	 */
 	apei_claim_sea(regs);
 
-	info.si_signo = inf->sig;
-	info.si_errno = 0;
-	info.si_code  = inf->code;
 	if (esr & ESR_ELx_FnV)
-		info.si_addr = NULL;
+		siaddr = NULL;
 	else
-		info.si_addr  = (void __user *)addr;
-	arm64_notify_die(inf->name, regs, &info, esr);
+		siaddr = (void __user *)addr;
+	arm64_notify_die(inf->name, regs, inf->sig, inf->code, siaddr, esr);
 
 	return 0;
 }
@@ -695,7 +692,6 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 					 struct pt_regs *regs)
 {
 	const struct fault_info *inf = esr_to_fault_info(esr);
-	struct siginfo info;
 
 	if (!inf->fn(addr, esr, regs))
 		return;
@@ -706,11 +702,8 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 		show_pte(addr);
 	}
 
-	info.si_signo = inf->sig;
-	info.si_errno = 0;
-	info.si_code  = inf->code;
-	info.si_addr  = (void __user *)addr;
-	arm64_notify_die(inf->name, regs, &info, esr);
+	arm64_notify_die(inf->name, regs,
+			 inf->sig, inf->code, (void __user *)addr, esr);
 }
 
 asmlinkage void __exception do_el0_irq_bp_hardening(void)
@@ -739,7 +732,6 @@ asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
 					   unsigned int esr,
 					   struct pt_regs *regs)
 {
-	struct siginfo info;
 
 	if (user_mode(regs)) {
 		if (!is_ttbr0_addr(instruction_pointer(regs)))
@@ -747,11 +739,8 @@ asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
 		local_irq_enable();
 	}
 
-	info.si_signo = SIGBUS;
-	info.si_errno = 0;
-	info.si_code  = BUS_ADRALN;
-	info.si_addr  = (void __user *)addr;
-	arm64_notify_die("SP/PC alignment exception", regs, &info, esr);
+	arm64_notify_die("SP/PC alignment exception", regs,
+			 SIGBUS, BUS_ADRALN, (void __user *)addr, esr);
 }
 
 int __init early_brk64(unsigned long addr, unsigned int esr,
@@ -791,7 +780,6 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
 {
 	const struct fault_info *inf = debug_fault_info + DBG_ESR_EVT(esr);
 	unsigned long pc = instruction_pointer(regs);
-	struct siginfo info;
 	int rv;
 
 	/*
@@ -807,11 +795,8 @@ asmlinkage int __exception do_debug_exception(unsigned long addr,
 	if (!inf->fn(addr, esr, regs)) {
 		rv = 1;
 	} else {
-		info.si_signo = inf->sig;
-		info.si_errno = 0;
-		info.si_code  = inf->code;
-		info.si_addr  = (void __user *)addr;
-		arm64_notify_die(inf->name, regs, &info, esr);
+		arm64_notify_die(inf->name, regs,
+				 inf->sig, inf->code, (void __user *)addr, esr);
 		rv = 0;
 	}
 
