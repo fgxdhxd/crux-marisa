@@ -377,16 +377,13 @@ exit:
 	return fn ? fn(regs, instr) : 1;
 }
 
-void force_signal_inject(int signal, int code, unsigned long address,
-			 unsigned long err)
+void force_signal_inject(int signal, int code, unsigned long address)
 {
 	const char *desc;
 	struct pt_regs *regs = current_pt_regs();
 
 	if (WARN_ON(!user_mode(regs)))
 		return;
-
-	clear_siginfo(&info);
 
 	switch (signal) {
 	case SIGILL:
@@ -406,12 +403,7 @@ void force_signal_inject(int signal, int code, unsigned long address,
 		signal = SIGKILL;
 	}
 
-	info.si_signo = signal;
-	info.si_errno = 0;
-	info.si_code  = code;
-	info.si_addr  = (void __user *)address;
-
-	arm64_notify_die(desc, regs, &info, 0);
+	arm64_notify_die(desc, regs, signal, code, (void __user *)address, 0);
 }
 
 /*
@@ -428,7 +420,7 @@ void arm64_notify_segfault(unsigned long addr)
 		code = SEGV_ACCERR;
 	up_read(&current->mm->mmap_sem);
 
-	force_signal_inject(SIGSEGV, code, addr, 0);
+	force_signal_inject(SIGSEGV, code, addr);
 }
 
 asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
@@ -445,7 +437,7 @@ asmlinkage void __exception do_undefinstr(struct pt_regs *regs)
 	trace_undef_instr(regs, pc);
 
 	BUG_ON(!user_mode(regs));
-	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
 }
 
 #define __user_cache_maint(insn, address, res)			\
@@ -494,7 +486,7 @@ static void user_cache_maint_handler(unsigned int esr, struct pt_regs *regs)
 		__user_cache_maint("ic ivau", address, ret);
 		break;
 	default:
-		force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+		force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
 		return;
 	}
 
@@ -633,7 +625,7 @@ asmlinkage void __exception do_cp15_32_instr_compat(unsigned int esr,
 			return;
 		}
 
-	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
 }
 
 static void cntvct_cp15_64_read_handler(unsigned int esr, struct pt_regs *regs)
@@ -695,7 +687,7 @@ asmlinkage void __exception do_cp15_64_instr_compat(unsigned int esr,
 			return;
 		}
 
-	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
 }
 
 #endif

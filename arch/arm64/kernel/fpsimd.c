@@ -286,7 +286,7 @@ static void task_fpsimd_save(void)
 			 * re-enter user with corrupt state.
 			 * There's no way to recover, so kill it:
 			 */
-			force_signal_inject(SIGKILL, SI_KERNEL, 0, 0);
+			force_signal_inject(SIGKILL, SI_KERNEL, 0);
 			return;
 		}			sve_save_state(sve_pffr(current),
 				       &current->thread.fpsimd_state.fpsr);
@@ -827,7 +827,7 @@ asmlinkage void do_sve_acc(unsigned int esr, struct pt_regs *regs)
 {
 	/* Even if we chose not to use SVE, the hardware could still trap: */
 	if (unlikely(!system_supports_sve()) || WARN_ON(is_compat_task())) {
-		force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+		force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc);
 		return;
 	}
 
