@@ -126,6 +126,9 @@ int memblock_mark_nomap(phys_addr_t base, phys_addr_t size);
 int memblock_clear_nomap(phys_addr_t base, phys_addr_t size);
 
 unsigned long memblock_free_all(void);
+void reset_node_managed_pages(pg_data_t *pgdat);
+void reset_all_zones_managed_pages(void);
+
 #ifdef CONFIG_MEMORY_HOTPLUG
 int memblock_dump_aligned_blocks_addr(char *buf);
 int memblock_dump_aligned_blocks_num(char *buf);
@@ -298,6 +301,7 @@ static inline int memblock_get_region_node(const struct memblock_region *r)
 	return 0;
 }
 #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
+
 
 /* Flags for memblock allocation APIs */
 #define MEMBLOCK_ALLOC_ANYWHERE	(~(phys_addr_t)0)
@@ -501,6 +505,31 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
 			memblock.memblock_type.cnt - 1;	\
 	     region >= memblock.memblock_type.regions;	\
 	     region--)
+
+extern void *alloc_large_system_hash(const char *tablename,
+				     unsigned long bucketsize,
+				     unsigned long numentries,
+				     int scale,
+				     int flags,
+				     unsigned int *_hash_shift,
+				     unsigned int *_hash_mask,
+				     unsigned long low_limit,
+				     unsigned long high_limit);
+
+#define HASH_EARLY	0x00000001	/* Allocating during early boot? */
+#define HASH_SMALL	0x00000002	/* sub-page allocation allowed, min
+					 * shift passed via *_hash_shift */
+#define HASH_ZERO	0x00000004	/* Zero allocated hash table */
+
+/* Only NUMA needs hash distribution. 64bit NUMA architectures have
+ * sufficient vmalloc space.
+ */
+#ifdef CONFIG_NUMA
+#define HASHDIST_DEFAULT IS_ENABLED(CONFIG_64BIT)
+extern int hashdist;		/* Distribute hashes across NUMA nodes? */
+#else
+#define hashdist (0)
+#endif
 
 #ifdef CONFIG_MEMTEST
 extern void early_memtest(phys_addr_t start, phys_addr_t end);

@@ -1336,7 +1336,6 @@ static void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 
 	return ptr;
 }
-#endif
 
 bool __init early_init_dt_verify(void *params)
 {
