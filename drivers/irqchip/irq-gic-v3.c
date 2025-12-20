@@ -61,6 +61,7 @@ struct gic_chip_data {
 	struct irq_domain	*domain;
 	u64			redist_stride;
 	u32			nr_redist_regions;
+	bool			has_rss;
 	unsigned int		irq_nr;
 	struct partition_desc	*ppi_descs[16];
 #ifdef CONFIG_HIBERNATION
@@ -118,7 +119,9 @@ EXPORT_SYMBOL(gic_pmr_sync);
 static refcount_t *ppi_nmi_refs;
 
 static struct gic_kvm_info gic_v3_kvm_info;
+static DEFINE_PER_CPU(bool, has_rss);
 
+#define MPIDR_RS(mpidr)			(((mpidr) & 0xF0UL) >> 4)
 #define gic_data_rdist()		(this_cpu_ptr(gic_data.rdists.rdist))
 #define gic_data_rdist_rd_base()	(gic_data_rdist()->rd_base)
 #define gic_data_rdist_sgi_base()	(gic_data_rdist_rd_base() + SZ_64K)
@@ -645,6 +648,44 @@ static asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs
 	} while (irqnr != ICC_IAR1_EL1_SPURIOUS);
 }
 
+static u32 gic_get_pribits(void)
+{
+	u32 pribits;
+
+	pribits = gic_read_ctlr();
+	pribits &= ICC_CTLR_EL1_PRI_BITS_MASK;
+	pribits >>= ICC_CTLR_EL1_PRI_BITS_SHIFT;
+	pribits++;
+
+	return pribits;
+}
+
+static bool gic_has_group0(void)
+{
+	u32 val;
+	u32 old_pmr;
+
+	old_pmr = gic_read_pmr();
+
+	/*
+	 * Let's find out if Group0 is under control of EL3 or not by
+	 * setting the highest possible, non-zero priority in PMR.
+	 *
+	 * If SCR_EL3.FIQ is set, the priority gets shifted down in
+	 * order for the CPU interface to set bit 7, and keep the
+	 * actual priority in the non-secure range. In the process, it
+	 * looses the least significant bit and the actual priority
+	 * becomes 0x80. Reading it back returns 0, indicating that
+	 * we're don't have access to Group0.
+	 */
+	gic_write_pmr(BIT(8 - gic_get_pribits()));
+	val = gic_read_pmr();
+
+	gic_write_pmr(old_pmr);
+
+	return val != 0;
+}
+
 static void gic_dist_init(void)
 {
 	unsigned int i;
@@ -782,6 +823,12 @@ static void gic_update_vlpi_properties(void)
 
 static void gic_cpu_sys_reg_init(void)
 {
+	int i, cpu = smp_processor_id();
+	u64 mpidr = cpu_logical_map(cpu);
+	u64 need_rss = MPIDR_RS(mpidr);
+	bool group0;
+	u32 pribits;
+	
 	/*
 	 * Need to check that the SRE bit has actually been set. If
 	 * not, it means that SRE is disabled at EL2. We're going to
@@ -792,9 +839,14 @@ static void gic_cpu_sys_reg_init(void)
 	if (!gic_enable_sre())
 		pr_err("GIC: unable to set SRE (disabled at EL2), panic ahead\n");
 
-	/* Set priority mask register */
-	gic_write_pmr(DEFAULT_PMR_VALUE);
+	pribits = gic_get_pribits();
 
+	group0 = gic_has_group0();
+	
+	/* Set priority mask register */
+	if (!gic_prio_masking_enabled())
+		write_gicreg(DEFAULT_PMR_VALUE, ICC_PMR_EL1);
+	
 	/*
 	 * Some firmwares hand over to the kernel with the BPR changed from
 	 * its reset value (and with a value large enough to prevent
@@ -811,8 +863,63 @@ static void gic_cpu_sys_reg_init(void)
 		gic_write_ctlr(ICC_CTLR_EL1_EOImode_drop_dir);
 	}
 
+	/* Always whack Group0 before Group1 */
+	if (group0) {
+		switch(pribits) {
+		case 8:
+		case 7:
+			write_gicreg(0, ICC_AP0R3_EL1);
+			write_gicreg(0, ICC_AP0R2_EL1);
+		case 6:
+			write_gicreg(0, ICC_AP0R1_EL1);
+		case 5:
+		case 4:
+			write_gicreg(0, ICC_AP0R0_EL1);
+		}
+
+		isb();
+	}
+
+	switch(pribits) {
+	case 8:
+	case 7:
+		write_gicreg(0, ICC_AP1R3_EL1);
+		write_gicreg(0, ICC_AP1R2_EL1);
+	case 6:
+		write_gicreg(0, ICC_AP1R1_EL1);
+	case 5:
+	case 4:
+		write_gicreg(0, ICC_AP1R0_EL1);
+	}
+
+	isb();
+
 	/* ... and let's hit the road... */
 	gic_write_grpen1(1);
+
+	/* Keep the RSS capability status in per_cpu variable */
+	per_cpu(has_rss, cpu) = !!(gic_read_ctlr() & ICC_CTLR_EL1_RSS);
+
+	/* Check all the CPUs have capable of sending SGIs to other CPUs */
+	for_each_online_cpu(i) {
+		bool have_rss = per_cpu(has_rss, i) && per_cpu(has_rss, cpu);
+
+		need_rss |= MPIDR_RS(cpu_logical_map(i));
+		if (need_rss && (!have_rss))
+			pr_crit("CPU%d (%lx) can't SGI CPU%d (%lx), no RSS\n",
+				cpu, (unsigned long)mpidr,
+				i, (unsigned long)cpu_logical_map(i));
+	}
+
+	/**
+	 * GIC spec says, when ICC_CTLR_EL1.RSS==1 and GICD_TYPER.RSS==0,
+	 * writing ICC_ASGI1R_EL1 register with RS != 0 is a CONSTRAINED
+	 * UNPREDICTABLE choice of :
+	 *   - The write is ignored.
+	 *   - The RS field is treated as 0.
+	 */
+	if (need_rss && (!gic_data.has_rss))
+		pr_crit_once("RSS is required but GICD doesn't support it\n");
 }
 
 static int gic_dist_supports_lpis(void)
@@ -862,13 +969,6 @@ static u16 gic_compute_target_list(int *base_cpu, const struct cpumask *mask,
 	u16 tlist = 0;
 
 	while (cpu < nr_cpu_ids) {
-		/*
-		 * If we ever get a cluster of more than 16 CPUs, just
-		 * scream and skip that CPU.
-		 */
-		if (WARN_ON((mpidr & 0xff) >= 16))
-			goto out;
-
 		tlist |= 1 << (mpidr & 0xf);
 
 		next_cpu = cpumask_next(cpu, mask);
@@ -878,7 +978,7 @@ static u16 gic_compute_target_list(int *base_cpu, const struct cpumask *mask,
 
 		mpidr = cpu_logical_map(cpu);
 
-		if (cluster_id != (mpidr & ~0xffUL)) {
+		if (cluster_id != MPIDR_TO_SGI_CLUSTER_ID(mpidr)) {
 			cpu--;
 			goto out;
 		}
@@ -900,6 +1000,7 @@ static void gic_send_sgi(u64 cluster_id, u16 tlist, unsigned int irq)
 	       MPIDR_TO_SGI_AFFINITY(cluster_id, 2)	|
 	       irq << ICC_SGI1R_SGI_ID_SHIFT		|
 	       MPIDR_TO_SGI_AFFINITY(cluster_id, 1)	|
+	       MPIDR_TO_SGI_RS(cluster_id)		|
 	       tlist << ICC_SGI1R_TARGET_LIST_SHIFT);
 
 	pr_devel("CPU%d: ICC_SGI1R_EL1 %llx\n", smp_processor_id(), val);
@@ -920,7 +1021,7 @@ static void gic_raise_softirq(const struct cpumask *mask, unsigned int irq)
 	wmb();
 
 	for_each_cpu(cpu, mask) {
-		unsigned long cluster_id = cpu_logical_map(cpu) & ~0xffUL;
+		u64 cluster_id = MPIDR_TO_SGI_CLUSTER_ID(cpu_logical_map(cpu));
 		u16 tlist;
 
 		tlist = gic_compute_target_list(&cpu, mask, cluster_id);
@@ -1359,6 +1460,10 @@ static int __init gic_init_bases(void __iomem *dist_base,
 		err = -ENOMEM;
 		goto out_free;
 	}
+
+	gic_data.has_rss = !!(typer & GICD_TYPER_RSS);
+	pr_info("Distributor has %sRange Selector support\n",
+		gic_data.has_rss ? "" : "no ");
 
 	set_handle_irq(gic_handle_irq);
 

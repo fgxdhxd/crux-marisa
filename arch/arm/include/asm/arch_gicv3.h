@@ -126,6 +126,16 @@ static inline u64 read_ ## a64(void)		\
 	return val; 				\
 }
 
+CPUIF_MAP(ICC_PMR, ICC_PMR_EL1)
+CPUIF_MAP(ICC_AP0R0, ICC_AP0R0_EL1)
+CPUIF_MAP(ICC_AP0R1, ICC_AP0R1_EL1)
+CPUIF_MAP(ICC_AP0R2, ICC_AP0R2_EL1)
+CPUIF_MAP(ICC_AP0R3, ICC_AP0R3_EL1)
+CPUIF_MAP(ICC_AP1R0, ICC_AP1R0_EL1)
+CPUIF_MAP(ICC_AP1R1, ICC_AP1R1_EL1)
+CPUIF_MAP(ICC_AP1R2, ICC_AP1R2_EL1)
+CPUIF_MAP(ICC_AP1R3, ICC_AP1R3_EL1)
+
 CPUIF_MAP(ICH_HCR, ICH_HCR_EL2)
 CPUIF_MAP(ICH_VTR, ICH_VTR_EL2)
 CPUIF_MAP(ICH_MISR, ICH_MISR_EL2)
@@ -196,15 +206,15 @@ static inline u32 gic_read_hppir(void)
 	return irqstat;
 }
 
-static inline void gic_write_pmr(u32 val)
-{
-	write_sysreg(val, ICC_PMR);
-}
-
 static inline void gic_write_ctlr(u32 val)
 {
 	write_sysreg(val, ICC_CTLR);
 	isb();
+}
+
+static inline u32 gic_read_ctlr(void)
+{
+	return read_sysreg(ICC_CTLR);
 }
 
 static inline void gic_write_grpen1(u32 val)

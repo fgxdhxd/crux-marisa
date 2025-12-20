@@ -17,7 +17,9 @@
 #include <linux/stddef.h>
 #include <linux/mm.h>
 #include <linux/highmem.h>
+#include <linux/swap.h>
 #include <linux/interrupt.h>
+#include <linux/pagemap.h>
 #include <linux/jiffies.h>
 #include <linux/memblock.h>
 #include <linux/compiler.h>
@@ -26,6 +28,8 @@
 #include <linux/module.h>
 #include <linux/suspend.h>
 #include <linux/pagevec.h>
+#include <linux/blkdev.h>
+#include <linux/slab.h>
 #include <linux/ratelimit.h>
 #include <linux/oom.h>
 #include <linux/notifier.h>
@@ -35,19 +39,30 @@
 #include <linux/cpuset.h>
 #include <linux/memory_hotplug.h>
 #include <linux/nodemask.h>
+#include <linux/vmalloc.h>
 #include <linux/vmstat.h>
+#include <linux/mempolicy.h>
+#include <linux/memremap.h>
+#include <linux/stop_machine.h>
 #include <linux/sort.h>
 #include <linux/pfn.h>
+#include <linux/backing-dev.h>
 #include <linux/fault-inject.h>
+#include <linux/page-isolation.h>
 #include <linux/page_ext.h>
+#include <linux/debugobjects.h>
+#include <linux/kmemleak.h>
 #include <linux/compaction.h>
 #include <trace/events/kmem.h>
 #include <trace/events/oom.h>
 #include <linux/prefetch.h>
 #include <linux/mm_inline.h>
 #include <linux/migrate.h>
+#include <linux/hugetlb.h>
+#include <linux/sched/rt.h>
 #include <linux/sched/mm.h>
 #include <linux/page_owner.h>
+#include <linux/kthread.h>
 #include <linux/memcontrol.h>
 #include <linux/show_mem_notifier.h>
 #include <linux/ftrace.h>
@@ -56,6 +71,8 @@
 #include <linux/khugepaged.h>
 #include <linux/psi.h>
 
+#include <asm/sections.h>
+#include <asm/tlbflush.h>
 #include <asm/div64.h>
 #include "internal.h"
 

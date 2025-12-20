@@ -13,7 +13,7 @@
 #include <trace/events/mmflags.h>
 #include <linux/migrate.h>
 #include <linux/page_owner.h>
-#include <linux/ctape.h>
+#include <linux/ctype.h>
 
 #include "internal.h"
 

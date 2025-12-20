@@ -64,6 +64,10 @@ extern void __chk_io_ptr(const volatile void __iomem *);
 #define notrace __attribute__((no_instrument_function))
 #endif
 
+/* Section for code which can't be instrumented at all */
+#define noinstr								\
+	noinline notrace __attribute((__section__(".noinstr.text")))
+
 /* Intel compiler defines __GNUC__. So we will overwrite implementations
  * coming from above header files here
  */

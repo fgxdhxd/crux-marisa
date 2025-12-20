@@ -27,6 +27,7 @@
 #include <linux/uaccess.h>
 
 #include <asm/cacheflush.h>
+#include <asm/system_misc.h>
 #include <asm/unistd.h>
 
 static long

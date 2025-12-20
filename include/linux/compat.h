@@ -914,7 +914,31 @@ extern int get_compat_itimerspec(struct itimerspec *dst,
 extern int put_compat_itimerspec(struct compat_itimerspec __user *dst,
 				 const struct itimerspec *src);
 
-extern void sigset_from_compat(sigset_t *set, const compat_sigset_t *compat);
+extern int get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat);
+
+/*
+ * Defined inline such that size can be compile time constant, which avoids
+ * CONFIG_HARDENED_USERCOPY complaining about copies from task_struct
+ */
+static inline int
+put_compat_sigset(compat_sigset_t __user *compat, const sigset_t *set,
+		  unsigned int size)
+{
+	/* size <= sizeof(compat_sigset_t) <= sizeof(sigset_t) */
+#ifdef __BIG_ENDIAN
+	compat_sigset_t v;
+	switch (_NSIG_WORDS) {
+	case 4: v.sig[7] = (set->sig[3] >> 32); v.sig[6] = set->sig[3];
+	case 3: v.sig[5] = (set->sig[2] >> 32); v.sig[4] = set->sig[2];
+	case 2: v.sig[3] = (set->sig[1] >> 32); v.sig[2] = set->sig[1];
+	case 1: v.sig[1] = (set->sig[0] >> 32); v.sig[0] = set->sig[0];
+	}
+	return copy_to_user(compat, &v, size) ? -EFAULT : 0;
+#else
+	return copy_to_user(compat, set, size) ? -EFAULT : 0;
+#endif
+}
+
 extern void sigset_to_compat(compat_sigset_t *compat, const sigset_t *set);
 
 extern int compat_ptrace_request(struct task_struct *child,

@@ -842,8 +842,12 @@ int create_memory_block_devices(unsigned long start, unsigned long size)
 	return ret;
 }
 
-void remove_memory_block_devices(unsigned long node_id,
-			       struct mem_section *section, int phys_device)
+/*
+ * Remove memory block devices for the given memory area. Start and size
+ * have to be aligned to memory block granularity. Memory block devices
+ * have to be offline.
+ */
+void remove_memory_block_devices(unsigned long start, unsigned long size)
 {
 	const unsigned long start_block_id = pfn_to_block_id(PFN_DOWN(start));
 	const unsigned long end_block_id = pfn_to_block_id(PFN_DOWN(start + size));
@@ -863,7 +867,7 @@ void remove_memory_block_devices(unsigned long node_id,
 		mem->section_count = 0;
 		unregister_memory_block_under_nodes(mem);
 		unregister_memory(mem);
-		}
+	}
 	mutex_unlock(&mem_sysfs_mutex);
 }
 
