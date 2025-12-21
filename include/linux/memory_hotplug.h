@@ -136,7 +136,6 @@ extern void __online_page_increment_counters(struct page *page);
 extern void __online_page_free(struct page *page);
 
 extern int try_online_node(int nid);
-extern bool try_online_one_block(int nid);
 
 extern bool memhp_auto_online;
 /* If movable_node boot option specified */
@@ -299,11 +298,6 @@ static inline int try_online_node(int nid)
 	return 0;
 }
 
-static inline bool try_online_one_block(int nid)
-{
-	return false;
-}
-
 static inline void get_online_mems(void) {}
 static inline void put_online_mems(void) {}
 
@@ -321,7 +315,7 @@ static inline bool movable_node_is_enabled(void)
 extern bool is_mem_section_removable(unsigned long pfn, unsigned long nr_pages);
 extern void try_offline_node(int nid);
 extern int offline_pages(unsigned long start_pfn, unsigned long nr_pages);
-extern void remove_memory(int nid, u64 start, u64 size);
+extern int remove_memory(int nid, u64 start, u64 size);
 extern void __remove_memory(int nid, u64 start, u64 size);
 
 #else
@@ -338,14 +332,14 @@ static inline int offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 	return -EINVAL;
 }
 
-static inline void remove_memory(int nid, u64 start, u64 size) {}
+static inline int remove_memory(int nid, u64 start, u64 size)
+{
+	return -EBUSY;
+}
 static inline void __remove_memory(int nid, u64 start, u64 size) {}
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
 extern void __ref free_area_init_core_hotplug(int nid);
-extern int __add_memory(int nid, u64 start, u64 size);
-extern int walk_memory_range(unsigned long start_pfn, unsigned long end_pfn,
-		void *arg, int (*func)(struct memory_block *, void *));
 extern int __add_memory(int nid, u64 start, u64 size);
 extern int add_memory(int nid, u64 start, u64 size);
 extern int add_memory_resource(int nid, struct resource *resource);

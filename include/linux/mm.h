@@ -462,17 +462,18 @@ struct vm_operations_struct {
 	void (*close)(struct vm_area_struct * area);
 	int (*split)(struct vm_area_struct * area, unsigned long addr);
 	int (*mremap)(struct vm_area_struct * area);
-	int (*fault)(struct vm_fault *vmf);
-	int (*huge_fault)(struct vm_fault *vmf, enum page_entry_size pe_size);
+	vm_fault_t (*fault)(struct vm_fault *vmf);
+	vm_fault_t (*huge_fault)(struct vm_fault *vmf,
+			enum page_entry_size pe_size);
 	void (*map_pages)(struct vm_fault *vmf,
 			pgoff_t start_pgoff, pgoff_t end_pgoff);
 
 	/* notification that a previously read-only page is about to become
 	 * writable, if an error is returned it will cause a SIGBUS */
-	int (*page_mkwrite)(struct vm_fault *vmf);
+	vm_fault_t (*page_mkwrite)(struct vm_fault *vmf);
 
 	/* same as page_mkwrite when using VM_PFNMAP|VM_MIXEDMAP */
-	int (*pfn_mkwrite)(struct vm_fault *vmf);
+	vm_fault_t (*pfn_mkwrite)(struct vm_fault *vmf);
 
 	/* called by access_process_vm when get_user_pages() fails, typically
 	 * for use by special VMAs that can switch between memory and hardware
@@ -1881,26 +1882,32 @@ static inline int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
 int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
 #endif
 
-#ifdef __PAGETABLE_PUD_FOLDED
+#if defined(__PAGETABLE_PUD_FOLDED) || !defined(CONFIG_MMU)
 static inline int __pud_alloc(struct mm_struct *mm, p4d_t *p4d,
 						unsigned long address)
 {
 	return 0;
 }
+static inline void mm_inc_nr_puds(struct mm_struct *mm) {}
+static inline void mm_dec_nr_puds(struct mm_struct *mm) {}
+
 #else
 int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
+
+static inline void mm_inc_nr_puds(struct mm_struct *mm)
+{
+	atomic_long_add(PTRS_PER_PUD * sizeof(pud_t), &mm->pgtables_bytes);
+}
+
+static inline void mm_dec_nr_puds(struct mm_struct *mm)
+{
+	atomic_long_sub(PTRS_PER_PUD * sizeof(pud_t), &mm->pgtables_bytes);
+}
 #endif
 
 #if defined(__PAGETABLE_PMD_FOLDED) || !defined(CONFIG_MMU)
 static inline int __pmd_alloc(struct mm_struct *mm, pud_t *pud,
 						unsigned long address)
-{
-	return 0;
-}
-
-static inline void mm_nr_pmds_init(struct mm_struct *mm) {}
-
-static inline unsigned long mm_nr_pmds(struct mm_struct *mm)
 {
 	return 0;
 }
@@ -1911,29 +1918,51 @@ static inline void mm_dec_nr_pmds(struct mm_struct *mm) {}
 #else
 int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address);
 
-static inline void mm_nr_pmds_init(struct mm_struct *mm)
-{
-	atomic_long_set(&mm->nr_pmds, 0);
-}
-
-static inline unsigned long mm_nr_pmds(struct mm_struct *mm)
-{
-	return atomic_long_read(&mm->nr_pmds);
-}
-
 static inline void mm_inc_nr_pmds(struct mm_struct *mm)
 {
-	atomic_long_inc(&mm->nr_pmds);
+	atomic_long_add(PTRS_PER_PMD * sizeof(pmd_t), &mm->pgtables_bytes);
 }
 
 static inline void mm_dec_nr_pmds(struct mm_struct *mm)
 {
-	atomic_long_dec(&mm->nr_pmds);
+	atomic_long_sub(PTRS_PER_PMD * sizeof(pmd_t), &mm->pgtables_bytes);
 }
 #endif
 
-int __pte_alloc(struct mm_struct *mm, pmd_t *pmd, unsigned long address);
-int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
+#ifdef CONFIG_MMU
+static inline void mm_pgtables_bytes_init(struct mm_struct *mm)
+{
+	atomic_long_set(&mm->pgtables_bytes, 0);
+}
+
+static inline unsigned long mm_pgtables_bytes(const struct mm_struct *mm)
+{
+	return atomic_long_read(&mm->pgtables_bytes);
+}
+
+static inline void mm_inc_nr_ptes(struct mm_struct *mm)
+{
+	atomic_long_add(PTRS_PER_PTE * sizeof(pte_t), &mm->pgtables_bytes);
+}
+
+static inline void mm_dec_nr_ptes(struct mm_struct *mm)
+{
+	atomic_long_sub(PTRS_PER_PTE * sizeof(pte_t), &mm->pgtables_bytes);
+}
+#else
+
+static inline void mm_pgtables_bytes_init(struct mm_struct *mm) {}
+static inline unsigned long mm_pgtables_bytes(const struct mm_struct *mm)
+{
+	return 0;
+}
+
+static inline void mm_inc_nr_ptes(struct mm_struct *mm) {}
+static inline void mm_dec_nr_ptes(struct mm_struct *mm) {}
+#endif
+
+int __pte_alloc(struct mm_struct *mm, pmd_t *pmd);
+int __pte_alloc_kernel(pmd_t *pmd);
 
 /*
  * The following ifdef needed to get the 4level-fixup.h header to work.
@@ -2041,17 +2070,19 @@ static inline void pgtable_init(void)
 	pgtable_cache_init();
 }
 
-static inline bool pgtable_page_ctor(struct page *page)
+static inline bool pgtable_pte_page_ctor(struct page *page)
 {
 	if (!ptlock_init(page))
 		return false;
+	__SetPageTable(page);
 	inc_zone_page_state(page, NR_PAGETABLE);
 	return true;
 }
 
-static inline void pgtable_page_dtor(struct page *page)
+static inline void pgtable_pte_page_dtor(struct page *page)
 {
 	pte_lock_deinit(page);
+	__ClearPageTable(page);
 	dec_zone_page_state(page, NR_PAGETABLE);
 }
 
@@ -2069,19 +2100,18 @@ static inline void pgtable_page_dtor(struct page *page)
 	pte_unmap(pte);					\
 } while (0)
 
-#define pte_alloc(mm, pmd, address)			\
-	(unlikely(pmd_none(*(pmd))) && __pte_alloc(mm, pmd, address))
+#define pte_alloc(mm, pmd) (unlikely(pmd_none(*(pmd))) && __pte_alloc(mm, pmd))
 
 #define pte_alloc_map(mm, pmd, address)			\
-	(pte_alloc(mm, pmd, address) ? NULL : pte_offset_map(pmd, address))
+	(pte_alloc(mm, pmd) ? NULL : pte_offset_map(pmd, address))
 
 #define pte_alloc_map_lock(mm, pmd, address, ptlp)	\
-	(pte_alloc(mm, pmd, address) ?			\
-		 NULL : pte_offset_map_lock(mm, pmd, address, ptlp))
+	(pte_alloc(mm, pmd) ?			\
+		NULL : pte_offset_map_lock(mm, pmd, address, ptlp))
 
 #define pte_alloc_kernel(pmd, address)			\
-	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd, address))? \
-		NULL: pte_offset_kernel(pmd, address))
+	((unlikely(pmd_none(*(pmd))) && __pte_alloc_kernel(pmd))? \
+	NULL: pte_offset_kernel(pmd, address))
 
 #if USE_SPLIT_PMD_PTLOCKS
 
@@ -2292,7 +2322,7 @@ static inline void zero_resv_unavail(void) {}
 
 extern void set_dma_reserve(unsigned long new_dma_reserve);
 extern void memmap_init_zone(unsigned long, int, unsigned long, unsigned long,
-		enum memmap_context, struct vmem_altmap *);
+		enum meminit_context, struct vmem_altmap *);
 extern void setup_per_zone_wmarks(void);
 extern int __meminit init_per_zone_wmark_min(void);
 extern void mem_init(void);
@@ -2655,6 +2685,44 @@ int vm_insert_mixed_mkwrite(struct vm_area_struct *vma, unsigned long addr,
 			pfn_t pfn);
 int vm_iomap_memory(struct vm_area_struct *vma, phys_addr_t start, unsigned long len);
 
+static inline vm_fault_t vmf_insert_page(struct vm_area_struct *vma,
+				unsigned long addr, struct page *page)
+{
+	int err = vm_insert_page(vma, addr, page);
+
+	if (err == -ENOMEM)
+		return VM_FAULT_OOM;
+	if (err < 0 && err != -EBUSY)
+		return VM_FAULT_SIGBUS;
+
+	return VM_FAULT_NOPAGE;
+}
+
+static inline vm_fault_t vmf_insert_mixed(struct vm_area_struct *vma,
+				unsigned long addr, pfn_t pfn)
+{
+	int err = vm_insert_mixed(vma, addr, pfn);
+
+	if (err == -ENOMEM)
+		return VM_FAULT_OOM;
+	if (err < 0 && err != -EBUSY)
+		return VM_FAULT_SIGBUS;
+
+	return VM_FAULT_NOPAGE;
+}
+
+static inline vm_fault_t vmf_insert_pfn(struct vm_area_struct *vma,
+			unsigned long addr, unsigned long pfn)
+{
+	int err = vm_insert_pfn(vma, addr, pfn);
+
+	if (err == -ENOMEM)
+		return VM_FAULT_OOM;
+	if (err < 0 && err != -EBUSY)
+		return VM_FAULT_SIGBUS;
+
+	return VM_FAULT_NOPAGE;
+}
 
 struct page *follow_page_mask(struct vm_area_struct *vma,
 			      unsigned long address, unsigned int foll_flags,
@@ -2910,8 +2978,6 @@ extern long copy_huge_page_from_user(struct page *dst_page,
 				bool allow_pagefault);
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE || CONFIG_HUGETLBFS */
 
-extern struct page_ext_operations debug_guardpage_ops;
-
 #ifdef CONFIG_DEBUG_PAGEALLOC
 extern unsigned int _debug_guardpage_minorder;
 extern bool _debug_guardpage_enabled;
@@ -2928,16 +2994,10 @@ static inline bool debug_guardpage_enabled(void)
 
 static inline bool page_is_guard(struct page *page)
 {
-	struct page_ext *page_ext;
-
 	if (!debug_guardpage_enabled())
 		return false;
-
-	page_ext = lookup_page_ext(page);
-	if (unlikely(!page_ext))
-		return false;
-
-	return test_bit(PAGE_EXT_DEBUG_GUARD, &page_ext->flags);
+	
+	return PageGuard(page);
 }
 #else
 static inline unsigned int debug_guardpage_minorder(void) { return 0; }

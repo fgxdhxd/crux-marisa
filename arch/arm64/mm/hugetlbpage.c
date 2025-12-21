@@ -128,8 +128,10 @@ static pte_t get_clear_flush(struct mm_struct *mm,
 			orig_pte = pte_mkyoung(orig_pte);
 	}
 
-	if (valid)
+	if (valid) {
+		struct vm_area_struct vma = TLB_FLUSH_VMA(mm, 0);
 		flush_tlb_range(&vma, saddr, addr);
+	}
 	return orig_pte;
 }
 

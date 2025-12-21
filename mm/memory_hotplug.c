@@ -744,7 +744,7 @@ void __ref move_pfn_range_to_zone(struct zone *zone, unsigned long start_pfn,
 	 * are reserved so nobody should be touching them so we should be safe
 	 */
 	memmap_init_zone(nr_pages, nid, zone_idx(zone), start_pfn,
-			MEMMAP_HOTPLUG, altmap);
+			MEMINIT_HOTPLUG, altmap);
 
 	set_zone_contiguous(zone);
 }
@@ -1029,37 +1029,6 @@ int try_online_node(int nid)
 	ret =  __try_online_node(nid, 0, true);
 	mem_hotplug_done();
 	return ret;
-}
-
-static int online_memory_one_block(struct memory_block *mem, void *arg)
-{
-	bool *onlined_block = (bool *)arg;
-	int ret;
-
-	if (*onlined_block || !is_memblock_offlined(mem))
-		return 0;
-
-	ret = device_online(&mem->dev);
-	if (!ret)
-		*onlined_block = true;
-
-	return 0;
-}
-
-bool try_online_one_block(int nid)
-{
-	struct zone *zone = &NODE_DATA(nid)->node_zones[ZONE_MOVABLE];
-	bool onlined_block = false;
-	int ret = lock_device_hotplug_sysfs();
-
-	if (ret)
-		return false;
-
-	walk_memory_range(zone->zone_start_pfn, zone_end_pfn(zone),
-			  &onlined_block, online_memory_one_block);
-
-	unlock_device_hotplug();
-	return onlined_block;
 }
 
 static int check_hotplug_memory_range(u64 start, u64 size)
@@ -1742,9 +1711,9 @@ static int check_memblock_offlined_cb(struct memory_block *mem, void *arg)
 		endpa = PFN_PHYS(section_nr_to_pfn(mem->end_section_nr + 1))-1;
 		pr_warn("removing memory fails, because memory [%pa-%pa] is onlined\n",
 			&beginpa, &endpa);
+		return -EBUSY;
 	}
-
-	return ret;
+	return 0;
 }
 
 static int check_cpu_on_node(pg_data_t *pgdat)
@@ -1763,6 +1732,18 @@ static int check_cpu_on_node(pg_data_t *pgdat)
 	return 0;
 }
 
+static int check_no_memblock_for_node_cb(struct memory_block *mem, void *arg)
+{
+	int nid = *(int *)arg;
+
+	/*
+	 * If a memory block belongs to multiple nodes, the stored nid is not
+	 * reliable. However, such blocks are always online (e.g., cannot get
+	 * offlined) and, therefore, are still spanned by the node.
+	 */
+	return mem->nid == nid ? -EEXIST : 0;
+}
+
 /**
  * try_offline_node
  *
@@ -1774,25 +1755,24 @@ static int check_cpu_on_node(pg_data_t *pgdat)
 void try_offline_node(int nid)
 {
 	pg_data_t *pgdat = NODE_DATA(nid);
-	unsigned long start_pfn = pgdat->node_start_pfn;
-	unsigned long end_pfn = start_pfn + pgdat->node_spanned_pages;
-	unsigned long pfn;
-
-	for (pfn = start_pfn; pfn < end_pfn; pfn += PAGES_PER_SECTION) {
-		unsigned long section_nr = pfn_to_section_nr(pfn);
-
-		if (!present_section_nr(section_nr))
-			continue;
-
-		if (pfn_to_nid(pfn) != nid)
-			continue;
-
-		/*
-		 * some memory sections of this node are not removed, and we
-		 * can't offline node now.
-		 */
+	int rc;
+	
+	/*
+	 * If the node still spans pages (especially ZONE_DEVICE), don't
+	 * offline it. A node spans memory after move_pfn_range_to_zone(),
+	 * e.g., after the memory block was onlined.
+	 */
+	if (pgdat->node_spanned_pages)
 		return;
-	}
+	
+	/*
+	 * Especially offline memory blocks might not be spanned by the
+	 * node. They will get spanned by the node once they get onlined.
+	 * However, they link to the node in sysfs and can get onlined later.
+	 */
+	rc = for_each_memory_block(&nid, check_no_memblock_for_node_cb);
+	if (rc)
+		return;
 
 	if (check_cpu_on_node(pgdat))
 		return;
@@ -1806,16 +1786,29 @@ void try_offline_node(int nid)
 }
 EXPORT_SYMBOL(try_offline_node);
 
-/**
- * remove_memory
- *
- * NOTE: The caller must call lock_device_hotplug() to serialize hotplug
- * and online/offline operations before this call, as required by
- * try_offline_node().
- */
-void __ref __remove_memory(int nid, u64 start, u64 size)
+static void __release_memory_resource(resource_size_t start,
+				      resource_size_t size)
 {
 	int ret;
+
+	/*
+	 * When removing memory in the same granularity as it was added,
+	 * this function never fails. It might only fail if resources
+	 * have to be adjusted or split. We'll ignore the error, as
+	 * removing of memory cannot fail.
+	 */
+	ret = release_mem_region_adjustable(&iomem_resource, start, size);
+	if (ret) {
+		resource_size_t endres = start + size - 1;
+
+		pr_warn("Unable to release resource <%pa-%pa> (%d)\n",
+			&start, &endres, ret);
+	}
+}
+
+static int __ref try_remove_memory(int nid, u64 start, u64 size)
+{
+	int rc = 0;
 
 	BUG_ON(check_hotplug_memory_range(start, size));
 
@@ -1823,13 +1816,13 @@ void __ref __remove_memory(int nid, u64 start, u64 size)
 
 	/*
 	 * All memory blocks must be offlined before removing memory.  Check
-	 * whether all memory blocks in question are offline and trigger a BUG()
+	 * whether all memory blocks in question are offline and return error
 	 * if this is not the case.
 	 */
 	rc = walk_memory_blocks(start, size, NULL, check_memblock_offlined_cb);
-	if (rc)
+	 if (rc)
 		goto done;
-
+	
 	/* remove memmap entry */
 	firmware_map_remove(start, start + size, "System RAM");
 	memblock_free(start, size);
@@ -1838,19 +1831,49 @@ void __ref __remove_memory(int nid, u64 start, u64 size)
 	/* remove memory block devices before removing memory */
 	remove_memory_block_devices(start, size);
 
-	arch_remove_memory(start, size, NULL);
+	arch_remove_memory(nid, start, size, NULL);
 	__release_memory_resource(start, size);
 
 	try_offline_node(nid);
-
+done:
 	mem_hotplug_done();
+	return rc;
 }
 
-void remove_memory(int nid, u64 start, u64 size)
+/**
+ * remove_memory
+ * @nid: the node ID
+ * @start: physical address of the region to remove
+ * @size: size of the region to remove
+ *
+ * NOTE: The caller must call lock_device_hotplug() to serialize hotplug
+ * and online/offline operations before this call, as required by
+ * try_offline_node().
+ */
+void __remove_memory(int nid, u64 start, u64 size)
 {
+
+	/*
+	 * trigger BUG() is some memory is not offlined prior to calling this
+	 * function
+	 */
+	if (try_remove_memory(nid, start, size))
+		BUG();
+}
+
+/*
+ * Remove memory if every memory block is offline, otherwise return -EBUSY is
+ * some memory is not offline
+ */
+int remove_memory(int nid, u64 start, u64 size)
+{
+	int rc;
+
 	lock_device_hotplug();
-	__remove_memory(nid, start, size);
+	rc  = try_remove_memory(nid, start, size);
 	unlock_device_hotplug();
+
+	return rc;
 }
 EXPORT_SYMBOL_GPL(remove_memory);
 #endif /* CONFIG_MEMORY_HOTREMOVE */

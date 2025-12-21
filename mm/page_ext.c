@@ -59,7 +59,6 @@
  */
 
 static struct page_ext_operations *page_ext_ops[] = {
-	&debug_guardpage_ops,
 #ifdef CONFIG_PAGE_OWNER
 	&page_owner_ops,
 #endif

@@ -388,15 +388,34 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
 	} while (pgdp++, addr = next, addr != end);
 }
 
-static phys_addr_t pgd_pgtable_alloc(void)
+static phys_addr_t __pgd_pgtable_alloc(int shift)
 {
-	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
-	if (!ptr || !pgtable_page_ctor(virt_to_page(ptr)))
-		BUG();
+	void *ptr = (void *)__get_free_page(GFP_PGTABLE_KERNEL);
+	BUG_ON(!ptr);
 
 	/* Ensure the zeroed page is visible to the page table walker */
 	dsb(ishst);
 	return __pa(ptr);
+}
+
+static phys_addr_t pgd_pgtable_alloc(int shift)
+{
+	phys_addr_t pa = __pgd_pgtable_alloc(shift);
+
+	/*
+	 * Call proper page table ctor in case later we need to
+	 * call core mm functions like apply_to_page_range() on
+	 * this pre-allocated page table.
+	 *
+	 * We don't select ARCH_ENABLE_SPLIT_PMD_PTLOCK if pmd is
+	 * folded, and if so pgtable_pmd_page_ctor() becomes nop.
+	 */
+	if (shift == PAGE_SHIFT)
+		BUG_ON(!pgtable_pte_page_ctor(phys_to_page(pa)));
+	else if (shift == PMD_SHIFT)
+		BUG_ON(!pgtable_pmd_page_ctor(phys_to_page(pa)));
+
+	return pa;
 }
 
 void create_pgtable_mapping(phys_addr_t start, phys_addr_t end)
@@ -479,7 +498,7 @@ static void __init map_mem(pgd_t *pgdp)
 	struct memblock_region *reg;
 	int flags = 0;
 
-	if (debug_pagealloc_enabled())
+	if (rodata_full || debug_pagealloc_enabled())
 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
 
 	/*
@@ -580,7 +599,19 @@ static void __init map_kernel_segment(pgd_t *pgdp, void *va_start, void *va_end,
 
 static int __init parse_rodata(char *arg)
 {
-	return strtobool(arg, &rodata_enabled);
+	int ret = strtobool(arg, &rodata_enabled);
+	if (!ret) {
+		rodata_full = false;
+		return 0;
+	}
+
+	/* permit 'full' in addition to boolean options */
+	if (strcmp(arg, "full"))
+		return -EINVAL;
+
+	rodata_enabled = true;
+	rodata_full = true;
+	return 0;
 }
 early_param("rodata", parse_rodata);
 
@@ -1332,37 +1363,19 @@ int pmd_clear_huge(pmd_t *pmdp)
 }
 
 #ifdef CONFIG_MEMORY_HOTPLUG
-static void __remove_pgd_mapping(pgd_t *pgdir, unsigned long start, u64 size)
-{
-	unsigned long end = start + size;
-
-	WARN_ON(pgdir != init_mm.pgd);
-	WARN_ON((start < PAGE_OFFSET) || (end > PAGE_END));
-
-	unmap_hotplug_range(start, end, false);
-	free_empty_tables(start, end, PAGE_OFFSET, PAGE_END);
-}
-
 int arch_add_memory(int nid, u64 start, u64 size,
-		    struct mhp_params *params)
+			struct mhp_restrictions *restrictions)
 {
-	int ret, flags = 0;
+	int flags = 0;
 
 	if (rodata_full || debug_pagealloc_enabled())
 		flags = NO_BLOCK_MAPPINGS | NO_CONT_MAPPINGS;
 
 	__create_pgd_mapping(swapper_pg_dir, start, __phys_to_virt(start),
-			     size, params->pgprot, __pgd_pgtable_alloc,
-			     flags);
+			     size, PAGE_KERNEL, __pgd_pgtable_alloc, flags);
 
-	memblock_clear_nomap(start, size);
-
-	ret = __add_pages(nid, start >> PAGE_SHIFT, size >> PAGE_SHIFT,
-			   params);
-	if (ret)
-		__remove_pgd_mapping(swapper_pg_dir,
-				     __phys_to_virt(start), size);
-	return ret;
+	return __add_pages(nid, start >> PAGE_SHIFT, size >> PAGE_SHIFT,
+			   restrictions);
 }
 
 void arch_remove_memory(int nid, u64 start, u64 size,
@@ -1372,7 +1385,6 @@ void arch_remove_memory(int nid, u64 start, u64 size,
 	unsigned long nr_pages = size >> PAGE_SHIFT;
 
 	__remove_pages(start_pfn, nr_pages, altmap);
-	__remove_pgd_mapping(swapper_pg_dir, __phys_to_virt(start), size);
 }
 
 /*
