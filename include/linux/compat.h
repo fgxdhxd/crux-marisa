@@ -18,11 +18,11 @@
 #include <linux/uaccess.h>
 #include <linux/unistd.h>
 
-#include <asm/compat.h>
-
 #ifdef CONFIG_COMPAT
+#include <asm/compat.h>
 #include <asm/siginfo.h>
 #include <asm/signal.h>
+#endif
 
 #ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 
@@ -41,7 +41,6 @@
  */
 
 #include <asm/syscall_wrapper.h>
-
 #endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 #ifndef COMPAT_USE_64BIT_TIME
@@ -51,12 +50,6 @@
 #ifndef __SC_DELOUSE
 #define __SC_DELOUSE(t,v) ((__force t)(unsigned long)(v))
 #endif
-
-/*
- * Only define the old compat syscall macros if the architecture
- * does not have its own syscall wrapper.
- */
-#if !defined(CONFIG_ARCH_HAS_SYSCALL_WRAPPER) || !CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 
 #ifndef COMPAT_SYSCALL_DEFINE0
 #define COMPAT_SYSCALL_DEFINE0(name) \
@@ -85,6 +78,9 @@
  */
 #ifndef COMPAT_SYSCALL_DEFINEx
 #define COMPAT_SYSCALL_DEFINEx(x, name, ...)					\
+	__diag_push();								\
+	__diag_ignore(GCC, 8, "-Wattribute-alias",				\
+		      "Type aliasing is used to sanitize syscall arguments");\
 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
 		__attribute__((alias(__stringify(__se_compat_sys##name))));	\
@@ -93,12 +89,15 @@
 	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
 	asmlinkage long __se_compat_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
 	{									\
-		return __do_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
+		long ret = __do_compat_sys##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));\
+		__MAP(x,__SC_TEST,__VA_ARGS__);					\
+		return ret;							\
 	}									\
+	__diag_pop();								\
 	static inline long __do_compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
 #endif /* COMPAT_SYSCALL_DEFINEx */
 
-#endif /* !CONFIG_ARCH_HAS_SYSCALL_WRAPPER || !defined(CONFIG_ARCH_HAS_SYSCALL_WRAPPER) */
+#ifdef CONFIG_COMPAT
 
 #ifndef compat_user_stack_pointer
 #define compat_user_stack_pointer() current_user_stack_pointer()
@@ -378,6 +377,53 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from);
 int get_compat_sigevent(struct sigevent *event,
 		const struct compat_sigevent __user *u_event);
 
+extern int get_compat_itimerspec(struct itimerspec *dst,
+				 const struct compat_itimerspec __user *src);
+extern int put_compat_itimerspec(struct compat_itimerspec __user *dst,
+				 const struct itimerspec *src);
+
+extern int get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat);
+
+/*
+ * Defined inline such that size can be compile time constant, which avoids
+ * CONFIG_HARDENED_USERCOPY complaining about copies from task_struct
+ */
+static inline int
+put_compat_sigset(compat_sigset_t __user *compat, const sigset_t *set,
+		  unsigned int size)
+{
+	/* size <= sizeof(compat_sigset_t) <= sizeof(sigset_t) */
+#ifdef __BIG_ENDIAN
+	compat_sigset_t v;
+	switch (_NSIG_WORDS) {
+	case 4: v.sig[7] = (set->sig[3] >> 32); v.sig[6] = set->sig[3];
+	case 3: v.sig[5] = (set->sig[2] >> 32); v.sig[4] = set->sig[2];
+	case 2: v.sig[3] = (set->sig[1] >> 32); v.sig[2] = set->sig[1];
+	case 1: v.sig[1] = (set->sig[0] >> 32); v.sig[0] = set->sig[0];
+	}
+	return copy_to_user(compat, &v, size) ? -EFAULT : 0;
+#else
+	return copy_to_user(compat, set, size) ? -EFAULT : 0;
+#endif
+}
+
+extern void sigset_to_compat(compat_sigset_t *compat, const sigset_t *set);
+
+extern int compat_ptrace_request(struct task_struct *child,
+				 compat_long_t request,
+				 compat_ulong_t addr, compat_ulong_t data);
+
+extern long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+			       compat_ulong_t addr, compat_ulong_t data);
+
+extern ssize_t compat_rw_copy_check_uvector(int type,
+		const struct compat_iovec __user *uvector,
+		unsigned long nr_segs,
+		unsigned long fast_segs, struct iovec *fast_pointer,
+		struct iovec **ret_pointer);
+
+extern void __user *compat_alloc_user_space(unsigned long len);
+
 struct epoll_event;	/* fortunately, this one is fixed-layout */
 
 extern ssize_t compat_rw_copy_check_uvector(int type,
@@ -409,6 +455,7 @@ int __compat_save_altstack(compat_stack_t __user *, unsigned long);
  * purposes, for static analysis, and for linking from the syscall table.
  * These functions should not be called elsewhere from kernel code.
  */
+#ifndef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
 asmlinkage long compat_sys_io_setup(unsigned nr_reqs, u32 __user *ctx32p);
 asmlinkage long compat_sys_io_submit(compat_aio_context_t ctx_id, int nr,
 				     u32 __user *iocb);
@@ -870,7 +917,7 @@ asmlinkage long compat_sys_stime(compat_time_t __user *tptr);
 
 /* obsolete: net/socket.c */
 asmlinkage long compat_sys_socketcall(int call, u32 __user *args);
-
+#endif /* !CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
 
 /*
  * For most but not all architectures, "am I in a compat syscall?" and
@@ -920,53 +967,6 @@ static inline int compat_timespec_compare(struct compat_timespec *lhs,
 	return lhs->tv_nsec - rhs->tv_nsec;
 }
 
-extern int get_compat_itimerspec(struct itimerspec *dst,
-				 const struct compat_itimerspec __user *src);
-extern int put_compat_itimerspec(struct compat_itimerspec __user *dst,
-				 const struct itimerspec *src);
-
-extern int get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat);
-
-/*
- * Defined inline such that size can be compile time constant, which avoids
- * CONFIG_HARDENED_USERCOPY complaining about copies from task_struct
- */
-static inline int
-put_compat_sigset(compat_sigset_t __user *compat, const sigset_t *set,
-		  unsigned int size)
-{
-	/* size <= sizeof(compat_sigset_t) <= sizeof(sigset_t) */
-#ifdef __BIG_ENDIAN
-	compat_sigset_t v;
-	switch (_NSIG_WORDS) {
-	case 4: v.sig[7] = (set->sig[3] >> 32); v.sig[6] = set->sig[3];
-	case 3: v.sig[5] = (set->sig[2] >> 32); v.sig[4] = set->sig[2];
-	case 2: v.sig[3] = (set->sig[1] >> 32); v.sig[2] = set->sig[1];
-	case 1: v.sig[1] = (set->sig[0] >> 32); v.sig[0] = set->sig[0];
-	}
-	return copy_to_user(compat, &v, size) ? -EFAULT : 0;
-#else
-	return copy_to_user(compat, set, size) ? -EFAULT : 0;
-#endif
-}
-
-extern void sigset_to_compat(compat_sigset_t *compat, const sigset_t *set);
-
-extern int compat_ptrace_request(struct task_struct *child,
-				 compat_long_t request,
-				 compat_ulong_t addr, compat_ulong_t data);
-
-extern long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-			       compat_ulong_t addr, compat_ulong_t data);
-
-extern ssize_t compat_rw_copy_check_uvector(int type,
-		const struct compat_iovec __user *uvector,
-		unsigned long nr_segs,
-		unsigned long fast_segs, struct iovec *fast_pointer,
-		struct iovec **ret_pointer);
-
-extern void __user *compat_alloc_user_space(unsigned long len);
-
 /*
  * Kernel code should not call compat syscalls (i.e., compat_sys_xyzyyz())
  * directly.  Instead, use one of the functions which work equivalently, such
@@ -981,7 +981,9 @@ int kcompat_sys_fstatfs64(unsigned int fd, compat_size_t sz,
 #else /* !CONFIG_COMPAT */
 
 #define is_compat_task() (0)
+#ifndef in_compat_syscall
 static inline bool in_compat_syscall(void) { return false; }
+#endif
 
 #endif /* CONFIG_COMPAT */
 
