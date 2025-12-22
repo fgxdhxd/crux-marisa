@@ -22,6 +22,9 @@
 #define KERNEL_DS	UL(-1)
 #define USER_DS		(TASK_SIZE_64 - 1)
 
+#define KERNEL_DS	UL(-1)
+#define USER_DS		(TASK_SIZE_64 - 1)
+
 #ifndef __ASSEMBLY__
 
 /*
