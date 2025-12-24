@@ -129,7 +129,7 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
 {
 	int err;
 
-	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
+	if (!access_ok(to, sizeof(*to)))
 		return -EFAULT;
 
 	/* If you change siginfo_t structure, please be sure

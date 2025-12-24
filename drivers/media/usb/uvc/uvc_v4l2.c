@@ -1333,7 +1333,7 @@ static int uvc_v4l2_get_xu_mapping(struct uvc_xu_control_mapping *kp,
 {
 	compat_caddr_t p;
 
-	if (!access_ok(VERIFY_READ, up, sizeof(*up)) ||
+	if (!access_ok(up, sizeof(*up)) ||
 	    __copy_from_user(kp, up, offsetof(typeof(*up), menu_info)) ||
 	    __get_user(kp->menu_count, &up->menu_count))
 		return -EFAULT;
@@ -1355,7 +1355,7 @@ static int uvc_v4l2_get_xu_mapping(struct uvc_xu_control_mapping *kp,
 static int uvc_v4l2_put_xu_mapping(const struct uvc_xu_control_mapping *kp,
 			struct uvc_xu_control_mapping32 __user *up)
 {
-	if (!access_ok(VERIFY_WRITE, up, sizeof(*up)) ||
+	if (!access_ok(up, sizeof(*up)) ||
 	    __copy_to_user(up, kp, offsetof(typeof(*up), menu_info)) ||
 	    __put_user(kp->menu_count, &up->menu_count))
 		return -EFAULT;
@@ -1379,7 +1379,7 @@ static int uvc_v4l2_get_xu_query(struct uvc_xu_control_query *kp,
 {
 	compat_caddr_t p;
 
-	if (!access_ok(VERIFY_READ, up, sizeof(*up)) ||
+	if (!access_ok(up, sizeof(*up)) ||
 	    __copy_from_user(kp, up, offsetof(typeof(*up), data)))
 		return -EFAULT;
 
@@ -1398,7 +1398,7 @@ static int uvc_v4l2_get_xu_query(struct uvc_xu_control_query *kp,
 static int uvc_v4l2_put_xu_query(const struct uvc_xu_control_query *kp,
 			struct uvc_xu_control_query32 __user *up)
 {
-	if (!access_ok(VERIFY_WRITE, up, sizeof(*up)) ||
+	if (!access_ok(up, sizeof(*up)) ||
 	    __copy_to_user(up, kp, offsetof(typeof(*up), data)))
 		return -EFAULT;
 

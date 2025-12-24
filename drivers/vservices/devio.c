@@ -433,8 +433,7 @@ vs_devio_check_iov(struct vs_ioctl_iovec *io, bool is_send, ssize_t *total)
 			goto fail;
 		}
 
-		if (!access_ok(is_send ? VERIFY_READ : VERIFY_WRITE,
-					iov[i].iov_base, iov_len)) {
+		if (!access_ok(iov[i].iov_base, iov_len)) {
 			ret = -EFAULT;
 			goto fail;
 		}
@@ -845,8 +844,7 @@ vs_devio_check_compat_iov(struct vs_compat_ioctl_iovec *c_io,
 			goto fail;
 		}
 
-		if (!access_ok(is_send ? VERIFY_READ : VERIFY_WRITE,
-					iov[i].iov_base, iov_len)) {
+		if (!access_ok(iov[i].iov_base, iov_len)) {
 			ret = -EFAULT;
 			goto fail;
 		}

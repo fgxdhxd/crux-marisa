@@ -103,7 +103,7 @@ static inline unsigned long __range_ok(const void __user *addr, unsigned long si
 	return ret;
 }
 
-#define access_ok(addr, size)	__range_ok((unsigned long)(addr), size)
+#define access_ok(addr, size)	__range_ok(addr, size)
 #define user_addr_max			get_fs
 
 #define _ASM_EXTABLE(from, to)						\
@@ -278,7 +278,7 @@ static inline void __user *__uaccess_mask_ptr(const void __user *ptr)
 	: "+r" (err), "=&r" (x)						\
 	: "r" (addr), "i" (-EFAULT))
 
-#define __raw_get_user(x, ptr, err)					\
+#define __get_user_err(x, ptr, err)					\
 do {									\
 	unsigned long __gu_val;						\
 	__chk_user_ptr(ptr);						\
@@ -307,18 +307,24 @@ do {									\
 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
 } while (0)
 
-#define __get_user_error(x, ptr, err)					\
-do {									\
-	__typeof__(*(ptr)) __user *__p = (ptr);				\
+#define __get_user_check(x, ptr, err)					\
+({									\
+__typeof__(*(ptr)) __user *__p = (ptr);				\
 	might_fault();							\
 	if (access_ok(__p, sizeof(*__p))) {				\
 		__p = uaccess_mask_ptr(__p);				\
-		__rew_get_user((x), __p, (err));			\
+		__get_user_err((x), __p, (err));			\
 	} else {							\
 		(x) = 0; (err) = -EFAULT;				\
 	}								\
-} while (0)
+})
 
+#define __get_user_error(x, ptr, err)					\
+({									\
+	__get_user_check((x), (ptr), (err));				\
+	(void)0;							\
+})
+	
 #define __get_user(x, ptr)						\
 ({									\
 	int __gu_err = 0;						\
@@ -342,7 +348,7 @@ do {									\
 	: "+r" (err)							\
 	: "r" (x), "r" (addr), "i" (-EFAULT))
 
-#define __raw_put_user(x, ptr, err)					\
+#define __put_user_err(x, ptr, err)					\
 do {									\
 	__typeof__(*(ptr)) __pu_val = (x);				\
 	switch (sizeof(*(ptr))) {					\
@@ -368,22 +374,28 @@ do {									\
 	uaccess_disable_not_uao();					\
 } while (0)
 
-#define __put_user_error(x, ptr, err)					\
+#define __put_user_check(x, ptr, err)					\
 ({									\
 	__typeof__(*(ptr)) __user *__p = (ptr);				\
 	might_fault();							\
 	if (access_ok(__p, sizeof(*__p))) {				\
 		__p = uaccess_mask_ptr(__p);				\
-		__raw_put_user((x), __p, (err));			\
+		__put_user_err((x), __p, (err));			\
 	} else	{							\
 		(err) = -EFAULT;					\
 	}								\
-} while (0)
+})
 
+#define __put_user_error(x, ptr, err)					\
+({									\
+	__put_user_check((x), (ptr), (err));				\
+	(void)0;							\
+})
+	
 #define __put_user(x, ptr)						\
 ({									\
 	int __pu_err = 0;						\
-	__put_user_error((x), (ptr), __pu_err);				\
+	__put_user_check((x), (ptr), __pu_err);				\
 	__pu_err;							\
 })
 

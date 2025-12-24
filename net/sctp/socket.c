@@ -1035,7 +1035,7 @@ static int sctp_setsockopt_bindx(struct sock *sk,
 		return -EINVAL;
 
 	/* Check the user passed a healthy pointer.  */
-	if (unlikely(!access_ok(VERIFY_READ, addrs, addrs_size)))
+	if (unlikely(!access_ok(addrs, addrs_size)))
 		return -EFAULT;
 
 	/* Alloc space for the address array in kernel memory.  */
@@ -1376,7 +1376,7 @@ static int __sctp_setsockopt_connectx(struct sock *sk,
 		return -EINVAL;
 
 	/* Check the user passed a healthy pointer.  */
-	if (unlikely(!access_ok(VERIFY_READ, addrs, addrs_size)))
+	if (unlikely(!access_ok(addrs, addrs_size)))
 		return -EFAULT;
 
 	/* Alloc space for the address array in kernel memory.  */

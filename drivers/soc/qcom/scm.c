@@ -20,7 +20,6 @@
 #include <linux/delay.h>
 
 #include <asm/cacheflush.h>
-#include <asm/compiler.h>
 
 #include <soc/qcom/scm.h>
 

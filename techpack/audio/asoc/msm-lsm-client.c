@@ -1760,7 +1760,7 @@ static int msm_lsm_ioctl_compat(struct snd_pcm_substream *substream,
 
 		/* Update size with actual payload size */
 		size = sizeof(userarg32) + user->payload_size;
-		if (!access_ok(VERIFY_WRITE, arg, size)) {
+		if (!access_ok(arg, size)) {
 			dev_err(rtd->dev,
 				"%s: Failed to verify write, size = %d\n",
 				__func__, size);
@@ -1835,7 +1835,7 @@ static int msm_lsm_ioctl_compat(struct snd_pcm_substream *substream,
 
 		/* Update size with actual payload size */
 		size = sizeof(userarg32) + user->payload_size;
-		if (!err && !access_ok(VERIFY_WRITE, arg, size)) {
+		if (!err && !access_ok(arg, size)) {
 			dev_err(rtd->dev,
 				"%s: write verify failed size %d\n",
 				__func__, size);
@@ -2322,7 +2322,7 @@ static int msm_lsm_ioctl(struct snd_pcm_substream *substream,
 
 		/* Update size with actual payload size */
 		size = sizeof(*user) + user->payload_size;
-		if (!access_ok(VERIFY_WRITE, arg, size)) {
+		if (!access_ok(arg, size)) {
 			dev_err(rtd->dev,
 				"%s: Failed to verify write, size = %d\n",
 				__func__, size);
@@ -2394,7 +2394,7 @@ static int msm_lsm_ioctl(struct snd_pcm_substream *substream,
 
 		/* Update size with actual payload size */
 		size = sizeof(*user) + user->payload_size;
-		if (!err && !access_ok(VERIFY_WRITE, arg, size)) {
+		if (!err && !access_ok(arg, size)) {
 			dev_err(rtd->dev,
 				"%s: write verify failed size %d\n",
 				__func__, size);

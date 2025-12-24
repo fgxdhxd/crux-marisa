@@ -1707,7 +1707,7 @@ static long do_io_submit(aio_context_t ctx_id, long nr,
 	if (unlikely(nr > LONG_MAX/sizeof(*iocbpp)))
 		nr = LONG_MAX/sizeof(*iocbpp);
 
-	if (unlikely(!access_ok(VERIFY_READ, iocbpp, (nr*sizeof(*iocbpp)))))
+	if (unlikely(!access_ok(iocbpp, (nr*sizeof(*iocbpp)))))
 		return -EFAULT;
 
 	ctx = lookup_ioctx(ctx_id);

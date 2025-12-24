@@ -280,6 +280,8 @@ static inline int hyp_map_aux_data(void)
 	return 0;
 }
 
+#define kvm_phys_to_vttbr(addr)		(addr)
+
 #endif	/* !__ASSEMBLY__ */
 
 #endif /* __ARM_KVM_MMU_H__ */
