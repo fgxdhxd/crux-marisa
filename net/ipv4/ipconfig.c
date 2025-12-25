@@ -82,7 +82,6 @@
 
 /* Define the friendly delay before and after opening net devices */
 #define CONF_POST_OPEN		10	/* After opening: 10 msecs */
-#define CONF_CARRIER_TIMEOUT	120000	/* Wait for carrier timeout */
 
 /* Define the timeout for waiting for a DHCP/BOOTP/RARP reply */
 #define CONF_OPEN_RETRIES 	2	/* (Re)open devices twice */
@@ -96,6 +95,9 @@
 
 #define NONE cpu_to_be32(INADDR_NONE)
 #define ANY cpu_to_be32(INADDR_ANY)
+
+/* Wait for carrier timeout default in seconds */
+static unsigned int carrier_timeout = 120;
 
 /*
  * Public IP configuration
@@ -215,7 +217,7 @@ static int __init ic_open_devs(void)
 	for_each_netdev(&init_net, dev) {
 		if (!(dev->flags & IFF_LOOPBACK) && !netdev_uses_dsa(dev))
 			continue;
-		if (dev_change_flags(dev, dev->flags | IFF_UP) < 0)
+		if (dev_change_flags(dev, dev->flags | IFF_UP, NULL) < 0)
 			pr_err("IP-Config: Failed to open %s\n", dev->name);
 	}
 
@@ -233,7 +235,7 @@ static int __init ic_open_devs(void)
 			if (ic_proto_enabled && !able)
 				continue;
 			oflags = dev->flags;
-			if (dev_change_flags(dev, oflags | IFF_UP) < 0) {
+			if (dev_change_flags(dev, oflags | IFF_UP, NULL) < 0) {
 				pr_err("IP-Config: Failed to open %s\n",
 				       dev->name);
 				continue;
@@ -263,9 +265,9 @@ static int __init ic_open_devs(void)
 
 	/* wait for a carrier on at least one device */
 	start = jiffies;
-	next_msg = start + msecs_to_jiffies(CONF_CARRIER_TIMEOUT/12);
+	next_msg = start + msecs_to_jiffies(20000);
 	while (time_before(jiffies, start +
-			   msecs_to_jiffies(CONF_CARRIER_TIMEOUT))) {
+			   msecs_to_jiffies(carrier_timeout * 1000))) {
 		int wait, elapsed;
 
 		for_each_netdev(&init_net, dev)
@@ -278,9 +280,9 @@ static int __init ic_open_devs(void)
 			continue;
 
 		elapsed = jiffies_to_msecs(jiffies - start);
-		wait = (CONF_CARRIER_TIMEOUT - elapsed + 500)/1000;
+		wait = (carrier_timeout * 1000 - elapsed + 500) / 1000;
 		pr_info("Waiting up to %d more seconds for network.\n", wait);
-		next_msg = jiffies + msecs_to_jiffies(CONF_CARRIER_TIMEOUT/12);
+		next_msg = jiffies + msecs_to_jiffies(20000);
 	}
 have_carrier:
 	rtnl_unlock();
@@ -310,7 +312,7 @@ static void __init ic_close_devs(void)
 		dev = d->dev;
 		if (d != ic_dev && !netdev_uses_dsa(dev)) {
 			pr_debug("IP-Config: Downing %s\n", dev->name);
-			dev_change_flags(dev, d->flags);
+			dev_change_flags(dev, d->flags, NULL);
 		}
 		kfree(d);
 	}
@@ -329,39 +331,6 @@ set_sockaddr(struct sockaddr_in *sin, __be32 addr, __be16 port)
 	sin->sin_port = port;
 }
 
-static int __init ic_devinet_ioctl(unsigned int cmd, struct ifreq *arg)
-{
-	int res;
-
-	mm_segment_t oldfs = get_fs();
-	set_fs(get_ds());
-	res = devinet_ioctl(&init_net, cmd, (struct ifreq __user *) arg);
-	set_fs(oldfs);
-	return res;
-}
-
-static int __init ic_dev_ioctl(unsigned int cmd, struct ifreq *arg)
-{
-	int res;
-
-	mm_segment_t oldfs = get_fs();
-	set_fs(get_ds());
-	res = dev_ioctl(&init_net, cmd, (struct ifreq __user *) arg);
-	set_fs(oldfs);
-	return res;
-}
-
-static int __init ic_route_ioctl(unsigned int cmd, struct rtentry *arg)
-{
-	int res;
-
-	mm_segment_t oldfs = get_fs();
-	set_fs(get_ds());
-	res = ip_rt_ioctl(&init_net, cmd, (void __user *) arg);
-	set_fs(oldfs);
-	return res;
-}
-
 /*
  *	Set up interface addresses and routes.
  */
@@ -375,19 +344,19 @@ static int __init ic_setup_if(void)
 	memset(&ir, 0, sizeof(ir));
 	strcpy(ir.ifr_ifrn.ifrn_name, ic_dev->dev->name);
 	set_sockaddr(sin, ic_myaddr, 0);
-	if ((err = ic_devinet_ioctl(SIOCSIFADDR, &ir)) < 0) {
+	if ((err = devinet_ioctl(&init_net, SIOCSIFADDR, &ir)) < 0) {
 		pr_err("IP-Config: Unable to set interface address (%d)\n",
 		       err);
 		return -1;
 	}
 	set_sockaddr(sin, ic_netmask, 0);
-	if ((err = ic_devinet_ioctl(SIOCSIFNETMASK, &ir)) < 0) {
+	if ((err = devinet_ioctl(&init_net, SIOCSIFNETMASK, &ir)) < 0) {
 		pr_err("IP-Config: Unable to set interface netmask (%d)\n",
 		       err);
 		return -1;
 	}
 	set_sockaddr(sin, ic_myaddr | ~ic_netmask, 0);
-	if ((err = ic_devinet_ioctl(SIOCSIFBRDADDR, &ir)) < 0) {
+	if ((err = devinet_ioctl(&init_net, SIOCSIFBRDADDR, &ir)) < 0) {
 		pr_err("IP-Config: Unable to set interface broadcast address (%d)\n",
 		       err);
 		return -1;
@@ -397,11 +366,11 @@ static int __init ic_setup_if(void)
 	 * out, we'll try to muddle along.
 	 */
 	if (ic_dev_mtu != 0) {
-		strcpy(ir.ifr_name, ic_dev->dev->name);
-		ir.ifr_mtu = ic_dev_mtu;
-		if ((err = ic_dev_ioctl(SIOCSIFMTU, &ir)) < 0)
+		rtnl_lock();
+		if ((err = dev_set_mtu(ic_dev->dev, ic_dev_mtu)) < 0)
 			pr_err("IP-Config: Unable to set interface mtu to %d (%d)\n",
 			       ic_dev_mtu, err);
+		rtnl_unlock();
 	}
 	return 0;
 }
@@ -423,7 +392,7 @@ static int __init ic_setup_routes(void)
 		set_sockaddr((struct sockaddr_in *) &rm.rt_genmask, 0, 0);
 		set_sockaddr((struct sockaddr_in *) &rm.rt_gateway, ic_gateway, 0);
 		rm.rt_flags = RTF_UP | RTF_GATEWAY;
-		if ((err = ic_route_ioctl(SIOCADDRT, &rm)) < 0) {
+		if ((err = ip_rt_ioctl(&init_net, SIOCADDRT, &rm)) < 0) {
 			pr_err("IP-Config: Cannot add default route (%d)\n",
 			       err);
 			return -1;
@@ -457,6 +426,8 @@ static int __init ic_defaults(void)
 			ic_netmask = htonl(IN_CLASSB_NET);
 		else if (IN_CLASSC(ntohl(ic_myaddr)))
 			ic_netmask = htonl(IN_CLASSC_NET);
+		else if (IN_CLASSE(ntohl(ic_myaddr)))
+			ic_netmask = htonl(IN_CLASSE_NET);
 		else {
 			pr_err("IP-Config: Unable to guess netmask for address %pI4\n",
 			       &ic_myaddr);
@@ -1324,18 +1295,7 @@ static int pnp_seq_show(struct seq_file *seq, void *v)
 	return 0;
 }
 
-static int pnp_seq_open(struct inode *indoe, struct file *file)
-{
-	return single_open(file, pnp_seq_show, NULL);
-}
-
-static const struct file_operations pnp_seq_fops = {
-	.owner		= THIS_MODULE,
-	.open		= pnp_seq_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
+DEFINE_SHOW_ATTRIBUTE(ntp_servers_seq);
 #endif /* CONFIG_PROC_FS */
 
 /*
@@ -1723,3 +1683,18 @@ static int __init vendor_class_identifier_setup(char *addrs)
 	return 1;
 }
 __setup("dhcpclass=", vendor_class_identifier_setup);
+
+static int __init set_carrier_timeout(char *str)
+{
+	ssize_t ret;
+
+	if (!str)
+		return 0;
+
+	ret = kstrtouint(str, 0, &carrier_timeout);
+	if (ret)
+		return 0;
+
+	return 1;
+}
+__setup("carrier_timeout=", set_carrier_timeout);

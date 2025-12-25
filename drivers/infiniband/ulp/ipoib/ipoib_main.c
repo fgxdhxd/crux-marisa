@@ -168,7 +168,7 @@ int ipoib_open(struct net_device *dev)
 			if (flags & IFF_UP)
 				continue;
 
-			dev_change_flags(cpriv->dev, flags | IFF_UP);
+			dev_change_flags(cpriv->dev, flags | IFF_UP, NULL);
 		}
 		up_read(&priv->vlan_rwsem);
 	}
@@ -208,7 +208,7 @@ static int ipoib_stop(struct net_device *dev)
 			if (!(flags & IFF_UP))
 				continue;
 
-			dev_change_flags(cpriv->dev, flags & ~IFF_UP);
+			dev_change_flags(cpriv->dev, flags & ~IFF_UP, NULL);
 		}
 		up_read(&priv->vlan_rwsem);
 	}
@@ -2372,7 +2372,7 @@ static void ipoib_remove_one(struct ib_device *device, void *client_data)
 		set_bit(IPOIB_FLAG_GOING_DOWN, &priv->flags);
 
 		rtnl_lock();
-		dev_change_flags(priv->dev, priv->dev->flags & ~IFF_UP);
+		dev_change_flags(priv->dev, priv->dev->flags & ~IFF_UP, NULL);
 		rtnl_unlock();
 
 		/* Stop GC */

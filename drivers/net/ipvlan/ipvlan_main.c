@@ -82,10 +82,12 @@ static int ipvlan_set_port_mode(struct ipvl_port *port, u16 nval)
 			flags = ipvlan->dev->flags;
 			if (nval == IPVLAN_MODE_L3 || nval == IPVLAN_MODE_L3S) {
 				err = dev_change_flags(ipvlan->dev,
-						       flags | IFF_NOARP);
+						       flags | IFF_NOARP,
+						       extack);
 			} else {
 				err = dev_change_flags(ipvlan->dev,
-						       flags & ~IFF_NOARP);
+						       flags & ~IFF_NOARP,
+						       extack);
 			}
 			if (unlikely(err))
 				goto fail;
@@ -114,9 +116,11 @@ fail:
 		flags = ipvlan->dev->flags;
 		if (port->mode == IPVLAN_MODE_L3 ||
 		    port->mode == IPVLAN_MODE_L3S)
-			dev_change_flags(ipvlan->dev, flags | IFF_NOARP);
+			dev_change_flags(ipvlan->dev, flags | IFF_NOARP,
+					 NULL);
 		else
-			dev_change_flags(ipvlan->dev, flags & ~IFF_NOARP);
+			dev_change_flags(ipvlan->dev, flags & ~IFF_NOARP,
+					 NULL);
 	}
 
 	return err;
