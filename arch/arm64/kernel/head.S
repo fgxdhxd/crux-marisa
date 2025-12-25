@@ -151,6 +151,26 @@ preserve_boot_args:
 ENDPROC(preserve_boot_args)
 
 /*
+ * Macro to arrange a physical address in a page table entry, taking care of
+ * 52-bit addresses.
+ *
+ * Preserves:	phys
+ * Returns:	pte
+ */
+	.macro	phys_to_pte, phys, pte
+#ifdef CONFIG_ARM64_PA_BITS_52
+	/*
+	 * We assume \phys is 64K aligned and this is guaranteed by only
+	 * supporting this configuration with 64K pages.
+	 */
+	orr	\pte, \phys, \phys, lsr #36
+	and	\pte, \pte, #PTE_ADDR_MASK_52
+#else
+	mov	\pte, \phys
+#endif
+	.endm
+
+/*
  * Macro to populate page table entries, these entries can be pointers to the next level
  * or last level entries pointing to physical memory.
  *
@@ -296,26 +316,13 @@ __create_page_tables:
 	adrp	x0, idmap_pg_dir
 	adrp	x3, __idmap_text_start		// __pa(__idmap_text_start)
 
-#ifndef CONFIG_ARM64_VA_BITS_48
-#define EXTRA_SHIFT	(PGDIR_SHIFT + PAGE_SHIFT - 3)
-#define EXTRA_PTRS	(1 << (48 - EXTRA_SHIFT))
-
 	/*
-	 * If VA_BITS < 48, it may be too small to allow for an ID mapping to be
-	 * created that covers system RAM if that is located sufficiently high
-	 * in the physical address space. So for the ID map, use an extended
-	 * virtual range in that case, by configuring an additional translation
-	 * level.
-	 * First, we have to verify our assumption that the current value of
-	 * VA_BITS was chosen such that all translation levels are fully
-	 * utilised, and that lowering T0SZ will always result in an additional
-	 * translation level to be configured.
-	 */
-#if VA_BITS != EXTRA_SHIFT
-#error "Mismatch between VA_BITS and page size/number of translation levels"
-#endif
-
-	/*
+	 * VA_BITS may be too small to allow for an ID mapping to be created
+	 * that covers system RAM if that is located sufficiently high in the
+	 * physical address space. So for the ID map, use an extended virtual
+	 * range in that case, and configure an additional translation level
+	 * if needed.
+	 *
 	 * Calculate the maximum allowed value for TCR_EL1.T0SZ so that the
 	 * entire ID map region can be mapped. As T0SZ == (64 - #bits used),
 	 * this number conveniently equals the number of leading zeroes in
@@ -324,15 +331,26 @@ __create_page_tables:
 	adrp	x5, __idmap_text_end
 	clz	x5, x5
 	cmp	x5, TCR_T0SZ(VA_BITS)	// default T0SZ small enough?
-	b.ge	1f			// .. then skip additional level
+	b.ge	1f			// .. then skip VA range extension
 
 	adr_l	x6, idmap_t0sz
 	str	x5, [x6]
 	dmb	sy
 	dc	ivac, x6		// Invalidate potentially stale cache line
 
-	create_table_entry x0, x3, EXTRA_SHIFT, EXTRA_PTRS, x5, x6
-1:
+#if (VA_BITS < 48)
+#define EXTRA_SHIFT	(PGDIR_SHIFT + PAGE_SHIFT - 3)
+#define EXTRA_PTRS	(1 << (PHYS_MASK_SHIFT - EXTRA_SHIFT))
+
+	/*
+	 * If VA_BITS < 48, we have to configure an additional table level.
+	 * First, we have to verify our assumption that the current value of
+	 * VA_BITS was chosen such that all translation levels are fully
+	 * utilised, and that lowering T0SZ will always result in an additional
+	 * translation level to be configured.
+	 */
+#if VA_BITS != EXTRA_SHIFT
+#error "Mismatch between VA_BITS and page size/number of translation levels"
 #endif
 
 	mov	x5, x3				// __pa(__idmap_text_start)
@@ -724,8 +742,10 @@ ENTRY(__enable_mmu)
 	update_early_cpu_boot_status 0, x1, x2
 	adrp	x1, idmap_pg_dir
 	adrp	x2, swapper_pg_dir
-	msr	ttbr0_el1, x1			// load TTBR0
-	msr	ttbr1_el1, x2			// load TTBR1
+	phys_to_ttbr x1, x3
+	phys_to_ttbr x2, x4
+	msr	ttbr0_el1, x3			// load TTBR0
+	msr	ttbr1_el1, x4			// load TTBR1
 	isb
 	msr	sctlr_el1, x0
 	isb

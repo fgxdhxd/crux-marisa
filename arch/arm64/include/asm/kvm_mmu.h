@@ -315,7 +315,12 @@ void kvm_toggle_cache(struct kvm_vcpu *vcpu, bool was_enabled);
 
 static inline bool __kvm_cpu_uses_extended_idmap(void)
 {
-	return __cpu_uses_extended_idmap();
+	return __cpu_uses_extended_idmap_level();
+}
+
+static inline unsigned long __kvm_idmap_ptrs_per_pgd(void)
+{
+	return idmap_ptrs_per_pgd;
 }
 
 /*
@@ -355,6 +360,8 @@ static inline unsigned int kvm_get_vmid_bits(void)
 
 	return (cpuid_feature_extract_unsigned_field(reg, ID_AA64MMFR1_VMIDBITS_SHIFT) == 2) ? 16 : 8;
 }
+
+#define kvm_phys_to_vttbr(addr)		phys_to_ttbr(addr)
 
 /*
  * We are not in the kvm->srcu critical section most of the time, so we take

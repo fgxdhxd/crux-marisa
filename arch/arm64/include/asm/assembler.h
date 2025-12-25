@@ -401,10 +401,8 @@ alternative_endif
  * tcr_set_idmap_t0sz - update TCR.T0SZ so that we can load the ID map
  */
 	.macro	tcr_set_idmap_t0sz, valreg, tmpreg
-#ifndef CONFIG_ARM64_VA_BITS_48
 	ldr_l	\tmpreg, idmap_t0sz
 	bfi	\valreg, \tmpreg, #TCR_T0SZ_OFFSET, #TCR_TxSZ_WIDTH
-#endif
 	.endm
 
 /*
@@ -559,6 +557,15 @@ alternative_endif
 	.endm
 
 /*
+ * Return the current thread_info.
+ */
+	.macro	get_thread_info, rd
+	mrs	\rd, sp_el0
+	.endm
+
+	.macro	phys_to_pte, pte, phys
+
+/*
  * Errata workaround post TTBRx_EL1 update.
  */
 	.macro	post_ttbr_update_workaround
@@ -572,13 +579,22 @@ alternative_else_nop_endif
 	.endm
 
 /*
- * Return the current thread_info.
+ * Arrange a physical address in a TTBR register, taking care of 52-bit
+ * addresses.
+ *
+ * 	phys:	physical address, preserved
+ * 	ttbr:	returns the TTBR value
  */
-	.macro	get_thread_info, rd
-	mrs	\rd, sp_el0
+	.macro	phys_to_ttbr, phys, ttbr
+#ifdef CONFIG_ARM64_PA_BITS_52
+	orr	\ttbr, \phys, \phys, lsr #46
+	and	\ttbr, \ttbr, #TTBR_BADDR_MASK_52
+#else
+	mov	\ttbr, \phys
+#endif
 	.endm
 
-	.macro	phys_to_pte, pte, phys
+
 #ifdef CONFIG_ARM64_PA_BITS_52
 	/*
 	 * We assume \phys is 64K aligned and this is guaranteed by only
