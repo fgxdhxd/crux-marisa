@@ -1341,6 +1341,7 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 #ifdef CONFIG_ARM64_SVE
 	{
 		.desc = "Scalable Vector Extension",
+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
 		.capability = ARM64_SVE,
 		.def_scope = SCOPE_SYSTEM,
 		.sys_reg = SYS_ID_AA64PFR0_EL1,
@@ -1447,6 +1448,11 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
 		__HWCAP_CAP(#cap, cap_type, cap)				\
 		.matches = cpucap_multi_entry_cap_matches,			\
 		.match_list = list,						\
+	}
+#define HWCAP_CAP_MATCH(match, cap_type, cap)					\
+	{									\
+		__HWCAP_CAP(#cap, cap_type, cap)				\
+		.matches = match,						\
 	}
 
 #ifdef CONFIG_ARM64_PTR_AUTH
