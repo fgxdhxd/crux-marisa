@@ -39,11 +39,7 @@ perform_cleanup() {
 # Sets up or update KernelSU environment
 setup_kernelsu() {
     echo "[+] Setting up KernelSU..."
-    # Clone the repository and rename it to KernelSU
-    if [ ! -d "$GKI_ROOT/KernelSU" ]; then
-        git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra KernelSU
-        echo "[+] Repository cloned and renamed to KernelSU."
-    fi
+    test -d "$GKI_ROOT/KernelSU" || git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra KernelSU && echo "[+] Repository cloned."
     cd "$GKI_ROOT/KernelSU"
     git stash && echo "[-] Stashed current changes."
     if [ "$(git status | grep -Po 'v\d+(\.\d+)*' | head -n1)" ]; then

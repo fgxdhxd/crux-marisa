@@ -18,17 +18,33 @@
 #define __PT_SP_REG sp
 #define __PT_IP_REG pc
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #define REBOOT_SYMBOL "__arm64_sys_reboot"
 #define SYS_READ_SYMBOL "__arm64_sys_read"
 #define SYS_EXECVE_SYMBOL "__arm64_sys_execve"
-#define SYS_SETNS_SYMBOL __arm64_sys_setns
-#else
+
+extern long __arm64_sys_setns(const struct pt_regs *regs);
+
+#elif defined(__arm__)
+
+// Oversimplified version of https://github.com/backslashxx/KernelSU/blob/master/kernel/arch.h#L29
+#define __PT_PARM1_REG uregs[0]
+#define __PT_PARM2_REG uregs[1]
+#define __PT_PARM3_REG uregs[2]
+#define __PT_SYSCALL_PARM4_REG uregs[3] 
+#define __PT_CCALL_PARM4_REG uregs[3]
+#define __PT_PARM5_REG uregs[4]
+#define __PT_PARM6_REG uregs[5]
+#define __PT_RET_REG uregs[14]
+#define __PT_FP_REG uregs[11]	/* Works only with CONFIG_FRAME_POINTER */
+#define __PT_RC_REG uregs[0]
+#define __PT_SP_REG uregs[13]
+#define __PT_IP_REG uregs[12]
+
 #define REBOOT_SYMBOL "sys_reboot"
 #define SYS_READ_SYMBOL "sys_read"
 #define SYS_EXECVE_SYMBOL "sys_execve"
-#define SYS_SETNS_SYMBOL sys_setns
-#endif
+
+extern long sys_setns(const struct pt_regs *regs);
 
 #elif defined(__x86_64__)
 
@@ -46,20 +62,14 @@
 #define __PT_SP_REG sp
 #define __PT_IP_REG ip
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #define REBOOT_SYMBOL "__x64_sys_reboot"
 #define SYS_READ_SYMBOL "__x64_sys_read"
 #define SYS_EXECVE_SYMBOL "__x64_sys_execve"
-#define SYS_SETNS_SYMBOL __x64_sys_setns
-#else
-#define REBOOT_SYMBOL "sys_reboot"
-#define SYS_READ_SYMBOL "sys_read"
-#define SYS_EXECVE_SYMBOL "sys_execve"
-#define SYS_SETNS_SYMBOL sys_setns
-#endif
+
+extern long __x64_sys_setns(const struct pt_regs *regs);
 
 #else
-#ifdef KSU_SHOULD_USE_NEW_TP
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #error "Unsupported arch"
 #endif
 #endif
@@ -82,10 +92,6 @@
 #define PT_REGS_SP(x) (__PT_REGS_CAST(x)->__PT_SP_REG)
 #define PT_REGS_IP(x) (__PT_REGS_CAST(x)->__PT_IP_REG)
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #define PT_REAL_REGS(regs) ((struct pt_regs *)PT_REGS_PARM1(regs))
-#else
-#define PT_REAL_REGS(regs) ((regs))
-#endif
 
 #endif
