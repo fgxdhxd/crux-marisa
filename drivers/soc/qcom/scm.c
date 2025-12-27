@@ -111,14 +111,13 @@ struct scm_response {
 
 #ifdef CONFIG_ARM64
 
-#define R0_STR "x0"
-#define R1_STR "x1"
-#define R2_STR "x2"
-#define R3_STR "x3"
-#define R4_STR "x4"
-#define R5_STR "x5"
-#define R6_STR "x6"
-
+#define R0_STR x0
+#define R1_STR x1
+#define R2_STR x2
+#define R3_STR x3
+#define R4_STR x4
+#define R5_STR x5
+#define R6_STR x6
 /* Outer caches unsupported on ARM64 platforms */
 #define outer_inv_range(x, y)
 #define outer_flush_range(x, y)
@@ -127,13 +126,13 @@ struct scm_response {
 
 #else
 
-#define R0_STR "r0"
-#define R1_STR "r1"
-#define R2_STR "r2"
-#define R3_STR "r3"
-#define R4_STR "r4"
-#define R5_STR "r5"
-#define R6_STR "r6"
+#define R0_STR r0
+#define R1_STR r1
+#define R2_STR r2
+#define R3_STR r3
+#define R4_STR r4
+#define R5_STR r5
+#define R6_STR r6
 
 #endif
 

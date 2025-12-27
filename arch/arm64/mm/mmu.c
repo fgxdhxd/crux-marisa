@@ -107,21 +107,6 @@ void __init dma_contiguous_early_fixup(phys_addr_t base, unsigned long size)
 	dma_mmu_remap_num++;
 }
 
-static bool dma_overlap(phys_addr_t start, phys_addr_t end)
-{
-	int i;
-
-	for (i = 0; i < dma_mmu_remap_num; i++) {
-		phys_addr_t dma_base = dma_mmu_remap[i].base;
-		phys_addr_t dma_end = dma_mmu_remap[i].base +
-			dma_mmu_remap[i].size;
-
-		if ((dma_base < end) && (dma_end > start))
-			return true;
-	}
-	return false;
-}
-
 pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 			      unsigned long size, pgprot_t vma_prot)
 {
@@ -914,24 +899,6 @@ static void unmap_hotplug_p4d_range(pgd_t *pgdp, unsigned long addr,
 
 		WARN_ON(!p4d_present(p4d));
 		unmap_hotplug_pud_range(p4dp, addr, next, free_mapped);
-	} while (addr = next, addr < end);
-}
-
-static void unmap_hotplug_range(unsigned long addr, unsigned long end,
-				bool free_mapped)
-{
-	unsigned long next;
-	pgd_t *pgdp, pgd;
-
-	do {
-		next = pgd_addr_end(addr, end);
-		pgdp = pgd_offset_k(addr);
-		pgd = READ_ONCE(*pgdp);
-		if (pgd_none(pgd))
-			continue;
-
-		WARN_ON(!pgd_present(pgd));
-		unmap_hotplug_p4d_range(pgdp, addr, next, free_mapped);
 	} while (addr = next, addr < end);
 }
 

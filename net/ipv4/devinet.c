@@ -1044,7 +1044,7 @@ int devinet_ioctl(struct net *net, unsigned int cmd, struct ifreq *ifr)
 		if (!ifa) {
 			for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
 			     ifap = &ifa->ifa_next)
-				if (!strcmp(ifr.ifr_name, ifa->ifa_label))
+				if (!strcmp(ifr->ifr_name, ifa->ifa_label))
 					break;
 		}
 	}
