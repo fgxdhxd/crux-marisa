@@ -1491,7 +1491,6 @@ static int gic_irq_domain_translate(struct irq_domain *d,
 			*hwirq = fwspec->param[1] + 32;
 			break;
 		case 1:			/* PPI */
-		case GIC_IRQ_TYPE_PARTITION:
 			*hwirq = fwspec->param[1] + 16;
 			break;
 		case 2:			/* ESPI */
@@ -1715,11 +1714,6 @@ static void gic_enable_nmi_support(void)
 		gic_eoimode1_chip.flags |= IRQCHIP_SUPPORTS_NMI;
 	else
 		gic_chip.flags |= IRQCHIP_SUPPORTS_NMI;
-}
-
-static void gic_enable_nmi_support(void)
-{
-	static_branch_enable(&supports_pseudo_nmis);
 }
 
 static int __init gic_init_bases(void __iomem *dist_base,
