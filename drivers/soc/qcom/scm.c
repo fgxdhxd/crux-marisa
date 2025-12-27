@@ -110,14 +110,31 @@ struct scm_response {
 };
 
 #ifdef CONFIG_ARM64
+#define R0_REG "x0"
+#define R1_REG "x1"
+#define R2_REG "x2"
+#define R3_REG "x3"
+#define R4_REG "x4"
+#define R5_REG "x5"
+#define R6_REG "x6"
+#else
+#define R0_REG "r0"
+#define R1_REG "r1"
+#define R2_REG "r2"
+#define R3_REG "r3"
+#define R4_REG "r4"
+#define R5_REG "r5"
+#define R6_REG "r6"
+#endif
 
-#define R0_STR x0
-#define R1_STR x1
-#define R2_STR x2
-#define R3_STR x3
-#define R4_STR x4
-#define R5_STR x5
-#define R6_STR x6
+#ifdef CONFIG_ARM64
+#define R0_EQ x0
+#define R1_EQ x1
+#define R2_EQ x2
+#define R3_EQ x3
+#define R4_EQ x4
+#define R5_EQ x5
+#define R6_EQ x6
 /* Outer caches unsupported on ARM64 platforms */
 #define outer_inv_range(x, y)
 #define outer_flush_range(x, y)
@@ -125,15 +142,13 @@ struct scm_response {
 #define __cpuc_flush_dcache_area __flush_dcache_area
 
 #else
-
-#define R0_STR r0
-#define R1_STR r1
-#define R2_STR r2
-#define R3_STR r3
-#define R4_STR r4
-#define R5_STR r5
-#define R6_STR r6
-
+#define R0_EQ r0
+#define R1_EQ r1
+#define R2_EQ r2
+#define R3_EQ r3
+#define R4_EQ r4
+#define R5_EQ r5
+#define R6_EQ r6
 #endif
 
 /**
@@ -193,15 +208,15 @@ static u32 smc(u32 cmd_addr)
 {
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = 1;
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = cmd_addr;
+	register u64 r0 asm(R0_REG) = 1;
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = cmd_addr;
 	do {
 		asm volatile(
-			__asmeq("%0", R0_STR)
-			__asmeq("%1", R0_STR)
-			__asmeq("%2", R1_STR)
-			__asmeq("%3", R2_STR)
+			__asmeq("%0", R0_EQ)
+			__asmeq("%1", R0_EQ)
+			__asmeq("%2", R1_EQ)
+			__asmeq("%3", R2_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -391,20 +406,20 @@ static int __scm_call_armv8_64(u64 x0, u64 x1, u64 x2, u64 x3, u64 x4, u64 x5,
 
 	do {
 		asm volatile(
-			__asmeq("%0", R0_STR)
-			__asmeq("%1", R1_STR)
-			__asmeq("%2", R2_STR)
-			__asmeq("%3", R3_STR)
-			__asmeq("%4", R4_STR)
-			__asmeq("%5", R5_STR)
-			__asmeq("%6", R6_STR)
-			__asmeq("%7", R0_STR)
-			__asmeq("%8", R1_STR)
-			__asmeq("%9", R2_STR)
-			__asmeq("%10", R3_STR)
-			__asmeq("%11", R4_STR)
-			__asmeq("%12", R5_STR)
-			__asmeq("%13", R6_STR)
+			__asmeq("%0", R0_EQ)
+			__asmeq("%1", R1_EQ)
+			__asmeq("%2", R2_EQ)
+			__asmeq("%3", R3_EQ)
+			__asmeq("%4", R4_EQ)
+			__asmeq("%5", R5_EQ)
+			__asmeq("%6", R6_EQ)
+			__asmeq("%7", R0_EQ)
+			__asmeq("%8", R1_EQ)
+			__asmeq("%9", R2_EQ)
+			__asmeq("%10", R3_EQ)
+			__asmeq("%11", R4_EQ)
+			__asmeq("%12", R5_EQ)
+			__asmeq("%13", R6_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -440,20 +455,20 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 
 	do {
 		asm volatile(
-			__asmeq("%0", R0_STR)
-			__asmeq("%1", R1_STR)
-			__asmeq("%2", R2_STR)
-			__asmeq("%3", R3_STR)
-			__asmeq("%4", R4_STR)
-			__asmeq("%5", R5_STR)
-			__asmeq("%6", R6_STR)
-			__asmeq("%7", R0_STR)
-			__asmeq("%8", R1_STR)
-			__asmeq("%9", R2_STR)
-			__asmeq("%10", R3_STR)
-			__asmeq("%11", R4_STR)
-			__asmeq("%12", R5_STR)
-			__asmeq("%13", R6_STR)
+			__asmeq("%0", R0_EQ)
+			__asmeq("%1", R1_EQ)
+			__asmeq("%2", R2_EQ)
+			__asmeq("%3", R3_EQ)
+			__asmeq("%4", R4_EQ)
+			__asmeq("%5", R5_EQ)
+			__asmeq("%6", R6_EQ)
+			__asmeq("%7", R0_EQ)
+			__asmeq("%8", R1_EQ)
+			__asmeq("%9", R2_EQ)
+			__asmeq("%10", R3_EQ)
+			__asmeq("%11", R4_EQ)
+			__asmeq("%12", R5_EQ)
+			__asmeq("%13", R6_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -492,20 +507,20 @@ static int __scm_call_armv8_32(u32 w0, u32 w1, u32 w2, u32 w3, u32 w4, u32 w5,
 
 	do {
 		asm volatile(
-			__asmeq("%0", R0_STR)
-			__asmeq("%1", R1_STR)
-			__asmeq("%2", R2_STR)
-			__asmeq("%3", R3_STR)
-			__asmeq("%4", R4_STR)
-			__asmeq("%5", R5_STR)
-			__asmeq("%6", R6_STR)
-			__asmeq("%7", R0_STR)
-			__asmeq("%8", R1_STR)
-			__asmeq("%9", R2_STR)
-			__asmeq("%10", R3_STR)
-			__asmeq("%11", R4_STR)
-			__asmeq("%12", R5_STR)
-			__asmeq("%13", R6_STR)
+				__asmeq("%0", R0_EQ)
+				__asmeq("%1", R1_EQ)
+				__asmeq("%2", R2_EQ)
+				__asmeq("%3", R3_EQ)
+				__asmeq("%4", R4_EQ)
+				__asmeq("%5", R5_EQ)
+				__asmeq("%6", R6_EQ)
+				__asmeq("%7", R0_EQ)
+				__asmeq("%8", R1_EQ)
+				__asmeq("%9", R2_EQ)
+				__asmeq("%10", R3_EQ)
+				__asmeq("%11", R4_EQ)
+				__asmeq("%12", R5_EQ)
+				__asmeq("%13", R6_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -842,15 +857,15 @@ s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 {
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 1);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 1);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R0_STR)
-		__asmeq("%2", R1_STR)
-		__asmeq("%3", R2_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R0_EQ)
+		__asmeq("%2", R1_EQ)
+		__asmeq("%3", R2_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -876,16 +891,16 @@ s32 scm_call_atomic1_1(u32 svc, u32 cmd, u32 arg1, u32 *ret1)
 {
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 1);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 1);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R1_STR)
-		__asmeq("%2", R0_STR)
-		__asmeq("%3", R1_STR)
-		__asmeq("%4", R2_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R1_EQ)
+		__asmeq("%2", R0_EQ)
+		__asmeq("%3", R1_EQ)
+		__asmeq("%4", R2_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -913,17 +928,17 @@ s32 scm_call_atomic2(u32 svc, u32 cmd, u32 arg1, u32 arg2)
 {
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 2);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
-	register u32 r3 asm(R3_STR) = arg2;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 2);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
+	register u64 r3 asm(R3_REG) = arg2;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R0_STR)
-		__asmeq("%2", R1_STR)
-		__asmeq("%3", R2_STR)
-		__asmeq("%4", R3_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R0_EQ)
+		__asmeq("%2", R1_EQ)
+		__asmeq("%3", R2_EQ)
+		__asmeq("%4", R3_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -949,19 +964,19 @@ s32 scm_call_atomic3(u32 svc, u32 cmd, u32 arg1, u32 arg2, u32 arg3)
 {
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 3);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
-	register u32 r3 asm(R3_STR) = arg2;
-	register u32 r4 asm(R4_STR) = arg3;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 3);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
+	register u64 r3 asm(R3_REG) = arg2;
+	register u64 r4 asm(R4_REG) = arg3;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R0_STR)
-		__asmeq("%2", R1_STR)
-		__asmeq("%3", R2_STR)
-		__asmeq("%4", R3_STR)
-		__asmeq("%5", R4_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R0_EQ)
+		__asmeq("%2", R1_EQ)
+		__asmeq("%3", R2_EQ)
+		__asmeq("%4", R3_EQ)
+		__asmeq("%5", R4_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -978,21 +993,21 @@ s32 scm_call_atomic4_3(u32 svc, u32 cmd, u32 arg1, u32 arg2,
 	int ret;
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 4);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
-	register u32 r3 asm(R3_STR) = arg2;
-	register u32 r4 asm(R4_STR) = arg3;
-	register u32 r5 asm(R5_STR) = arg4;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 4);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
+	register u64 r3 asm(R3_REG) = arg2;
+	register u64 r4 asm(R4_REG) = arg3;
+	register u64 r5 asm(R5_REG) = arg4;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R1_STR)
-		__asmeq("%2", R2_STR)
-		__asmeq("%3", R0_STR)
-		__asmeq("%4", R1_STR)
-		__asmeq("%5", R2_STR)
-		__asmeq("%6", R3_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R1_EQ)
+		__asmeq("%2", R2_EQ)
+		__asmeq("%3", R0_EQ)
+		__asmeq("%4", R1_EQ)
+		__asmeq("%5", R2_EQ)
+		__asmeq("%6", R3_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -1030,23 +1045,23 @@ s32 scm_call_atomic5_3(u32 svc, u32 cmd, u32 arg1, u32 arg2,
 	int ret;
 	int context_id;
 
-	register u32 r0 asm(R0_STR) = SCM_ATOMIC(svc, cmd, 5);
-	register u32 r1 asm(R1_STR) = (uintptr_t)&context_id;
-	register u32 r2 asm(R2_STR) = arg1;
-	register u32 r3 asm(R3_STR) = arg2;
-	register u32 r4 asm(R4_STR) = arg3;
-	register u32 r5 asm(R5_STR) = arg4;
-	register u32 r6 asm(R6_STR) = arg5;
+	register u64 r0 asm(R0_REG) = SCM_ATOMIC(svc, cmd, 5);
+	register u64 r1 asm(R1_REG) = (uintptr_t)&context_id;
+	register u64 r2 asm(R2_REG) = arg1;
+	register u64 r3 asm(R3_REG) = arg2;
+	register u64 r4 asm(R4_REG) = arg3;
+	register u64 r5 asm(R5_REG) = arg4;
+	register u64 r6 asm(R6_REG) = arg5;
 
 	asm volatile(
-		__asmeq("%0", R0_STR)
-		__asmeq("%1", R1_STR)
-		__asmeq("%2", R2_STR)
-		__asmeq("%3", R3_STR)
-		__asmeq("%4", R0_STR)
-		__asmeq("%5", R1_STR)
-		__asmeq("%6", R2_STR)
-		__asmeq("%7", R3_STR)
+		__asmeq("%0", R0_EQ)
+		__asmeq("%1", R1_EQ)
+		__asmeq("%2", R2_EQ)
+		__asmeq("%3", R3_EQ)
+		__asmeq("%4", R0_EQ)
+		__asmeq("%5", R1_EQ)
+		__asmeq("%6", R2_EQ)
+		__asmeq("%7", R3_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
@@ -1071,8 +1086,8 @@ u32 scm_get_version(void)
 	int context_id;
 	static u32 version = -1;
 
-	register u32 r0 asm(R0_STR);
-	register u32 r1 asm(R1_STR);
+	register u64 r0 asm(R0_REG);
+	register u64 r1 asm(R1_REG);
 
 	if (version != -1)
 		return version;
@@ -1083,10 +1098,10 @@ u32 scm_get_version(void)
 	r1 = (uintptr_t)&context_id;
 	do {
 		asm volatile(
-			__asmeq("%0", R0_STR)
-			__asmeq("%1", R1_STR)
-			__asmeq("%2", R0_STR)
-			__asmeq("%3", R1_STR)
+			__asmeq("%0", R0_EQ)
+			__asmeq("%1", R1_EQ)
+			__asmeq("%2", R0_EQ)
+			__asmeq("%3", R1_EQ)
 #ifdef REQUIRES_SEC
 			".arch_extension sec\n"
 #endif
