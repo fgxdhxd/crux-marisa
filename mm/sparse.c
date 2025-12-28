@@ -439,9 +439,15 @@ static void __init check_usemap_section_nr(int nid,
 }
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
-#############################################################
-struct page __init *__populate_section_memmap(unsigned long pfn,
-		unsigned long nr_pages, int nid, struct vmem_altmap *altmap)
+#ifdef CONFIG_SPARSEMEM_VMEMMAP
+static unsigned long __init section_map_size(void)
+
+{
+	return ALIGN(sizeof(struct page) * PAGES_PER_SECTION, PMD_SIZE);
+}
+
+#else
+static unsigned long __init section_map_size(void)
 {
 	return PAGE_ALIGN(sizeof(struct page) * PAGES_PER_SECTION);
 }
@@ -453,11 +459,9 @@ struct page __init *__populate_section_memmap(unsigned long pfn,
 	struct page *map = sparse_buffer_alloc(size);
 	phys_addr_t addr = __pa(MAX_DMA_ADDRESS);
 
-	map = alloc_remap(nid, sizeof(struct page) * PAGES_PER_SECTION);
 	if (map)
 		return map;
 
-	size = PAGE_ALIGN(sizeof(struct page) * PAGES_PER_SECTION);
 	map = memblock_alloc_try_nid(size,
 					  PAGE_SIZE, addr,
 					  MEMBLOCK_ALLOC_ACCESSIBLE, nid);
@@ -466,6 +470,44 @@ struct page __init *__populate_section_memmap(unsigned long pfn,
 		      __func__, size, PAGE_SIZE, nid, &addr);
 
 	return map;
+}
+#endif /* !CONFIG_SPARSEMEM_VMEMMAP */
+
+static void *sparsemap_buf __meminitdata;
+static void *sparsemap_buf_end __meminitdata;
+
+static void __init sparse_buffer_init(unsigned long size, int nid)
+{
+	phys_addr_t addr = __pa(MAX_DMA_ADDRESS);
+	WARN_ON(sparsemap_buf);	/* forgot to call sparse_buffer_fini()? */
+	sparsemap_buf =
+		memblock_alloc_try_nid_raw(size, PAGE_SIZE,
+						addr,
+						MEMBLOCK_ALLOC_ACCESSIBLE, nid);
+	sparsemap_buf_end = sparsemap_buf + size;
+}
+
+static void __init sparse_buffer_fini(void)
+{
+	unsigned long size = sparsemap_buf_end - sparsemap_buf;
+
+	if (sparsemap_buf && size > 0)
+		memblock_free_early(__pa(sparsemap_buf), size);
+	sparsemap_buf = NULL;
+}
+
+void * __meminit sparse_buffer_alloc(unsigned long size)
+{
+	void *ptr = NULL;
+
+	if (sparsemap_buf) {
+		ptr = PTR_ALIGN(sparsemap_buf, size);
+		if (ptr + size > sparsemap_buf_end)
+			ptr = NULL;
+		else
+			sparsemap_buf = ptr + size;
+	}
+	return ptr;
 }
 
 void __weak __meminit vmemmap_populate_print_last(void)
@@ -806,7 +848,6 @@ int __meminit sparse_add_section(int nid, unsigned long start_pfn,
 	unsigned long section_nr = pfn_to_section_nr(start_pfn);
 	struct mem_section *ms;
 	struct page *memmap;
-	unsigned long flags;
 	int ret;
 
 	ret = sparse_index_init(section_nr, nid);
