@@ -900,7 +900,7 @@ static int do_poll(struct poll_list *list, struct poll_wqueues *wait,
 		if (!count) {
 			count = wait->error;
 			if (signal_pending(current))
-				count = -EINTR;
+				count = -ERESTARTNOHAND;
 		}
 		if (count || timed_out)
 			break;
@@ -1015,7 +1015,7 @@ static long do_restart_poll(struct restart_block *restart_block)
 
 	ret = do_sys_poll(ufds, nfds, to);
 
-	if (ret == -EINTR)
+	if (ret == -ERESTARTNOHAND)
 		ret = set_restart_fn(restart_block, do_restart_poll);
 
 	return ret;
@@ -1035,7 +1035,7 @@ SYSCALL_DEFINE3(poll, struct pollfd __user *, ufds, unsigned int, nfds,
 
 	ret = do_sys_poll(ufds, nfds, to);
 
-	if (ret == -EINTR) {
+	if (ret == -ERESTARTNOHAND) {
 		struct restart_block *restart_block;
 
 		restart_block = &current->restart_block;
@@ -1075,11 +1075,7 @@ SYSCALL_DEFINE5(ppoll, struct pollfd __user *, ufds, unsigned int, nfds,
 		return ret;
 
 	ret = do_sys_poll(ufds, nfds, to);
-
-	restore_saved_sigmask_unless(ret == -EINTR);
-	/* We can restart this syscall, usually */
-	if (ret == -EINTR)
-		ret = -ERESTARTNOHAND;
+	restore_saved_sigmask_unless(ret == -ERESTARTNOHAND);
 	ret = poll_select_copy_remaining(&end_time, tsp, 0, ret);
 
 	return ret;
@@ -1108,12 +1104,7 @@ SYSCALL_DEFINE5(ppoll_time32, struct pollfd __user *, ufds, unsigned int, nfds,
 		return ret;
 
 	ret = do_sys_poll(ufds, nfds, to);
-
-	restore_saved_sigmask_unless(ret == -EINTR);
-	/* We can restart this syscall, usually */
-	if (ret == -EINTR)
-		ret = -ERESTARTNOHAND;
-	
+	restore_saved_sigmask_unless(ret == -ERESTARTNOHAND);
 	ret = poll_select_copy_remaining(&end_time, tsp, PT_OLD_TIMESPEC, ret);
 
 	return ret;
@@ -1143,13 +1134,7 @@ SYSCALL_DEFINE5(ppoll_time32, struct pollfd __user *, ufds, unsigned int, nfds,
 	if (ret)
 		
 	ret = do_sys_poll(ufds, nfds, to);
-		
-	restore_user_sigmask(sigmask, &sigsaved);
-		
-	/* We can restart this syscall, usually */
-	if (ret == -EINTR)
-		ret = -ERESTARTNOHAND;
-		
+	restore_saved_sigmask_unless(ret == -ERESTARTNOHAND);	
 	ret = poll_select_copy_remaining(&end_time, tsp, PT_OLD_TIMESPEC, ret);
 		
 	return ret;
@@ -1412,11 +1397,7 @@ COMPAT_SYSCALL_DEFINE5(ppoll, struct pollfd __user *, ufds,
 		return ret;
 
 	ret = do_sys_poll(ufds, nfds, to);
-
-	restore_saved_sigmask_unless(ret == -EINTR);
-	/* We can restart this syscall, usually */
-	if (ret == -EINTR)
-		ret = -ERESTARTNOHAND;
+	restore_saved_sigmask_unless(ret == -ERESTARTNOHAND);
 	ret = poll_select_copy_remaining(&end_time, tsp, PT_OLD_TIMESPEC, ret);
 		
 	return ret;
@@ -1445,11 +1426,7 @@ COMPAT_SYSCALL_DEFINE5(ppoll_time64, struct pollfd __user *, ufds,
 		return ret;
 
 	ret = do_sys_poll(ufds, nfds, to);
-	
-	restore_saved_sigmask_unless(ret == -EINTR);
-	/* We can restart this syscall, usually */
-	if (ret == -EINTR)
-		ret = -ERESTARTNOHAND;
+	restore_saved_sigmask_unless(ret == -ERESTARTNOHAND);
 	ret = poll_select_copy_remaining(&end_time, tsp, PT_TIMESPEC, ret);
 
 	return ret;
