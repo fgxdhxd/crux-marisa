@@ -104,15 +104,13 @@ SYSCALL_DEFINE1(stime, time_t __user *, tptr)
 #ifdef CONFIG_COMPAT
 #ifdef __ARCH_WANT_COMPAT_SYS_TIME
 
-/* compat_time_t is a 32 bit "long" and needs to get converted. */
-COMPAT_SYSCALL_DEFINE1(time, compat_time_t __user *, tloc)
+/* old_time32_t is a 32 bit "long" and needs to get converted. */
+COMPAT_SYSCALL_DEFINE1(time, old_time32_t __user *, tloc)
 {
-	struct timeval tv;
-	compat_time_t i;
-
-	do_gettimeofday(&tv);
-	i = tv.tv_sec;
-
+	old_time32_t i;
+	
+	i = (old_time32_t)ktime_get_real_seconds();
+	
 	if (tloc) {
 		if (put_user(i,tloc))
 			return -EFAULT;
@@ -121,7 +119,7 @@ COMPAT_SYSCALL_DEFINE1(time, compat_time_t __user *, tloc)
 	return i;
 }
 
-COMPAT_SYSCALL_DEFINE1(stime, compat_time_t __user *, tptr)
+COMPAT_SYSCALL_DEFINE1(stime, old_time32_t __user *, tptr)
 {
 	struct timespec tv;
 	int err;
@@ -259,7 +257,7 @@ SYSCALL_DEFINE2(settimeofday, struct timeval __user *, tv,
 }
 
 #ifdef CONFIG_COMPAT
-COMPAT_SYSCALL_DEFINE2(gettimeofday, struct compat_timeval __user *, tv,
+COMPAT_SYSCALL_DEFINE2(gettimeofday, struct old_timeval32 __user *, tv,
 		       struct timezone __user *, tz)
 {
 	if (tv) {
@@ -277,7 +275,7 @@ COMPAT_SYSCALL_DEFINE2(gettimeofday, struct compat_timeval __user *, tv,
 	return 0;
 }
 
-COMPAT_SYSCALL_DEFINE2(settimeofday, struct compat_timeval __user *, tv,
+COMPAT_SYSCALL_DEFINE2(settimeofday, struct old_timeval32 __user *, tv,
 		       struct timezone __user *, tz)
 {
 	struct timespec64 new_ts;
@@ -950,3 +948,24 @@ int put_itimerspec64(const struct itimerspec64 *it,
 	return ret;
 }
 EXPORT_SYMBOL_GPL(put_itimerspec64);
+
+int get_old_itimerspec32(struct itimerspec64 *its,
+			const struct old_itimerspec32 __user *uits)
+{
+
+	if (__get_old_timespec32(&its->it_interval, &uits->it_interval) ||
+	    __get_old_timespec32(&its->it_value, &uits->it_value))
+		return -EFAULT;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(get_old_itimerspec32);
+
+int put_old_itimerspec32(const struct itimerspec64 *its,
+			struct old_itimerspec32 __user *uits)
+{
+	if (__put_old_timespec32(&its->it_interval, &uits->it_interval) ||
+	    __put_old_timespec32(&its->it_value, &uits->it_value))
+		return -EFAULT;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(put_old_itimerspec32);

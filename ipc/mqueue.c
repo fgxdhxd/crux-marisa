@@ -1481,10 +1481,10 @@ COMPAT_SYSCALL_DEFINE4(mq_open, const char __user *, u_name,
 	return do_mq_open(u_name, oflag, mode, p);
 }
 
-static int compat_prepare_timeout(const struct compat_timespec __user *p,
-				   struct timespec64 *ts)
+static int compat_prepare_timeout(const struct old_timespec32 __user *p,
+				struct timespec64 *ts)
 {
-	if (compat_get_timespec64(ts, p))
+	if (get_old_timespec32(ts, p))
 		return -EFAULT;
 	if (!timespec64_valid(ts))
 		return -EINVAL;
@@ -1494,7 +1494,7 @@ static int compat_prepare_timeout(const struct compat_timespec __user *p,
 COMPAT_SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes,
 		       const char __user *, u_msg_ptr,
 		       compat_size_t, msg_len, unsigned int, msg_prio,
-		       const struct compat_timespec __user *, u_abs_timeout)
+		       const struct old_timespec32 __user *, u_abs_timeout)
 {
 	struct timespec64 ts, *p = NULL;
 	if (u_abs_timeout) {
@@ -1509,7 +1509,7 @@ COMPAT_SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes,
 COMPAT_SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes,
 		       char __user *, u_msg_ptr,
 		       compat_size_t, msg_len, unsigned int __user *, u_msg_prio,
-		       const struct compat_timespec __user *, u_abs_timeout)
+		       const struct old_timespec32 __user *, u_abs_timeout)
 {
 	struct timespec64 ts, *p = NULL;
 	if (u_abs_timeout) {
