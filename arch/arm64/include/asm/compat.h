@@ -27,6 +27,8 @@
 
 #include <asm-generic/compat.h>
 
+#include <linux/compat.h> //wjy1214:暂时
+
 #define COMPAT_USER_HZ		100
 #ifdef __AARCH64EB__
 #define COMPAT_UTS_MACHINE	"armv8b\0\0"
