@@ -305,7 +305,8 @@ asmlinkage long sys_adjtimex(struct timex __user *txc_p);
 asmlinkage long sys_times(struct tms __user *tbuf);
 
 asmlinkage long sys_gettid(void);
-asmlinkage long sys_nanosleep(struct timespec __user *rqtp, struct timespec __user *rmtp);
+asmlinkage long sys_nanosleep(struct __kernel_timespec __user *rqtp,
+			      struct __kernel_timespec __user *rmtp);
 asmlinkage long sys_alarm(unsigned int seconds);
 asmlinkage long sys_getpid(void);
 asmlinkage long sys_getppid(void);
@@ -368,9 +369,9 @@ asmlinkage long sys_clock_adjtime(clockid_t which_clock,
 asmlinkage long sys_clock_getres(clockid_t which_clock,
 				struct timespec __user *tp);
 asmlinkage long sys_clock_nanosleep(clockid_t which_clock, int flags,
-				const struct timespec __user *rqtp,
-				struct timespec __user *rmtp);
-
+				const struct __kernel_timespec __user *rqtp,
+				struct __kernel_timespec __user *rmtp);
+	
 asmlinkage long sys_nice(int increment);
 asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
 					struct sched_param __user *param);
@@ -454,7 +455,7 @@ asmlinkage long sys_rt_sigprocmask(int how, sigset_t __user *set,
 asmlinkage long sys_rt_sigpending(sigset_t __user *set, size_t sigsetsize);
 asmlinkage long sys_rt_sigtimedwait(const sigset_t __user *uthese,
 				siginfo_t __user *uinfo,
-				const struct timespec __user *uts,
+				const struct __kernel_timespec __user *uts,
 				size_t sigsetsize);
 asmlinkage long sys_rt_tgsigqueueinfo(pid_t tgid, pid_t  pid, int sig,
 		siginfo_t __user *uinfo);
@@ -921,8 +922,11 @@ asmlinkage long sys_userfaultfd(int flags);
 asmlinkage long sys_fallocate(int fd, int mode, loff_t offset, loff_t len);
 asmlinkage long sys_old_readdir(unsigned int, struct old_linux_dirent __user *, unsigned int);
 asmlinkage long sys_pselect6(int, fd_set __user *, fd_set __user *,
-			     fd_set __user *, struct timespec __user *,
+			     fd_set __user *, struct __kernel_timespec __user *,
 			     void __user *);
+asmlinkage long sys_pselect6_time32(int, fd_set __user *, fd_set __user *,
+			     fd_set __user *, struct old_timespec32 __user *,
+				 void __user *);
 asmlinkage long sys_ppoll(struct pollfd __user *, unsigned int,
 			  struct __kernel_timespec __user *, const sigset_t __user *,
 			  size_t);

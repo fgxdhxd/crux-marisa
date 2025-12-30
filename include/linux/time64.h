@@ -2,11 +2,12 @@
 #ifndef _LINUX_TIME64_H
 #define _LINUX_TIME64_H
 
-#include <uapi/linux/time.h>
 #include <linux/math64.h>
 
 typedef __s64 time64_t;
 typedef __u64 timeu64_t;
+
+#include <uapi/linux/time.h>
 
 #if __BITS_PER_LONG == 64
 /* this trick allows us to optimize out timespec64_to_timespec */

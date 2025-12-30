@@ -7,6 +7,7 @@
  */
 
 #include <linux/types.h>
+#include <linux/compat_time.h>
 #include <linux/time.h>
 
 #include <linux/stat.h>
@@ -206,8 +207,6 @@ extern int compat_get_timespec(struct timespec *, const void __user *);
 extern int compat_put_timespec(const struct timespec *, void __user *);
 extern int compat_get_timeval(struct timeval *, const void __user *);
 extern int compat_put_timeval(const struct timeval *, void __user *);
-extern int compat_get_timespec64(struct timespec64 *, const void __user *);
-extern int compat_put_timespec64(const struct timespec64 *, void __user *);
 
 struct compat_iovec {
 	compat_uptr_t	iov_base;
@@ -389,11 +388,6 @@ static inline int old_timespec32_compare(struct old_timespec32 *lhs,
 	return lhs->tv_nsec - rhs->tv_nsec;
 }
 
-extern int get_compat_itimerspec(struct itimerspec *dst,
-				 const struct compat_itimerspec __user *src);
-extern int put_compat_itimerspec(struct compat_itimerspec __user *dst,
-				 const struct itimerspec *src);
-
 extern int get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat);
 
 /*
@@ -573,6 +567,11 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
 				    compat_ulong_t __user *exp,
 				    struct old_timespec32 __user *tsp,
 					void __user *sig);
+asmlinkage long compat_sys_pselect6_time64(int n, compat_ulong_t __user *inp,
+				    compat_ulong_t __user *outp,
+				    compat_ulong_t __user *exp,
+				    struct __kernel_timespec __user *tsp,
+				    void __user *sig);
 asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
 				 unsigned int nfds,
 				 struct old_timespec32 __user *tsp,

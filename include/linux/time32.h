@@ -11,9 +11,9 @@
 
 #include <linux/time64.h>
 
-#define TIME_T_MAX	(time_t)((1UL << ((sizeof(time_t) << 3) - 1)) - 1)
+#include <vdso/time32.h>
 
-#if __BITS_PER_LONG == 64
+#define TIME_T_MAX	(time_t)((1UL << ((sizeof(time_t) << 3) - 1)) - 1)
 
 /* timespec64 is defined as timespec here */
 static inline struct timespec timespec64_to_timespec(const struct timespec64 ts64)
@@ -218,4 +218,17 @@ static inline s64 timeval_to_ns(const struct timeval *tv)
  */
 extern struct timeval ns_to_timeval(const s64 nsec);
 
-#endif
+/*
+ * New aliases for compat time functions. These will be used to replace
+ * the compat code so it can be shared between 32-bit and 64-bit builds
+ * both of which provide compatibility with old 32-bit tasks.
+ */
+#define old_time32_t		compat_time_t
+#define old_timeval32		compat_timeval
+#define old_timespec32		compat_timespec
+#define old_itimerspec32	compat_itimerspec
+#define ns_to_old_timeval32	ns_to_compat_timeval
+#define get_old_itimerspec32	get_compat_itimerspec64
+#define put_old_itimerspec32	put_compat_itimerspec64
+#define get_old_timespec32	compat_get_timespec64
+#define put_old_timespec32	compat_put_timespec64
