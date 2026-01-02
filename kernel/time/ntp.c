@@ -606,11 +606,10 @@ static inline void process_adj_status(const struct __kernel_timex *txc)
 }
 
 
-static inline void process_adjtimex_modes(const struct __kernel_timex *txc,
-					  s32 *time_tai)
+static inline void process_adjtimex_modes(const struct __kernel_timex *txc, s32 *time_tai)
 {
 	if (txc->modes & ADJ_STATUS)
-		process_adj_status(txc, ts);
+		process_adj_status(txc);
 
 	if (txc->modes & ADJ_NANO)
 		time_status |= STA_NANO;
@@ -676,7 +675,7 @@ int __do_adjtimex(struct __kernel_timex *txc, const struct timespec64 *ts,
 
 		/* If there are input parameters, then process them: */
 		if (txc->modes)
-			process_adjtimex_modes(txc, ts, time_tai);
+			process_adjtimex_modes(txc, time_tai);
 
 		txc->offset = shift_right(time_offset * NTP_INTERVAL_FREQ,
 				  NTP_SCALE_SHIFT);
