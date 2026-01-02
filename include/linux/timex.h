@@ -159,8 +159,8 @@ extern unsigned long tick_nsec;		/* SHIFTED_HZ period (nsec) */
 #define NTP_INTERVAL_FREQ  (HZ)
 #define NTP_INTERVAL_LENGTH (NSEC_PER_SEC/NTP_INTERVAL_FREQ)
 
-extern int do_adjtimex(struct timex *);
-extern void hardpps(const struct timespec64 *, const struct timespec64 *);
+extern int do_adjtimex(struct __kernel_timex *);
+extern int do_clock_adjtime(const clockid_t which_clock, struct __kernel_timex * ktx);
 
 int read_current_timer(unsigned long *timer_val);
 void ntp_notify_cmos_timer(void);
