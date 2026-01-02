@@ -1085,7 +1085,7 @@ SYSCALL_DEFINE2(clock_gettime, const clockid_t, which_clock,
 	return error;
 }
 
-int do_clock_adjtime(const clockid_t which_clock, struct timex * ktx)
+int do_clock_adjtime(const clockid_t which_clock, struct __kernel_timex * ktx)
 {
 	const struct k_clock *kc = clockid_to_kclock(which_clock);
 
@@ -1100,7 +1100,7 @@ int do_clock_adjtime(const clockid_t which_clock, struct timex * ktx)
 SYSCALL_DEFINE2(clock_adjtime, const clockid_t, which_clock,
 		struct timex __user *, utx)
 {
-	struct timex ktx;
+	struct __kernel_timex ktx;
 	int err;
 
 	if (copy_from_user(&ktx, utx, sizeof(ktx)))
@@ -1132,7 +1132,7 @@ SYSCALL_DEFINE2(clock_getres, const clockid_t, which_clock,
 	return error;
 }
 
-#ifdef CONFIG_COMPAT
+#ifdef CONFIG_COMPAT_32BIT_TIME
 
 COMPAT_SYSCALL_DEFINE2(clock_settime, clockid_t, which_clock,
 		       struct old_timespec32 __user *, tp)
@@ -1167,10 +1167,14 @@ COMPAT_SYSCALL_DEFINE2(clock_gettime, clockid_t, which_clock,
 	return err;
 }
 
+#endif
+
+#ifdef CONFIG_COMPAT
+
 COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
 		       struct old_timex32 __user *, utp)
 {
-	struct timex ktx;
+	struct __kernel_timex ktx;
 	int err;
 
 	err = get_old_timex32(&ktx, utp);
@@ -1184,6 +1188,10 @@ COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
 
 	return err;
 }
+
+#endif
+
+#ifdef CONFIG_COMPAT_32BIT_TIME
 
 COMPAT_SYSCALL_DEFINE2(clock_getres, clockid_t, which_clock,
 		       struct old_timespec32 __user *, tp)
@@ -1241,7 +1249,8 @@ SYSCALL_DEFINE4(clock_nanosleep, const clockid_t, which_clock, int, flags,
 	return kc->nsleep(which_clock, flags, &t);
 }
 
-#ifdef CONFIG_COMPAT
+#ifdef CONFIG_COMPAT_32BIT_TIME
+
 COMPAT_SYSCALL_DEFINE4(clock_nanosleep, clockid_t, which_clock, int, flags,
 		       struct old_timespec32 __user *, rqtp,
 		       struct old_timespec32 __user *, rmtp)
@@ -1267,6 +1276,7 @@ COMPAT_SYSCALL_DEFINE4(clock_nanosleep, clockid_t, which_clock, int, flags,
 
 	return kc->nsleep(which_clock, flags, &t);
 }
+
 #endif
 
 static const struct k_clock clock_realtime = {
