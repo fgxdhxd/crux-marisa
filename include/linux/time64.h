@@ -11,7 +11,7 @@ typedef __u64 timeu64_t;
 
 #if __BITS_PER_LONG == 64
 /* this trick allows us to optimize out timespec64_to_timespec */
-# define timespec64 timespec
+#define timespec64 timespec
 #define itimerspec64 itimerspec
 #else
 struct timespec64 {

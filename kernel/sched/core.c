@@ -5381,17 +5381,6 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	return ret;
 }
 
-/**
- * sys_sched_rr_get_interval - return the default timeslice of a process.
- * @pid: pid of the process.
- * @interval: userspace pointer to the timeslice value.
- *
- * this syscall writes the default timeslice value of a given process
- * into the user-space timespec buffer. A value of '0' means infinity.
- *
- * Return: On success, 0 and the timeslice is in @interval. Otherwise,
- * an error code.
- */
 static int sched_rr_get_interval(pid_t pid, struct timespec64 *t)
 {
 	struct task_struct *p;
@@ -5428,8 +5417,19 @@ out_unlock:
 	return retval;
 }
 
+/**
+ * sys_sched_rr_get_interval - return the default timeslice of a process.
+ * @pid: pid of the process.
+ * @interval: userspace pointer to the timeslice value.
+ *
+ * this syscall writes the default timeslice value of a given process
+ * into the user-space timespec buffer. A value of '0' means infinity.
+ *
+ * Return: On success, 0 and the timeslice is in @interval. Otherwise,
+ * an error code.
+ */
 SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
-		struct timespec __user *, interval)
+		struct __kernel_timespec __user *, interval)
 {
 	struct timespec64 t;
 	int retval = sched_rr_get_interval(pid, &t);
@@ -5440,7 +5440,7 @@ SYSCALL_DEFINE2(sched_rr_get_interval, pid_t, pid,
 	return retval;
 }
 
-#ifdef CONFIG_COMPAT
+#ifdef CONFIG_COMPAT_32BIT_TIME
 COMPAT_SYSCALL_DEFINE2(sched_rr_get_interval,
 		       compat_pid_t, pid,
 		       struct old_timespec32 __user *, interval)
