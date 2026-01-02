@@ -912,10 +912,10 @@ int put_timespec64(const struct timespec64 *ts,
 }
 EXPORT_SYMBOL_GPL(put_timespec64);
 
-int __compat_get_timespec64(struct timespec64 *ts64,
-				   const struct compat_timespec __user *cts)
+int __get_old_timespec32(struct timespec64 *ts64,
+	const struct old_timespec32 __user *cts)
 {
-	struct compat_timespec ts;
+	struct old_timespec32 ts;
 	int ret;
 
 	ret = copy_from_user(&ts, cts, sizeof(ts));
@@ -928,33 +928,33 @@ int __compat_get_timespec64(struct timespec64 *ts64,
 	return 0;
 }
 
-int __compat_put_timespec64(const struct timespec64 *ts64,
-				   struct compat_timespec __user *cts)
+int __put_old_timespec32(const struct timespec64 *ts64,
+	struct old_timespec32 __user *cts)
 {
-	struct compat_timespec ts = {
+	struct old_timespec32 ts = {
 		.tv_sec = ts64->tv_sec,
 		.tv_nsec = ts64->tv_nsec
 	};
 	return copy_to_user(cts, &ts, sizeof(ts)) ? -EFAULT : 0;
 }
 
-int compat_get_timespec64(struct timespec64 *ts, const void __user *uts)
+int get_old_timespec32(struct timespec64 *ts, const void __user *uts)
 {
 	if (COMPAT_USE_64BIT_TIME)
 		return copy_from_user(ts, uts, sizeof(*ts)) ? -EFAULT : 0;
 	else
-		return __compat_get_timespec64(ts, uts);
+	return __get_old_timespec32(ts, uts);
 }
-EXPORT_SYMBOL_GPL(compat_get_timespec64);
+EXPORT_SYMBOL_GPL(get_old_timespec32);
 
-int compat_put_timespec64(const struct timespec64 *ts, void __user *uts)
+int put_old_timespec32(const struct timespec64 *ts, void __user *uts)
 {
 	if (COMPAT_USE_64BIT_TIME)
 		return copy_to_user(uts, ts, sizeof(*ts)) ? -EFAULT : 0;
 	else
-		return __compat_put_timespec64(ts, uts);
+	return __put_old_timespec32(ts, uts);
 }
-EXPORT_SYMBOL_GPL(compat_put_timespec64);
+EXPORT_SYMBOL_GPL(put_old_timespec32);
 
 int get_itimerspec64(struct itimerspec64 *it,
 			const struct __kernel_itimerspec __user *uit)
