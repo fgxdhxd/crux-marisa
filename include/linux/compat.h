@@ -7,7 +7,6 @@
  */
 
 #include <linux/types.h>
-#include <linux/compat_time.h>
 #include <linux/time.h>
 
 #include <linux/stat.h>
