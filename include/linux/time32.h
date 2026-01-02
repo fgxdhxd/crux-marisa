@@ -11,7 +11,6 @@
 
 #include <linux/time64.h>
 #include <linux/timex.h>
-#include <vdso/time32.h>
 
 #define TIME_T_MAX	(time_t)((1UL << ((sizeof(time_t) << 3) - 1)) - 1)
 
