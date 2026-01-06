@@ -270,9 +270,9 @@ void delete_from_page_cache(struct page *page)
 	unsigned long flags;
 
 	BUG_ON(!PageLocked(page));
-	spin_lock_irqsave(&mapping->tree_lock, flags);
+	xa_lock_irqsave(&mapping->i_pages, flags);
 	__delete_from_page_cache(page, NULL);
-	spin_unlock_irqrestore(&mapping->tree_lock, flags);
+	xa_unlock_irqrestore(&mapping->i_pages, flags);
 
 	page_cache_free_page(mapping, page);
 }
@@ -346,7 +346,7 @@ void delete_from_page_cache_batch(struct address_space *mapping,
 	if (!pagevec_count(pvec))
 		return;
 
-	spin_lock_irqsave(&mapping->tree_lock, flags);
+	xa_lock_irqsave(&mapping->i_pages, flags);
 	for (i = 0; i < pagevec_count(pvec); i++) {
 		trace_mm_filemap_delete_from_page_cache(pvec->pages[i]);
 
