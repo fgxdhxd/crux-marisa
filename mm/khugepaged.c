@@ -1430,7 +1430,7 @@ static void collapse_shmem(struct mm_struct *mm,
 		}
 
 		/*
-		 * The page must be locked, so we can drop the tree_lock
+		 * The page must be locked, so we can drop the i_pages lock
 		 * without racing with truncate.
 		 */
 		VM_BUG_ON_PAGE(!PageLocked(page), page);

@@ -193,10 +193,9 @@ EXPORT_SYMBOL(end_buffer_write_sync);
  * we get exclusion from try_to_free_buffers with the blockdev mapping's
  * private_lock.
  *
- * Hack idea: for the blockdev mapping, i_bufferlist_lock contention
+ * Hack idea: for the blockdev mapping, private_lock contention
  * may be quite high.  This code could TryLock the page, and if that
- * succeeds, there is no need to take private_lock. (But if
- * private_lock is contended then so is mapping->tree_lock).
+ * succeeds, there is no need to take private_lock.
  */
 static struct buffer_head *
 __find_get_block_slow(struct block_device *bdev, sector_t block)
@@ -1120,7 +1119,7 @@ __getblk_slow(struct block_device *bdev, sector_t block,
  * inode list.
  *
  * mark_buffer_dirty() is atomic.  It takes bh->b_page->mapping->private_lock,
- * mapping->tree_lock and mapping->host->i_lock.
+ * i_pages lock and mapping->host->i_lock.
  */
 void mark_buffer_dirty(struct buffer_head *bh)
 {

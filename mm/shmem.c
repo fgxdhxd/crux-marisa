@@ -669,7 +669,7 @@ static int shmem_free_swap(struct address_space *mapping,
  * Determine (in bytes) how many of the shmem object's pages mapped by the
  * given offsets are swapped out.
  *
- * This is safe to call without i_mutex or mapping->tree_lock thanks to RCU,
+ * This is safe to call without i_mutex or the i_pages lock thanks to RCU,
  * as long as the inode doesn't go away and racy results are not a problem.
  */
 unsigned long shmem_partial_swap_usage(struct address_space *mapping,
@@ -701,7 +701,7 @@ unsigned long shmem_partial_swap_usage(struct address_space *mapping,
  * Determine (in bytes) how many of the shmem object's pages mapped by the
  * given vma is swapped out.
  *
- * This is safe to call without i_mutex or mapping->tree_lock thanks to RCU,
+ * This is safe to call without i_mutex or the i_pages lock thanks to RCU,
  * as long as the inode doesn't go away and racy results are not a problem.
  */
 unsigned long shmem_swap_usage(struct vm_area_struct *vma)
@@ -1115,7 +1115,7 @@ static int shmem_unuse_inode(struct shmem_inode_info *info,
 	int error = 0;
 
 	radswap = swp_to_radix_entry(swap);
-	index = find_swap_entry(&mapping->page_tree, radswap);
+	index = find_swap_entry(&mapping->i_pages, radswap);
 	if (index == -1)
 		return -EAGAIN;	/* tell shmem_unuse we found nothing */
 
@@ -2709,7 +2709,7 @@ static int shmem_wait_for_pins(struct address_space *mapping)
 
 	error = 0;
 	for (scan = 0; scan <= LAST_SCAN; scan++) {
-		if (!radix_tree_tagged(&mapping->page_tree, SHMEM_TAG_PINNED))
+		if (!radix_tree_tagged(&mapping->i_pages, SHMEM_TAG_PINNED))
 			break;
 
 		if (!scan)
@@ -2719,7 +2719,7 @@ static int shmem_wait_for_pins(struct address_space *mapping)
 
 		start = 0;
 		rcu_read_lock();
-		radix_tree_for_each_tagged(slot, &mapping->page_tree, &iter,
+		radix_tree_for_each_tagged(slot, &mapping->i_pages, &iter,
 					   start, SHMEM_TAG_PINNED) {
 
 			page = radix_tree_deref_slot(slot);
@@ -2745,10 +2745,10 @@ static int shmem_wait_for_pins(struct address_space *mapping)
 				error = -EBUSY;
 			}
 
-			spin_lock_irq(&mapping->tree_lock);
-			radix_tree_tag_clear(&mapping->page_tree,
+			xa_lock_irq(&mapping->i_pages);
+			radix_tree_tag_clear(&mapping->i_pages,
 					     iter.index, SHMEM_TAG_PINNED);
-			spin_unlock_irq(&mapping->tree_lock);
+			xa_unlock_irq(&mapping->i_pages);
 continue_resched:
 			if (need_resched()) {
 				slot = radix_tree_iter_resume(slot, &iter);

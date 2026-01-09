@@ -13,6 +13,7 @@
 #include <linux/list_lru.h>
 #include <linux/llist.h>
 #include <linux/radix-tree.h>
+#include <linux/xarray.h>
 #include <linux/rbtree.h>
 #include <linux/init.h>
 #include <linux/pid.h>
@@ -2068,7 +2069,7 @@ static inline void init_sync_kiocb(struct kiocb *kiocb, struct file *filp)
  *
  * I_WB_SWITCH		Cgroup bdi_writeback switching in progress.  Used to
  *			synchronize competing switching instances and to tell
- *			wb stat updates to grab mapping->tree_lock.  See
+ *			wb stat updates to grab the i_pages lock.  See
  *			inode_switch_wb_work_fn() for details.
  *
  * I_OVL_INUSE		Used by overlayfs to get exclusive ownership on upper

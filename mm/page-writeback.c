@@ -2732,7 +2732,7 @@ int test_clear_page_writeback(struct page *page)
 						     PAGECACHE_TAG_WRITEBACK))
 			sb_clear_inode_writeback(mapping->host);
 
-		spin_unlock_irqrestore(&mapping->tree_lock, flags);
+		xa_unlock_irqrestore(&mapping->i_pages, flags);
 	} else {
 		ret = TestClearPageWriteback(page);
 	}

@@ -182,11 +182,9 @@ static int wake_exceptional_entry_func(wait_queue_entry_t *wait,
 }
 
 /*
- * We do not necessarily hold the mapping->tree_lock when we call this
- * function so it is possible that 'entry' is no longer a valid item in the
- * radix tree.  This is okay because all we really need to do is to find the
- * correct waitqueue where tasks might be waiting for that old 'entry' and
- * wake them.
+ * @entry may no longer be the entry at the index in the mapping.
+ * The important information it's conveying is whether the entry at
+ * this index used to be a PMD entry.
  */
 static void dax_wake_entry(struct xa_state *xas, void *entry, bool wake_all)
 {
@@ -197,7 +195,7 @@ static void dax_wake_entry(struct xa_state *xas, void *entry, bool wake_all)
 
 	/*
 	 * Checking for locked entry and prepare_to_wait_exclusive() happens
-	 * under mapping->tree_lock, ditto for entry handling in our callers.
+	 * under the i_pages lock, ditto for entry handling in our callers.
 	 * So at this point all tasks that could have seen our entry locked
 	 * must be in the waitqueue and the following check will see them.
 	 */

@@ -216,7 +216,7 @@ static void unpack_shadow(void *shadow, int *memcgidp, pg_data_t **pgdat,
  * @mapping: address space the page was backing
  * @page: the page being evicted
  *
- * Returns a shadow entry to be stored in @mapping->page_tree in place
+ * Returns a shadow entry to be stored in @mapping->i_pages in place
  * of the evicted @page so that a later refault can be detected.
  */
 void *workingset_eviction(struct address_space *mapping, struct page *page)
@@ -390,7 +390,7 @@ static unsigned long count_shadow_nodes(struct shrinker *shrinker,
 	unsigned long nodes;
 	unsigned long cache;
 
-	/* list_lru lock nests inside IRQ-safe mapping->tree_lock */
+	/* list_lru lock nests inside the IRQ-safe i_pages lock */
 	local_irq_disable();
 	nodes = list_lru_shrink_count(&shadow_nodes, sc);
 	local_irq_enable();
@@ -502,7 +502,7 @@ static unsigned long scan_shadow_nodes(struct shrinker *shrinker,
 {
 	unsigned long ret;
 
-	/* list_lru lock nests inside IRQ-safe mapping->tree_lock */
+	/* list_lru lock nests inside the IRQ-safe i_pages lock */
 	local_irq_disable();
 	ret = list_lru_shrink_walk(&shadow_nodes, sc, shadow_lru_isolate, NULL);
 	local_irq_enable();
@@ -518,7 +518,7 @@ static struct shrinker workingset_shadow_shrinker = {
 
 /*
  * Our list_lru->lock is IRQ-safe as it nests inside the IRQ-safe
- * mapping->tree_lock.
+ * i_pages lock.
  */
 static struct lock_class_key shadow_nodes_key;
 
