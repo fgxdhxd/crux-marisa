@@ -31,22 +31,23 @@ struct idr {
 /* Set the IDR flag and the IDR_FREE tag */
 #define IDR_RT_MARKER		((__force gfp_t)(3 << __GFP_BITS_SHIFT))
 
-#define IDR_INIT_BASE(base) {						\
-	.idr_rt = RADIX_TREE_INIT(IDR_RT_MARKER),			\
+#define IDR_INIT_BASE(name, base) {					\
+	.idr_rt = RADIX_TREE_INIT(name, IDR_RT_MARKER),			\
 	.idr_base = (base),						\
 	.idr_next = 0,							\
 }
 
 /**
  * IDR_INIT() - Initialise an IDR.
+ * @name: Name of IDR.
  *
  * A freshly-initialised IDR contains no IDs.
  */
-#define IDR_INIT	IDR_INIT_BASE(0)
-
+#define IDR_INIT(name)	IDR_INIT_BASE(name, 0)
+ 
 /**
  * DEFINE_IDR() - Define a statically-allocated IDR
- * @name: Name of IDR
+ * @name: Name of IDR.
  *
  * An IDR defined using this macro is ready for use with no additional
  * initialisation required.  It contains no IDs.
