@@ -519,8 +519,8 @@ void truncate_inode_pages_final(struct address_space *mapping)
 		 * modification that does not see AS_EXITING is
 		 * completed before starting the final truncate.
 		 */
-		spin_lock_irq(&mapping->tree_lock);
-		spin_unlock_irq(&mapping->tree_lock);
+		xa_lock_irq(&mapping->i_pages);
+		xa_unlock_irq(&mapping->i_pages);
 	}
 
 	/*
