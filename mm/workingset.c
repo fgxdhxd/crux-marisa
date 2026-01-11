@@ -443,12 +443,12 @@ static enum lru_status shadow_lru_isolate(struct list_head *item,
 
 	/*
 	 * Page cache insertions and deletions synchroneously maintain
-	 * the shadow node LRU under the mapping->tree_lock and the
+	 * the shadow node LRU under the i_pages lock and the
 	 * lru_lock.  Because the page cache tree is emptied before
 	 * the inode can be destroyed, holding the lru_lock pins any
 	 * address_space that has nodes on the LRU.
 	 *
-	 * We can then safely transition to the mapping->tree_lock to
+	 * We can then safely transition to the i_pages lock to
 	 * pin only the address_space of the particular node we want
 	 * to reclaim, take the node off-LRU, and drop the lru_lock.
 	 */
@@ -456,13 +456,15 @@ static enum lru_status shadow_lru_isolate(struct list_head *item,
 	mapping = container_of(node->array, struct address_space, i_pages);
 
 	/* Coming from the list, invert the lock order */
-	if (!spin_trylock(&mapping->tree_lock)) {
-		spin_unlock(lru_lock);
+	if (!xa_trylock(&mapping->i_pages)) {
+		spin_unlock_irq(lru_lock);
 		ret = LRU_RETRY;
 		goto out;
 	}
 
 	list_lru_isolate(lru, item);
+	__dec_lruvec_slab_state(node, WORKINGSET_NODES);
+
 	spin_unlock(lru_lock);
 
 	/*
@@ -484,16 +486,14 @@ static enum lru_status shadow_lru_isolate(struct list_head *item,
 	 * shadow entries we were tracking ...
 	 */
 	xas_store(&xas, NULL);
-	inc_lruvec_page_state(virt_to_page(node), WORKINGSET_NODERECLAIM);
+	__inc_lruvec_slab_state(node, WORKINGSET_NODERECLAIM);
 
 out_invalid:
-	spin_unlock(&mapping->tree_lock);
+	xa_unlock_irq(&mapping->i_pages);
 	ret = LRU_REMOVED_RETRY;
 out:
-	local_irq_enable();
 	cond_resched();
-	local_irq_disable();
-	spin_lock(lru_lock);
+	spin_lock_irq(lru_lock);
 	return ret;
 }
 
