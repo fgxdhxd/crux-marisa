@@ -86,8 +86,8 @@ enum mem_cgroup_events_target {
 	MEM_CGROUP_NTARGETS,
 };
 
-struct mem_cgroup_stat_cpu {
-	long count[MEMCG_NR_STAT];
+struct memcg_vmstats_percpu {
+	long stat[MEMCG_NR_STAT];
 	unsigned long events[NR_VM_EVENT_ITEMS];
 	unsigned long nr_page_events;
 	unsigned long targets[MEM_CGROUP_NTARGETS];
@@ -109,9 +109,12 @@ struct lruvec_stat {
 struct mem_cgroup_per_node {
 	struct lruvec		lruvec;
 
+	/* Legacy local VM stats */
+	struct lruvec_stat __percpu *lruvec_stat_local;
+
+	/* Subtree VM stats (batched updates) */
 	struct lruvec_stat __percpu *lruvec_stat_cpu;
 	atomic_long_t		lruvec_stat[NR_VM_NODE_STAT_ITEMS];
-	atomic_long_t		lruvec_stat_local[NR_VM_NODE_STAT_ITEMS];
 
 	unsigned long		lru_zone_size[MAX_NR_ZONES][NR_LRU_LISTS];
 
@@ -244,17 +247,19 @@ struct mem_cgroup {
 	atomic_t		moving_account;
 	struct task_struct	*move_lock_task;
 
-	/* memory.stat */
-	struct mem_cgroup_stat_cpu __percpu *stat_cpu;
+	/* Legacy local VM stats and events */
+	struct memcg_vmstats_percpu __percpu *vmstats_local;
 
+	/* Subtree VM stats and events (batched updates) */
+	struct memcg_vmstats_percpu __percpu *vmstats_percpu;
+	
 	MEMCG_PADDING(_pad2_);
 
 	atomic_long_t		vmstats[MEMCG_NR_STAT];
-	atomic_long_t		vmstats_local[MEMCG_NR_STAT];
 
 	atomic_long_t		vmevents[NR_VM_EVENT_ITEMS];
-	atomic_long_t		vmevents_local[NR_VM_EVENT_ITEMS];
 
+	/* memory.events */
 	atomic_long_t		memory_events[MEMCG_NR_MEMORY_EVENTS];
 
 	unsigned long		socket_pressure;
@@ -482,8 +487,10 @@ void mem_cgroup_handle_over_high(void);
 
 unsigned long mem_cgroup_get_limit(struct mem_cgroup *memcg);
 
-void mem_cgroup_print_oom_info(struct mem_cgroup *memcg,
+void mem_cgroup_print_oom_context(struct mem_cgroup *memcg,
 				struct task_struct *p);
+
+void mem_cgroup_print_oom_meminfo(struct mem_cgroup *memcg);
 
 static inline void mem_cgroup_enter_user_fault(void)
 {
@@ -533,8 +540,12 @@ static inline unsigned long memcg_page_state(struct mem_cgroup *memcg, int idx)
 static inline unsigned long memcg_page_state_local(struct mem_cgroup *memcg,
 						   int idx)
 {
-	long x = atomic_long_read(&memcg->vmstats_local[idx]);
-#ifdef CONFIG_SMP
+	long x = 0;
+	int cpu;
+
+	for_each_possible_cpu(cpu)
+		x += per_cpu(memcg->vmstats_local->stat[idx], cpu);
+	#ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
 #endif
@@ -607,13 +618,15 @@ static inline unsigned long lruvec_page_state_local(struct lruvec *lruvec,
 						    enum node_stat_item idx)
 {
 	struct mem_cgroup_per_node *pn;
-	long x;
-
+	long x = 0;
+	int cpu;
+	
 	if (mem_cgroup_disabled())
 		return node_page_state(lruvec_pgdat(lruvec), idx);
 
 	pn = container_of(lruvec, struct mem_cgroup_per_node, lruvec);
-	x = atomic_long_read(&pn->lruvec_stat_local[idx]);
+	for_each_possible_cpu(cpu)
+		x += per_cpu(pn->lruvec_stat_local->count[idx], cpu);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -878,7 +891,12 @@ static inline unsigned long mem_cgroup_get_limit(struct mem_cgroup *memcg)
 }
 
 static inline void
-mem_cgroup_print_oom_info(struct mem_cgroup *memcg, struct task_struct *p)
+mem_cgroup_print_oom_context(struct mem_cgroup *memcg, struct task_struct *p)
+{
+}
+
+static inline void
+mem_cgroup_print_oom_meminfo(struct mem_cgroup *memcg)
 {
 }
 
