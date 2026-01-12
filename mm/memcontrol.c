@@ -2117,7 +2117,7 @@ static int memcg_hotplug_cpu_dead(unsigned int cpu)
 
 			x = this_cpu_xchg(memcg->vmstats_percpu->stat[i], 0);
 			if (x)
-				atomic_long_add(x, &memcg->vmstat[i]);
+				atomic_long_add(x, &memcg->vmstats[i]);
 
 			if (i >= NR_VM_NODE_STAT_ITEMS)
 				continue;
@@ -4020,7 +4020,7 @@ struct wb_domain *mem_cgroup_wb_domain(struct bdi_writeback *wb)
  */
 static unsigned long memcg_exact_page_state(struct mem_cgroup *memcg, int idx)
 {
-	long x = atomic_long_read(&memcg->vmstat[idx]);
+	long x = atomic_long_read(&memcg->vmstats[idx]);
 	int cpu;
 
 	for_each_online_cpu(cpu)
