@@ -678,8 +678,6 @@ void __count_memcg_events(struct mem_cgroup *memcg, enum vm_event_item idx,
 	__this_cpu_write(memcg->vmstats_percpu->events[idx], x);
 }
 
-void __mod_lruvec_slab_state(void *p, enum node_stat_item idx, int val)
-
 static unsigned long memcg_events(struct mem_cgroup *memcg, int event)
 {
 	struct page *page = virt_to_head_page(p);
