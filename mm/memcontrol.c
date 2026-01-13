@@ -2117,7 +2117,8 @@ static int memcg_hotplug_cpu_dead(unsigned int cpu)
 
 			x = this_cpu_xchg(memcg->vmstats_percpu->stat[i], 0);
 			if (x)
-				atomic_long_add(x, &memcg->vmstats[i]);
+				for (mi = memcg; mi; mi = parent_mem_cgroup(mi))
+					atomic_long_add(x, &memcg->vmstats[i]);
 
 			if (i >= NR_VM_NODE_STAT_ITEMS)
 				continue;
@@ -2127,7 +2128,7 @@ static int memcg_hotplug_cpu_dead(unsigned int cpu)
 
 				pn = mem_cgroup_nodeinfo(memcg, nid);
 				x = this_cpu_xchg(pn->lruvec_stat_cpu->count[i], 0);
-				if (x) 
+				if (x)
 					do {
 						atomic_long_add(x, &pn->lruvec_stat[i]);
 					} while ((pn = parent_nodeinfo(pn, nid)));
@@ -2139,7 +2140,8 @@ static int memcg_hotplug_cpu_dead(unsigned int cpu)
 
 			x = this_cpu_xchg(memcg->vmstats_percpu->events[i], 0);
 			if (x)
-				atomic_long_add(x, &memcg->vmevents[i]);
+				for (mi = memcg; mi; mi = parent_mem_cgroup(mi))
+					atomic_long_add(x, &memcg->vmevents[i]);
 		}
 	}
 
@@ -2781,21 +2783,11 @@ static DEFINE_MUTEX(memcg_max_mutex);
 static int mem_cgroup_resize_max(struct mem_cgroup *memcg,
 				 unsigned long max, bool memsw)
 {
-	unsigned long curusage;
-	unsigned long oldusage;
 	bool enlarge = false;
-	int retry_count;
+	bool drained = false;
 	int ret;
-
-	/*
-	 * For keeping hierarchical_reclaim simple, how long we should retry
-	 * is depends on callers. We set our retry-count to be function
-	 * of # of children which we should visit in this loop.
-	 */
-	retry_count = MEM_CGROUP_RECLAIM_RETRIES *
-		      mem_cgroup_count_children(memcg);
-
-	oldusage = page_counter_read(&memcg->memory);
+	bool limits_invariant;
+	struct page_counter *counter = memsw ? &memcg->memsw : &memcg->memory;
 
 	do {
 		if (signal_pending(current)) {
@@ -2823,66 +2815,18 @@ static int mem_cgroup_resize_max(struct mem_cgroup *memcg,
 		if (!ret)
 			break;
 
-		try_to_free_mem_cgroup_pages(memcg, 1, GFP_KERNEL, true);
-
-		curusage = page_counter_read(&memcg->memory);
-		/* Usage is reduced ? */
-		if (curusage >= oldusage)
-			retry_count--;
-		else
-			oldusage = curusage;
-	} while (retry_count);
-
-	if (!ret && enlarge)
-		memcg_oom_recover(memcg);
-
-	return ret;
-}
-
-static int mem_cgroup_resize_memsw_limit(struct mem_cgroup *memcg,
-					 unsigned long limit)
-{
-	unsigned long curusage;
-	unsigned long oldusage;
-	bool enlarge = false;
-	int retry_count;
-	int ret;
-
-	/* see mem_cgroup_resize_res_limit */
-	retry_count = MEM_CGROUP_RECLAIM_RETRIES *
-		      mem_cgroup_count_children(memcg);
-
-	oldusage = page_counter_read(&memcg->memsw);
-
-	do {
-		if (signal_pending(current)) {
-			ret = -EINTR;
-			break;
+		if (!drained) {
+			drain_all_stock(memcg);
+			drained = true;
+			continue;
 		}
 
-		mutex_lock(&memcg_limit_mutex);
-		if (limit < memcg->memory.limit) {
-			mutex_unlock(&memcg_limit_mutex);
-			ret = -EINVAL;
+		if (!try_to_free_mem_cgroup_pages(memcg, 1,
+					GFP_KERNEL, !memsw)) {
+			ret = -EBUSY;
 			break;
 		}
-		if (limit > memcg->memsw.limit)
-			enlarge = true;
-		ret = page_counter_limit(&memcg->memsw, limit);
-		mutex_unlock(&memcg_limit_mutex);
-
-		if (!ret)
-			break;
-
-		try_to_free_mem_cgroup_pages(memcg, 1, GFP_KERNEL, false);
-
-		curusage = page_counter_read(&memcg->memsw);
-		/* Usage is reduced ? */
-		if (curusage >= oldusage)
-			retry_count--;
-		else
-			oldusage = curusage;
-	} while (retry_count);
+	} while (true);
 
 	if (!ret && enlarge)
 		memcg_oom_recover(memcg);
@@ -3065,41 +3009,6 @@ static int mem_cgroup_hierarchy_write(struct cgroup_subsys_state *css,
 		retval = -EINVAL;
 
 	return retval;
-}
-
-struct accumulated_vmstats {
-	unsigned long vmstats[MEMCG_NR_STAT];
-	unsigned long vmevents[NR_VM_EVENT_ITEMS];
-	unsigned long lru_pages[NR_LRU_LISTS];
-
-	/* overrides for v1 */
-	const unsigned int *vmstats_array;
-	const unsigned int *vmevents_array;
-
-	int vmstats_size;
-	int vmevents_size;
-};
-
-static void accumulate_vmstats(struct mem_cgroup *memcg,
-			       struct accumulated_vmstats *acc)
-{
-	struct mem_cgroup *mi;
-	int i;
-
-	for_each_mem_cgroup_tree(mi, memcg) {
-		for (i = 0; i < acc->vmstats_size; i++)
-			acc->vmstats[i] += memcg_page_state(mi,
-				acc->vmstats_array ? acc->vmstats_array[i] : i);
-		
-		for (i = 0; i < acc->vmevents_size; i++)
-			acc->vmevents[i] += memcg_sum_events(mi,
-				acc->vmevents_array
-				? acc->vmevents_array[i] : i);
-				
-		for (i = 0; i < NR_LRU_LISTS; i++)
-			acc->lru_pages[i] +=
-				mem_cgroup_nr_lru_pages(mi, BIT(i));
-	}
 }
 
 static unsigned long mem_cgroup_usage(struct mem_cgroup *memcg, bool swap)
@@ -3526,7 +3435,6 @@ static int memcg_stat_show(struct seq_file *m, void *v)
 	unsigned long memory, memsw;
 	struct mem_cgroup *mi;
 	unsigned int i;
-	struct accumulated_vmstats acc;
 
 	BUILD_BUG_ON(ARRAY_SIZE(memcg1_stat_names) != ARRAY_SIZE(memcg1_stats));
 	BUILD_BUG_ON(ARRAY_SIZE(mem_cgroup_lru_names) != NR_LRU_LISTS);
