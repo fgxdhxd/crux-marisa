@@ -290,4 +290,7 @@ static inline bool ida_is_empty(const struct ida *ida)
 {
 	return xa_empty(&ida->xa);
 }
+
+/* in drivers/block/vs_block_client.c */
+int ida_pre_get(struct ida *ida, gfp_t gfp_mask);
 #endif /* __IDR_H__ */
