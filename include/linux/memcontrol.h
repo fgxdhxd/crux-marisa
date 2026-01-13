@@ -401,6 +401,11 @@ static inline unsigned short mem_cgroup_id(struct mem_cgroup *memcg)
 }
 struct mem_cgroup *mem_cgroup_from_id(unsigned short id);
 
+static inline struct mem_cgroup *mem_cgroup_from_seq(struct seq_file *m)
+{
+	return mem_cgroup_from_css(seq_css(m));
+}
+
 static inline struct mem_cgroup *lruvec_memcg(struct lruvec *lruvec)
 {
 	struct mem_cgroup_per_node *mz;
@@ -467,9 +472,6 @@ int mem_cgroup_select_victim_node(struct mem_cgroup *memcg);
 
 void mem_cgroup_update_lru_size(struct lruvec *lruvec, enum lru_list lru,
 		int zid, int nr_pages);
-
-unsigned long mem_cgroup_node_nr_lru_pages(struct mem_cgroup *memcg,
-					   int nid, unsigned int lru_mask);
 
 static inline
 unsigned long mem_cgroup_get_lru_size(struct lruvec *lruvec, enum lru_list lru)
@@ -556,7 +558,7 @@ static inline unsigned long memcg_page_state_local(struct mem_cgroup *memcg,
 
 	for_each_possible_cpu(cpu)
 		x += per_cpu(memcg->vmstats_local->stat[idx], cpu);
-	#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
 #endif
@@ -631,7 +633,7 @@ static inline unsigned long lruvec_page_state_local(struct lruvec *lruvec,
 	struct mem_cgroup_per_node *pn;
 	long x = 0;
 	int cpu;
-	
+
 	if (mem_cgroup_disabled())
 		return node_page_state(lruvec_pgdat(lruvec), idx);
 
@@ -872,6 +874,11 @@ static inline struct mem_cgroup *mem_cgroup_from_id(unsigned short id)
 	return NULL;
 }
 
+static inline struct mem_cgroup *mem_cgroup_from_seq(struct seq_file *m)
+{
+	return NULL;
+}
+
 static inline struct mem_cgroup *lruvec_memcg(struct lruvec *lruvec)
 {
 	return NULL;
@@ -890,13 +897,6 @@ mem_cgroup_get_lru_size(struct lruvec *lruvec, enum lru_list lru)
 static inline
 unsigned long mem_cgroup_get_zone_lru_size(struct lruvec *lruvec,
 		enum lru_list lru, int zone_idx)
-{
-	return 0;
-}
-
-static inline unsigned long
-mem_cgroup_node_nr_lru_pages(struct mem_cgroup *memcg,
-			     int nid, unsigned int lru_mask)
 {
 	return 0;
 }
