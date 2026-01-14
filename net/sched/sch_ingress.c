@@ -62,25 +62,24 @@ static void clsact_chain_head_change(struct tcf_proto *tp_head, void *priv)
 	mini_qdisc_pair_swap(miniqp, tp_head);
 }
 
-static int ingress_init(struct Qdisc *sch, struct nlattr *opt)
+static int ingress_init(struct Qdisc *sch, struct nlattr *opt,
+			struct netlink_ext_ack *extack)
 {
 	struct ingress_sched_data *q = qdisc_priv(sch);
 	struct net_device *dev = qdisc_dev(sch);
-	int err;
+
+	if (sch->parent != TC_H_INGRESS)
+		return -EOPNOTSUPP;
+
+	net_inc_ingress_queue();
 
 	mini_qdisc_pair_init(&q->miniqp, sch, &dev->miniq_ingress);
 
-	q->block_info.binder_type = TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS;
+	q->block_info.binder_type = FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS;
 	q->block_info.chain_head_change = clsact_chain_head_change;
 	q->block_info.chain_head_change_priv = &q->miniqp;
 
-	err = tcf_block_get_ext(&q->block, sch, &q->block_info);
-	if (err)
-		return err;
-
-	sch->flags |= TCQ_F_CPUSTATS;
-
-	return 0;
+	return tcf_block_get_ext(&q->block, sch, &q->block_info, extack);
 }
 
 static void ingress_destroy(struct Qdisc *sch)
@@ -166,40 +165,39 @@ static struct tcf_block *clsact_tcf_block(struct Qdisc *sch, unsigned long cl)
 	}
 }
 
-static int clsact_init(struct Qdisc *sch, struct nlattr *opt)
+static int clsact_init(struct Qdisc *sch, struct nlattr *opt,
+		       struct netlink_ext_ack *extack)
 {
 	struct clsact_sched_data *q = qdisc_priv(sch);
 	struct net_device *dev = qdisc_dev(sch);
 	int err;
 
+	if (sch->parent != TC_H_CLSACT)
+		return -EOPNOTSUPP;
+
+	net_inc_ingress_queue();
+	net_inc_egress_queue();
+
 	mini_qdisc_pair_init(&q->miniqp_ingress, sch, &dev->miniq_ingress);
 
-	q->ingress_block_info.binder_type = TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS;
+	q->ingress_block_info.binder_type = FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS;
 	q->ingress_block_info.chain_head_change = clsact_chain_head_change;
 	q->ingress_block_info.chain_head_change_priv = &q->miniqp_ingress;
 
-	err = tcf_block_get_ext(&q->ingress_block, sch, &q->ingress_block_info);
+	err = tcf_block_get_ext(&q->ingress_block, sch, &q->ingress_block_info,
+				extack);
 	if (err)
 		return err;
 
 	mini_qdisc_pair_init(&q->miniqp_egress, sch, &dev->miniq_egress);
 
-	q->egress_block_info.binder_type = TCF_BLOCK_BINDER_TYPE_CLSACT_EGRESS;
+	q->egress_block_info.binder_type = FLOW_BLOCK_BINDER_TYPE_CLSACT_EGRESS;
 	q->egress_block_info.chain_head_change = clsact_chain_head_change;
 	q->egress_block_info.chain_head_change_priv = &q->miniqp_egress;
 
-	err = tcf_block_get_ext(&q->egress_block, sch, &q->egress_block_info);
-	if (err)
-		return err;
-
-	sch->flags |= TCQ_F_CPUSTATS;
-
-	return 0;
-
-err_egress_block_get:
-	tcf_block_put_ext(q->ingress_block, sch, &q->ingress_block_info);
-	return err;
+	return tcf_block_get_ext(&q->egress_block, sch, &q->egress_block_info, extack);
 }
+
 
 static void clsact_destroy(struct Qdisc *sch)
 {
