@@ -1680,8 +1680,9 @@ struct dm_bufio_client *dm_bufio_client_create(struct block_device *bdev, unsign
 
 	if (block_size <= KMALLOC_MAX_SIZE &&
 	    (block_size < PAGE_SIZE || !is_power_of_2(block_size))) {
-		snprintf(slab_name, sizeof slab_name, "dm_bufio_cache-%u", c->block_size);
-		c->slab_cache = kmem_cache_create(slab_name, c->block_size, ARCH_KMALLOC_MINALIGN,
+		unsigned align = min(1U << __ffs(block_size), (unsigned)PAGE_SIZE);
+		snprintf(slab_name, sizeof slab_name, "dm_bufio_cache-%u", block_size);
+		c->slab_cache = kmem_cache_create(slab_name, block_size, align,
 						  SLAB_RECLAIM_ACCOUNT, NULL);
 		if (!c->slab_cache) {
 			r = -ENOMEM;
@@ -1700,15 +1701,22 @@ struct dm_bufio_client *dm_bufio_client_create(struct block_device *bdev, unsign
 	}
 
 	while (c->need_reserved_buffers) {
-		struct dm_buffer *b = alloc_buffer(c,
-					GFP_KERNEL | __GFP_NORETRY);
+		struct dm_buffer *b = alloc_buffer(c, GFP_KERNEL);
 
 		if (!b) {
 			r = -ENOMEM;
-			goto bad_buffer;
+			goto bad;
 		}
 		__free_buffer_wake(b);
 	}
+
+	c->shrinker.count_objects = dm_bufio_shrink_count;
+	c->shrinker.scan_objects = dm_bufio_shrink_scan;
+	c->shrinker.seeks = 1;
+	c->shrinker.batch = 0;
+	r = register_shrinker(&c->shrinker);
+	if (r)
+		goto bad;
 
 	mutex_lock(&dm_bufio_clients_lock);
 	dm_bufio_client_count++;
@@ -1716,16 +1724,9 @@ struct dm_bufio_client *dm_bufio_client_create(struct block_device *bdev, unsign
 	__cache_size_refresh();
 	mutex_unlock(&dm_bufio_clients_lock);
 
-	c->shrinker.count_objects = dm_bufio_shrink_count;
-	c->shrinker.scan_objects = dm_bufio_shrink_scan;
-	c->shrinker.seeks = 1;
-	c->shrinker.batch = 0;
-	register_shrinker(&c->shrinker);
-
 	return c;
 
-bad_buffer:
-bad_cache:
+bad:
 	while (!list_empty(&c->reserved_buffers)) {
 		struct dm_buffer *b = list_entry(c->reserved_buffers.next,
 						 struct dm_buffer, lru_list);
@@ -1736,6 +1737,7 @@ bad_cache:
 	kmem_cache_destroy(c->slab_buffer);
 	dm_io_client_destroy(c->dm_io);
 bad_dm_io:
+	mutex_destroy(&c->lock);
 	kfree(c);
 bad_client:
 	return ERR_PTR(r);
@@ -1782,6 +1784,7 @@ void dm_bufio_client_destroy(struct dm_bufio_client *c)
 	kmem_cache_destroy(c->slab_cache);
 	kmem_cache_destroy(c->slab_buffer);
 	dm_io_client_destroy(c->dm_io);
+	mutex_destroy(&c->lock);
 	kfree(c);
 }
 EXPORT_SYMBOL_GPL(dm_bufio_client_destroy);

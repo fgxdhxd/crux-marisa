@@ -358,8 +358,6 @@ static void msm_restart_prepare(const char *cmd)
 		}
 	}
 
-	flush_cache_all();
-
 	/*outer_flush_all is not supported by 64bit kernel*/
 #ifndef CONFIG_ARM64
 	outer_flush_all();
