@@ -1315,7 +1315,7 @@ static void __free_pages_boot_core(struct page *page, unsigned int order)
 	__ClearPageReserved(p);
 	set_page_count(p, 0);
 
-	page_zone(page)->managed_pages += nr_pages;
+	atomic_long_add(nr_pages, &page_zone(page)->managed_pages);
 	set_page_refcounted(page);
 	__free_pages(page, order);
 }
@@ -2231,7 +2231,7 @@ static void reserve_highatomic_pageblock(struct page *page, struct zone *zone,
 	 * Limit the number reserved to 1 pageblock or roughly 1% of a zone.
 	 * Check is race-prone but harmless.
 	 */
-	max_managed = (zone->managed_pages / 100) + pageblock_nr_pages;
+	max_managed = (zone_managed_pages(zone) / 100) + pageblock_nr_pages;
 	if (zone->nr_reserved_highatomic >= max_managed)
 		return;
 
@@ -4783,7 +4783,7 @@ static unsigned long nr_free_zone_pages(int offset)
 	struct zonelist *zonelist = node_zonelist(numa_node_id(), GFP_KERNEL);
 
 	for_each_zone_zonelist(zone, z, zonelist, offset) {
-		unsigned long size = zone->managed_pages;
+		unsigned long size = zone_managed_pages(zone);
 		unsigned long high = high_wmark_pages(zone);
 		if (size > high)
 			sum += size - high;
@@ -5468,7 +5468,7 @@ static int zone_batchsize(struct zone *zone)
 	 *
 	 * OK, so we don't know how big the cache is.  So guess.
 	 */
-	batch = zone->managed_pages / 1024;
+	batch = zone_managed_pages(zone) / 1024;
 	if (batch * PAGE_SIZE > 512 * 1024)
 		batch = (512 * 1024) / PAGE_SIZE;
 	batch /= 4;		/* We effectively *= 4 below */
@@ -5578,7 +5578,7 @@ static void pageset_set_high_and_batch(struct zone *zone,
 {
 	if (percpu_pagelist_fraction)
 		pageset_set_high(pcp,
-			(zone->managed_pages /
+			(zone_managed_pages(zone) /
 				percpu_pagelist_fraction));
 	else
 		pageset_set_batch(pcp, zone_batchsize(zone));
@@ -6153,7 +6153,7 @@ static void __meminit pgdat_init_internals(struct pglist_data *pgdat)
 static void __meminit zone_init_internals(struct zone *zone, enum zone_type idx, int nid,
 							unsigned long remaining_pages)
 {
-	zone->managed_pages = remaining_pages;
+	atomic_long_set(&zone->managed_pages, remaining_pages);
 	zone_set_nid(zone, nid);
 	zone->name = zone_names[idx];
 	zone->zone_pgdat = NODE_DATA(nid);
@@ -7072,8 +7072,8 @@ static void calculate_totalreserve_pages(void)
 		for (i = 0; i < MAX_NR_ZONES; i++) {
 			struct zone *zone = pgdat->node_zones + i;
 			long max = 0;
-			unsigned long managed_pages = zone->managed_pages;
-
+			unsigned long managed_pages = zone_managed_pages(zone);
+			
 			/* Find valid and maximum lowmem_reserve in the zone */
 			for (j = i; j < MAX_NR_ZONES; j++) {
 				if (zone->lowmem_reserve[j] > max)
@@ -7108,8 +7108,8 @@ static void setup_per_zone_lowmem_reserve(void)
 	for_each_online_pgdat(pgdat) {
 		for (j = 0; j < MAX_NR_ZONES; j++) {
 			struct zone *zone = pgdat->node_zones + j;
-			unsigned long managed_pages = zone->managed_pages;
-
+			unsigned long managed_pages = zone_managed_pages(zone);
+			
 			zone->lowmem_reserve[j] = 0;
 
 			idx = j;
@@ -7124,7 +7124,7 @@ static void setup_per_zone_lowmem_reserve(void)
 				lower_zone = pgdat->node_zones + idx;
 				lower_zone->lowmem_reserve[j] = managed_pages /
 					sysctl_lowmem_reserve_ratio[idx];
-				managed_pages += lower_zone->managed_pages;
+				managed_pages += zone_managed_pages(lower_zone);
 			}
 		}
 	}
@@ -7136,7 +7136,6 @@ static void setup_per_zone_lowmem_reserve(void)
 static void __setup_per_zone_wmarks(void)
 {
 	unsigned long pages_min = min_free_kbytes >> (PAGE_SHIFT - 10);
-	unsigned long pages_low = extra_free_kbytes >> (PAGE_SHIFT - 10);
 	unsigned long lowmem_pages = 0;
 	struct zone *zone;
 	unsigned long flags;
@@ -7144,18 +7143,15 @@ static void __setup_per_zone_wmarks(void)
 	/* Calculate total number of !ZONE_HIGHMEM pages */
 	for_each_zone(zone) {
 		if (!is_highmem(zone))
-			lowmem_pages += zone->managed_pages;
+			lowmem_pages += zone_managed_pages(zone);
 	}
 
 	for_each_zone(zone) {
-		u64 min, low;
+		u64 tmp;
 
 		spin_lock_irqsave(&zone->lock, flags);
-		min = (u64)pages_min * zone->managed_pages;
-		do_div(min, lowmem_pages);
-		low = (u64)pages_low * zone->managed_pages;
-		do_div(low, vm_total_pages);
-
+		tmp = (u64)pages_min * zone_managed_pages(zone);
+		do_div(tmp, lowmem_pages);
 		if (is_highmem(zone)) {
 			/*
 			 * __GFP_HIGH and PF_MEMALLOC allocations usually don't
@@ -7168,7 +7164,7 @@ static void __setup_per_zone_wmarks(void)
 			 */
 			unsigned long min_pages;
 
-			min_pages = zone->managed_pages / 1024;
+			min_pages = zone_managed_pages(zone) / 1024;
 			min_pages = clamp(min_pages, SWAP_CLUSTER_MAX, 128UL);
 			zone->watermark[WMARK_MIN] = min_pages;
 		} else {
@@ -7176,7 +7172,7 @@ static void __setup_per_zone_wmarks(void)
 			 * If it's a lowmem zone, reserve a number of pages
 			 * proportionate to the zone's size.
 			 */
-			zone->watermark[WMARK_MIN] = min;
+			zone->watermark[WMARK_MIN] = tmp;
 		}
 
 		/*
@@ -7184,14 +7180,13 @@ static void __setup_per_zone_wmarks(void)
 		 * scale factor in proportion to available memory, but
 		 * ensure a minimum size on small systems.
 		 */
-		min = max_t(u64, min >> 2,
+		tmp = max_t(u64, min >> 2,
 			    mult_frac(zone->managed_pages,
 				      watermark_scale_factor, 10000));
 
-		zone->watermark[WMARK_LOW]  = min_wmark_pages(zone) +
-					low + min;
-		zone->watermark[WMARK_HIGH] = min_wmark_pages(zone) +
-					low + min * 2;
+		zone->_watermark[WMARK_LOW]  = min_wmark_pages(zone) + tmp;
+		zone->_watermark[WMARK_HIGH] = min_wmark_pages(zone) + tmp * 2;
+		zone->watermark_boost = 0;
 
 		spin_unlock_irqrestore(&zone->lock, flags);
 	}
@@ -7319,8 +7314,8 @@ static void setup_min_unmapped_ratio(void)
 		pgdat->min_unmapped_pages = 0;
 
 	for_each_zone(zone)
-		zone->zone_pgdat->min_unmapped_pages += (zone->managed_pages *
-				sysctl_min_unmapped_ratio) / 100;
+		zone->zone_pgdat->min_unmapped_pages += (zone_managed_pages(zone) *
+						         sysctl_min_unmapped_ratio) / 100;
 }
 
 
@@ -7347,8 +7342,8 @@ static void setup_min_slab_ratio(void)
 		pgdat->min_slab_pages = 0;
 
 	for_each_zone(zone)
-		zone->zone_pgdat->min_slab_pages += (zone->managed_pages *
-				sysctl_min_slab_ratio) / 100;
+		zone->zone_pgdat->min_slab_pages += (zone_managed_pages(zone) *
+						     sysctl_min_slab_ratio) / 100;
 }
 
 int sysctl_min_slab_ratio_sysctl_handler(struct ctl_table *table, int write,
