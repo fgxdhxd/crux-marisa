@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2017-2018 HUAWEI, Inc.
- *             https://www.huawei.com/
+ *             http://www.huawei.com/
+ * Created by Gao Xiang <gaoxiang25@huawei.com>
  */
 #include "internal.h"
 #include <linux/prefetch.h>
@@ -10,11 +11,11 @@
 
 static void erofs_readendio(struct bio *bio)
 {
-	int i;
 	struct bio_vec *bvec;
-	const blk_status_t err = bio->bi_status;
+	blk_status_t err = bio->bi_status;
+	struct bvec_iter_all iter_all;
 
-	bio_for_each_segment_all(bvec, bio, i) {
+	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
 
 		/* page is already locked */
@@ -108,6 +109,21 @@ err_out:
 	return err;
 }
 
+int erofs_map_blocks(struct inode *inode,
+		     struct erofs_map_blocks *map, int flags)
+{
+	if (erofs_inode_is_data_compressed(EROFS_I(inode)->datalayout)) {
+		int err = z_erofs_map_blocks_iter(inode, map, flags);
+
+		if (map->mpage) {
+			put_page(map->mpage);
+			map->mpage = NULL;
+		}
+		return err;
+	}
+	return erofs_map_blocks_flatmode(inode, map, flags);
+}
+
 static inline struct bio *erofs_read_raw_page(struct bio *bio,
 					      struct address_space *mapping,
 					      struct page *page,
@@ -143,7 +159,7 @@ submit_bio_retry:
 		erofs_blk_t blknr;
 		unsigned int blkoff;
 
-		err = erofs_map_blocks_flatmode(inode, &map, EROFS_GET_BLOCKS_RAW);
+		err = erofs_map_blocks(inode, &map, EROFS_GET_BLOCKS_RAW);
 		if (err)
 			goto err_out;
 
@@ -208,7 +224,7 @@ submit_bio_retry:
 		bio_set_dev(bio, sb->s_bdev);
 		bio->bi_iter.bi_sector = (sector_t)blknr <<
 			LOG_SECTORS_PER_BLOCK;
-		bio->bi_opf = REQ_OP_READ | (ra ? REQ_RAHEAD : 0);
+		bio->bi_opf = REQ_OP_READ;
 	}
 
 	err = bio_add_page(bio, page, PAGE_SIZE, 0);
@@ -321,7 +337,7 @@ static sector_t erofs_bmap(struct address_space *mapping, sector_t block)
 			return 0;
 	}
 
-	if (!erofs_map_blocks_flatmode(inode, &map, EROFS_GET_BLOCKS_RAW))
+	if (!erofs_map_blocks(inode, &map, EROFS_GET_BLOCKS_RAW))
 		return erofs_blknr(map.m_pa);
 
 	return 0;
@@ -333,3 +349,4 @@ const struct address_space_operations erofs_raw_access_aops = {
 	.readpages = erofs_raw_access_readpages,
 	.bmap = erofs_bmap,
 };
+

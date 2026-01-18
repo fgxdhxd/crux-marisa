@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2017-2018 HUAWEI, Inc.
- *             https://www.huawei.com/
+ *             http://www.huawei.com/
+ * Created by Gao Xiang <gaoxiang25@huawei.com>
  */
 #include "xattr.h"
 
@@ -187,11 +188,12 @@ int erofs_namei(struct inode *dir,
 		return PTR_ERR(page);
 
 	data = kmap_atomic(page);
+	/* the target page has been mapped */
 	if (ndirents)
 		de = find_target_dirent(&qn, data, EROFS_BLKSIZ, ndirents);
 	else
-		de = (struct erofs_dirent *)dta;
-a
+		de = (struct erofs_dirent *)data;
+
 	if (!IS_ERR(de)) {
 		*nid = le64_to_cpu(de->nid);
 		*d_type = de->file_type;
@@ -203,7 +205,9 @@ a
 	return PTR_ERR_OR_ZERO(de);
 }
 
-static struct dentry *erofs_lookup(struct inode *dir, struct dentry *dentry,
+/* NOTE: i_mutex is already held by vfs */
+static struct dentry *erofs_lookup(struct inode *dir,
+				   struct dentry *dentry,
 				   unsigned int flags)
 {
 	int err;
@@ -211,11 +215,17 @@ static struct dentry *erofs_lookup(struct inode *dir, struct dentry *dentry,
 	unsigned int d_type;
 	struct inode *inode;
 
+	DBG_BUGON(!d_really_is_negative(dentry));
+	/* dentry must be unhashed in lookup, no need to worry about */
+	DBG_BUGON(!d_unhashed(dentry));
+
 	trace_erofs_lookup(dir, dentry, flags);
 
+	/* file name exceeds fs limit */
 	if (dentry->d_name.len > EROFS_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
+	/* false uninitialized warnings on gcc 4.8.x */
 	err = erofs_namei(dir, &dentry->d_name, &nid, &d_type);
 
 	if (err == -ENOENT) {
@@ -226,7 +236,7 @@ static struct dentry *erofs_lookup(struct inode *dir, struct dentry *dentry,
 	} else {
 		erofs_dbg("%s, %s (nid %llu) found, d_type %u", __func__,
 			  dentry->d_name.name, nid, d_type);
-		inode = erofs_iget(dir->i_sb, nid, d_type == EROFS_FT_DIR);
+		inode = erofs_iget(dir->i_sb, nid, d_type == FT_DIR);
 	}
 	return d_splice_alias(inode, dentry);
 }
@@ -234,6 +244,9 @@ static struct dentry *erofs_lookup(struct inode *dir, struct dentry *dentry,
 const struct inode_operations erofs_dir_iops = {
 	.lookup = erofs_lookup,
 	.getattr = erofs_getattr,
+#ifdef CONFIG_EROFS_FS_XATTR
 	.listxattr = erofs_listxattr,
+#endif
 	.get_acl = erofs_get_acl,
 };
+
