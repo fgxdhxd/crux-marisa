@@ -915,10 +915,13 @@ static void bio_get_pages(struct bio *bio)
 		get_page(bvec->bv_page);
 }
 
-static void bio_release_pages(struct bio *bio)
+void bio_release_pages(struct bio *bio)
 {
 	struct bvec_iter_all iter_all;
 	struct bio_vec *bvec;
+
+	if (bio_flagged(bio, BIO_NO_PAGE_REF))
+		return;
 
 	bio_for_each_segment_all(bvec, bio, iter_all)
 		put_page(bvec->bv_page);
@@ -1695,12 +1698,6 @@ void bio_set_pages_dirty(struct bio *bio)
 		if (!PageCompound(bvec->bv_page))
 			set_page_dirty_lock(bvec->bv_page);
 	}
-}
-
-static void bio_release_pages(struct bio *bio)
-{
-	bio_for_each_segment_all(bvec, bio, i)
-		put_page(bvec->bv_page);
 }
 
 /*
