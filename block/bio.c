@@ -1017,28 +1017,31 @@ static int __bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
 }
 
 /**
- * bio_iov_iter_get_pages - pin user or kernel pages and add them to a bio
+ * bio_iov_iter_get_pages - add user or kernel pages to a bio
  * @bio: bio to add pages to
- * @iter: iov iterator describing the region to be mapped
+ * @iter: iov iterator describing the region to be added
  *
- * Pins pages from *iter and appends them to @bio's bvec array. The
- * pages will have to be released using put_page() when done.
+ * This takes either an iterator pointing to user memory, or one pointing to
+ * kernel pages (BVEC iterator). If we're adding user pages, we pin them and
+ * map them into the kernel. On IO completion, the caller should put those
+ * pages. For now, when adding kernel pages, we still grab a reference to the
+ * page. This isn't strictly needed for the common case, but some call paths
+ * end up releasing pages from eg a pipe and we can't easily control these.
+ * See comment in __bio_iov_bvec_add_pages().
+ *
  * The function tries, but does not guarantee, to pin as many pages as
- * fit into the bio, or are requested in *iter, whatever is smaller.
- * If MM encounters an error pinning the requested pages, it stops.
- * Error is returned only if 0 pages could be pinned.
+ * fit into the bio, or are requested in *iter, whatever is smaller. If
+ * MM encounters an error pinning the requested pages, it stops. Error
+ * is returned only if 0 pages could be pinned.
  */
 int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
 {
-	unsigned short orig_vcnt = bio->bi_vcnt;
+	const bool is_bvec = iov_iter_is_bvec(iter);
+	int ret;
 
-	/*
-	 * If this is a BVEC iter, then the pages are kernel pages. Don't
-	 * release them on IO completion, if the caller asked us to.
-	 */
-	if (is_bvec && iov_iter_bvec_no_ref(iter))
-		bio_set_flag(bio, BIO_NO_PAGE_REF);
-
+	if (WARN_ON_ONCE(bio->bi_vcnt))
+		return -EINVAL;
+	
 	do {
 		if (is_bvec)
 			ret = __bio_iov_bvec_add_pages(bio, iter);
@@ -1051,7 +1054,12 @@ int bio_iov_iter_get_pages(struct bio *bio, struct iov_iter *iter)
 
 	} while (iov_iter_count(iter) && !bio_full(bio));
 
-	return 0;
+	if (iov_iter_bvec_no_ref(iter))
+		bio_set_flag(bio, BIO_NO_PAGE_REF);
+	else
+		bio_get_pages(bio);
+
+	return bio->bi_vcnt ? 0 : ret;
 }
 EXPORT_SYMBOL_GPL(bio_iov_iter_get_pages);
 
