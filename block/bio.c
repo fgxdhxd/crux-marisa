@@ -765,7 +765,7 @@ static bool bio_try_merge_pc_page(struct request_queue *q, struct bio *bio,
  *	@page: page to add
  *	@len: vec entry length
  *	@offset: vec entry offset
- *	@put_same_page: put the page if it is same with last added page
+ *	@same_page: return if the merge happen inside the same page
  *
  *	Attempt to add a page to the bio_vec maplist. This can fail for a
  *	number of reasons, such as the bio being full or target block device
@@ -774,12 +774,11 @@ static bool bio_try_merge_pc_page(struct request_queue *q, struct bio *bio,
  *
  *	This should only be used by passthrough bios.
  */
-int __bio_add_pc_page(struct request_queue *q, struct bio *bio,
+static int __bio_add_pc_page(struct request_queue *q, struct bio *bio,
 		struct page *page, unsigned int len, unsigned int offset,
-		bool put_same_page)
+		bool *same_page)
 {
 	struct bio_vec *bvec;
-	bool same_page = false;
 
 	/*
 	 * cloned bio must not modify vec list
@@ -796,26 +795,16 @@ int __bio_add_pc_page(struct request_queue *q, struct bio *bio,
 	 * a consecutive offset.  Optimize this special case.
 	 */
 	if (bio->bi_vcnt > 0) {
-		if (bio_try_merge_pc_page(q, bio, page, len, offset,
-				&same_page)) {
-			if (put_same_page && same_page)
-				put_page(page);
-			return len;
-			}
+		if (bio_try_merge_pc_page(q, bio, page, len, offset, same_page))
+		return len;
 
 		/*
-		 * If the queue doesn't support SG gaps and adding this
-		 * offset would create a gap, disallow it.
+		 * If the queue doesn't support SG gaps and adding this segment
+		 * would create a gap, disallow it.
 		 */
 		bvec = &bio->bi_io_vec[bio->bi_vcnt - 1];
-		if (bvec_gap_to_prev(q, prev, offset))
+		if (bvec_gap_to_prev(q, bvec, offset))
 			return 0;
-
-		if (page_is_mergeable(bvec, page, len, offset, &same_page) &&
-		    can_add_page_to_seg(q, bvec, page, len, offset)) {
-			bvec->bv_len += len;
-			goto done;
-		}
 	}
 
 	if (bio_full(bio))
@@ -839,12 +828,12 @@ int __bio_add_pc_page(struct request_queue *q, struct bio *bio,
 	bio_set_flag(bio, BIO_SEG_VALID);
 	return len;
 }
-EXPORT_SYMBOL(__bio_add_pc_page);
 
 int bio_add_pc_page(struct request_queue *q, struct bio *bio,
 		struct page *page, unsigned int len, unsigned int offset)
 {
-	return __bio_add_pc_page(q, bio, page, len, offset, false);
+	bool same_page = false;
+	return __bio_add_pc_page(q, bio, page, len, offset, &same_page);
 }
 EXPORT_SYMBOL(bio_add_pc_page);
 
@@ -1471,13 +1460,17 @@ struct bio *bio_map_user_iov(struct request_queue *q,
 			for (j = 0; j < npages; j++) {
 				struct page *page = pages[j];
 				unsigned int n = PAGE_SIZE - offs;
+				bool same_page = false;
 
 				if (n > bytes)
 					n = bytes;
 
 				if (!__bio_add_pc_page(q, bio, page, n, offs,
-							true))
+						&same_page)) {
+					if (same_page)
+						put_page(page);
 					break;
+				}
 
 				added += n;
 				bytes -= n;

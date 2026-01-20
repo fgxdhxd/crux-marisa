@@ -8,9 +8,6 @@
 
 #include <trace/events/erofs.h>
 
-//wjy1214
-#include <linux/overflow.h>
-
 /*
  * if inode is successfully read, return its inode page (or sometimes
  * the inode payload page if it's an extended inode) in order to fill
