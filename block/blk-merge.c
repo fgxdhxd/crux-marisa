@@ -12,25 +12,6 @@
 
 #include "blk.h"
 
-/*
- * Check if the two bvecs from two bios can be merged to one segment.  If yes,
- * no need to check gap between the two bios since the 1st bio and the 1st bvec
- * in the 2nd bio can be handled in one segment.
- */
-static inline bool bios_segs_mergeable(struct request_queue *q,
-		struct bio *prev, struct bio_vec *prev_last_bv,
-		struct bio_vec *next_first_bv)
-{
-	if (!biovec_phys_mergeable(prev_last_bv, next_first_bv))
-		return false;
-	if (!BIOVEC_SEG_BOUNDARY(q, prev_last_bv, next_first_bv))
-		return false;
-	if (prev->bi_seg_back_size + next_first_bv->bv_len >
-			queue_max_segment_size(q))
-		return false;
-	return true;
-}
-
 static inline bool bio_will_gap(struct request_queue *q,
 		struct request *prev_rq, struct bio *prev, struct bio *next)
 {
@@ -62,7 +43,7 @@ static inline bool bio_will_gap(struct request_queue *q,
 	 */
 	bio_get_last_bvec(prev, &pb);
 	bio_get_first_bvec(next, &nb);
-	if (bios_segs_mergeable(q, prev, &pb, &nb))
+	if (biovec_phys_mergeable(q, &pb, &nb))
 		return false;
 	return __bvec_gap_to_prev(q, &pb, nb.bv_offset);
 }
@@ -201,9 +182,7 @@ static struct bio *blk_bio_segment_split(struct request_queue *q,
 		if (bvprvp && blk_queue_cluster(q)) {
 			if (seg_size + bv.bv_len > queue_max_segment_size(q))
 				goto new_segment;
-			if (!biovec_phys_mergeable(bvprvp, &bv))
-				goto new_segment;
-			if (!BIOVEC_SEG_BOUNDARY(q, bvprvp, &bv))
+			if (!biovec_phys_mergeable(q, bvprvp, &bv))
 				goto new_segment;
 
 			seg_size += bv.bv_len;
@@ -333,9 +312,7 @@ static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
 				if (seg_size + bv.bv_len
 				    > queue_max_segment_size(q))
 					goto new_segment;
-				if (!biovec_phys_mergeable(&bvprv, &bv))
-					goto new_segment;
-				if (!BIOVEC_SEG_BOUNDARY(q, &bvprv, &bv))
+				if (!biovec_phys_mergeable(q, &bvprv, &bv))
 					goto new_segment;
 
 				seg_size += bv.bv_len;
@@ -409,17 +386,7 @@ static int blk_phys_contig_segment(struct request_queue *q, struct bio *bio,
 	bio_get_last_bvec(bio, &end_bv);
 	bio_get_first_bvec(nxt, &nxt_bv);
 
-	if (!biovec_phys_mergeable(&end_bv, &nxt_bv))
-		return 0;
-
-	/*
-	 * bio and nxt are contiguous in memory; check if the queue allows
-	 * these two to be merged into one
-	 */
-	if (BIOVEC_SEG_BOUNDARY(q, &end_bv, &nxt_bv))
-		return 1;
-
-	return 0;
+	return biovec_phys_mergeable(q, &end_bv, &nxt_bv);
 }
 
 static inline void
@@ -433,10 +400,7 @@ __blk_segment_map_sg(struct request_queue *q, struct bio_vec *bvec,
 	if (*sg && *cluster) {
 		if ((*sg)->length + nbytes > queue_max_segment_size(q))
 			goto new_segment;
-
-		if (!biovec_phys_mergeable(bvprv, bvec))
-			goto new_segment;
-		if (!BIOVEC_SEG_BOUNDARY(q, bvprv, bvec))
+		if (!biovec_phys_mergeable(q, bvprv, bvec))
 			goto new_segment;
 
 		(*sg)->length += nbytes;

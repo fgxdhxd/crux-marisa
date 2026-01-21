@@ -154,11 +154,6 @@ static inline bool bio_next_segment(const struct bio *bio,
 }
 
 /*
- * will die
- */
-#define bvec_to_phys(bv)	(page_to_phys((bv)->bv_page) + (unsigned long) (bv)->bv_offset)
-
-/*
  * queues that have highmem support enabled may still need to revert to
  * PIO transfers occasionally and thus map high pages temporarily. For
  * permanent PIO fall back, user is probably better off disabling highmem
@@ -169,14 +164,6 @@ static inline bool bio_next_segment(const struct bio *bio,
 		bio_iter_iovec((bio), (iter)).bv_offset)
 
 #define __bio_kunmap_atomic(addr)	kunmap_atomic(addr)
-
-/*
- * merge helpers etc
- */
-#define __BIO_SEG_BOUNDARY(addr1, addr2, mask) \
-	(((addr1) | (mask)) == (((addr2) - 1) | (mask)))
-#define BIOVEC_SEG_BOUNDARY(q, b1, b2) \
-	__BIO_SEG_BOUNDARY(bvec_to_phys((b1)), bvec_to_phys((b2)) + (b2)->bv_len, queue_segment_boundary((q)))
 
 /*
  * drivers should _never_ use the all version - the bio may have been split
