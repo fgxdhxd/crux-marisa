@@ -907,11 +907,17 @@ struct request_queue *blk_alloc_queue(gfp_t gfp_mask)
 }
 EXPORT_SYMBOL(blk_alloc_queue);
 
-int blk_queue_enter(struct request_queue *q, unsigned int op)
+/**
+ * blk_queue_enter() - try to increase q->q_usage_counter
+ * @q: request queue pointer
+ * @flags: BLK_MQ_REQ_NOWAIT and/or BLK_MQ_REQ_PREEMPT
+ */
+int blk_queue_enter(struct request_queue *q, unsigned int flags)
 {
 	const bool pm = flags & BLK_MQ_REQ_PREEMPT;
 
 	while (true) {
+		bool success = false;
 
 		rcu_read_lock();
 		if (percpu_ref_tryget_live(&q->q_usage_counter)) {
@@ -924,9 +930,10 @@ int blk_queue_enter(struct request_queue *q, unsigned int op)
 				success = true;
 			} else {
 				percpu_ref_put(&q->q_usage_counter);
+			}
 		}
-		rcu_read_unlock_sched();
-
+		rcu_read_unlock();
+		
 		if (op & REQ_NOWAIT)
 			return -EBUSY;
 
