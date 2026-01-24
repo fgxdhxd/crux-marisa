@@ -1,23 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * bio-integrity.c - bio data integrity extensions
  *
  * Copyright (C) 2007, 2008, 2009 Oracle Corporation
  * Written by: Martin K. Petersen <martin.petersen@oracle.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version
- * 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; see the file COPYING.  If not, write to
- * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139,
- * USA.
- *
  */
 
 #include <linux/blkdev.h>
@@ -36,6 +22,18 @@ static struct workqueue_struct *kintegrityd_wq;
 void blk_flush_integrity(void)
 {
 	flush_workqueue(kintegrityd_wq);
+}
+
+void __bio_integrity_free(struct bio_set *bs, struct bio_integrity_payload *bip)
+{
+	if (bs && mempool_initialized(&bs->bio_integrity_pool)) {
+		if (bip->bip_vec)
+			bvec_free(&bs->bvec_integrity_pool, bip->bip_vec,
+				  bip->bip_slab);
+		mempool_free(bip, &bs->bio_integrity_pool);
+	} else {
+		kfree(bip);
+	}
 }
 
 /**
@@ -57,8 +55,7 @@ struct bio_integrity_payload *bio_integrity_alloc(struct bio *bio,
 	unsigned inline_vecs;
 
 	if (!bs || !mempool_initialized(&bs->bio_integrity_pool)) {
-		bip = kmalloc(sizeof(struct bio_integrity_payload) +
-			      sizeof(struct bio_vec) * nr_vecs, gfp_mask);
+		bip = kmalloc(struct_size(bip, bip_inline_vecs, nr_vecs), gfp_mask);
 		inline_vecs = nr_vecs;
 	} else {
 		bip = mempool_alloc(&bs->bio_integrity_pool, gfp_mask);
@@ -90,7 +87,7 @@ struct bio_integrity_payload *bio_integrity_alloc(struct bio *bio,
 
 	return bip;
 err:
-	mempool_free(bip, &bs->bio_integrity_pool);
+	__bio_integrity_free(bs, bip);
 	return ERR_PTR(-ENOMEM);
 }
 EXPORT_SYMBOL(bio_integrity_alloc);
@@ -102,7 +99,7 @@ EXPORT_SYMBOL(bio_integrity_alloc);
  * Description: Used to free the integrity portion of a bio. Usually
  * called from bio_free().
  */
-static void bio_integrity_free(struct bio *bio)
+void bio_integrity_free(struct bio *bio)
 {
 	struct bio_integrity_payload *bip = bio_integrity(bio);
 	struct bio_set *bs = bio->bi_pool;
@@ -111,14 +108,7 @@ static void bio_integrity_free(struct bio *bio)
 		kfree(page_address(bip->bip_vec->bv_page) +
 		      bip->bip_vec->bv_offset);
 
-	if (bs && mempool_initialized(&bs->bio_integrity_pool)) {
-		bvec_free(&bs->bvec_integrity_pool, bip->bip_vec, bip->bip_slab);
-
-		mempool_free(bip, &bs->bio_integrity_pool);
-	} else {
-		kfree(bip);
-	}
-
+	__bio_integrity_free(bs, bip);
 	bio->bi_integrity = NULL;
 	bio->bi_opf &= ~REQ_INTEGRITY;
 }
@@ -158,28 +148,6 @@ int bio_integrity_add_page(struct bio *bio, struct page *page,
 	return len;
 }
 EXPORT_SYMBOL(bio_integrity_add_page);
-
-/**
- * bio_integrity_intervals - Return number of integrity intervals for a bio
- * @bi:		blk_integrity profile for device
- * @sectors:	Size of the bio in 512-byte sectors
- *
- * Description: The block layer calculates everything in 512 byte
- * sectors but integrity metadata is done in terms of the data integrity
- * interval size of the storage device.  Convert the block layer sectors
- * to the appropriate number of integrity intervals.
- */
-static inline unsigned int bio_integrity_intervals(struct blk_integrity *bi,
-						   unsigned int sectors)
-{
-	return sectors >> (bi->interval_exp - 9);
-}
-
-static inline unsigned int bio_integrity_bytes(struct blk_integrity *bi,
-					       unsigned int sectors)
-{
-	return bio_integrity_intervals(bi, sectors) * bi->tuple_size;
-}
 
 /**
  * bio_integrity_process - Process integrity metadata for a bio
@@ -244,6 +212,7 @@ bool bio_integrity_prep(struct bio *bio)
 	unsigned int bytes, offset, i;
 	unsigned int intervals;
 	blk_status_t status;
+	gfp_t gfp = GFP_NOIO;
 
 	if (!bi)
 		return true;
@@ -266,12 +235,20 @@ bool bio_integrity_prep(struct bio *bio)
 		if (!bi->profile->generate_fn ||
 		    !(bi->flags & BLK_INTEGRITY_GENERATE))
 			return true;
+
+		/*
+		 * Zero the memory allocated to not leak uninitialized kernel
+		 * memory to disk.  For PI this only affects the app tag, but
+		 * for non-integrity metadata it affects the entire metadata
+		 * buffer.
+		 */
+		gfp |= __GFP_ZERO;
 	}
 	intervals = bio_integrity_intervals(bi, bio_sectors(bio));
 
 	/* Allocate kernel buffer for protection data */
 	len = intervals * bi->tuple_size;
-	buf = kmalloc(len, GFP_NOIO | q->bounce_gfp);
+	buf = kmalloc(len, gfp | q->bounce_gfp);
 	status = BLK_STS_RESOURCE;
 	if (unlikely(buf == NULL)) {
 		printk(KERN_ERR "could not allocate integrity buffer\n");
@@ -331,6 +308,8 @@ bool bio_integrity_prep(struct bio *bio)
 	if (bio_data_dir(bio) == WRITE) {
 		bio_integrity_process(bio, &bio->bi_iter,
 				      bi->profile->generate_fn);
+	} else {
+		bip->bio_iter = bio->bi_iter;
 	}
 	return true;
 
@@ -356,20 +335,14 @@ static void bio_integrity_verify_fn(struct work_struct *work)
 		container_of(work, struct bio_integrity_payload, bip_work);
 	struct bio *bio = bip->bip_bio;
 	struct blk_integrity *bi = blk_get_integrity(bio->bi_disk);
-	struct bvec_iter iter = bio->bi_iter;
 
 	/*
 	 * At the moment verify is called bio's iterator was advanced
 	 * during split and completion, we need to rewind iterator to
 	 * it's original position.
 	 */
-	if (bio_rewind_iter(bio, &iter, iter.bi_done)) {
-		bio->bi_status = bio_integrity_process(bio, &iter,
-						       bi->profile->verify_fn);
-	} else {
-		bio->bi_status = BLK_STS_IOERR;
-	}
-
+	bio->bi_status = bio_integrity_process(bio, &bip->bio_iter,
+						bi->profile->verify_fn);
 	bio_integrity_free(bio);
 	bio_endio(bio);
 }
@@ -377,7 +350,6 @@ static void bio_integrity_verify_fn(struct work_struct *work)
 /**
  * __bio_integrity_endio - Integrity I/O completion function
  * @bio:	Protected bio
- * @error:	Pointer to errno
  *
  * Description: Completion for integrity I/O
  *
@@ -420,7 +392,6 @@ void bio_integrity_advance(struct bio *bio, unsigned int bytes_done)
 	bip->bip_iter.bi_sector += bio_integrity_intervals(bi, bytes_done >> 9);
 	bvec_iter_advance(bip->bip_vec, &bip->bip_iter, bytes);
 }
-EXPORT_SYMBOL(bio_integrity_advance);
 
 /**
  * bio_integrity_trim - Trim integrity vector
@@ -491,7 +462,6 @@ void bioset_integrity_free(struct bio_set *bs)
 	mempool_exit(&bs->bio_integrity_pool);
 	mempool_exit(&bs->bvec_integrity_pool);
 }
-EXPORT_SYMBOL(bioset_integrity_free);
 
 void __init bio_integrity_init(void)
 {
