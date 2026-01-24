@@ -31,9 +31,10 @@ struct elevator_mq_ops {
 	void (*exit_sched)(struct elevator_queue *);
 	int (*init_hctx)(struct blk_mq_hw_ctx *, unsigned int);
 	void (*exit_hctx)(struct blk_mq_hw_ctx *, unsigned int);
+	void (*depth_updated)(struct blk_mq_hw_ctx *);
 
 	bool (*allow_merge)(struct request_queue *, struct request *, struct bio *);
-	bool (*bio_merge)(struct blk_mq_hw_ctx *, struct bio *);
+	bool (*bio_merge)(struct request_queue *, struct bio *, unsigned int);
 	int (*request_merge)(struct request_queue *q, struct request **, struct bio *);
 	void (*request_merged)(struct request_queue *, struct request *, enum elv_merge);
 	void (*requests_merged)(struct request_queue *, struct request *, struct request *);
@@ -43,7 +44,7 @@ struct elevator_mq_ops {
 	void (*insert_requests)(struct blk_mq_hw_ctx *, struct list_head *, bool);
 	struct request *(*dispatch_request)(struct blk_mq_hw_ctx *);
 	bool (*has_work)(struct blk_mq_hw_ctx *);
-	void (*completed_request)(struct request *);
+	void (*completed_request)(struct request *, u64);
 	void (*requeue_request)(struct request *);
 	struct request *(*former_request)(struct request_queue *, struct request *);
 	struct request *(*next_request)(struct request_queue *, struct request *);
@@ -68,14 +69,14 @@ struct elevator_type
 	struct kmem_cache *icq_cache;
 
 	/* fields provided by elevator implementation */
-	union {
-		struct elevator_mq_ops mq;
-	} ops;
+	struct elevator_mq_ops ops;
 
 	size_t icq_size;	/* see iocontext.h */
 	size_t icq_align;	/* ditto */
 	struct elv_fs_entry *elevator_attrs;
-	char elevator_name[ELV_NAME_MAX];
+	const char *elevator_name;
+	const char *elevator_alias;
+	const unsigned int elevator_features;
 	struct module *elevator_owner;
 #ifdef CONFIG_BLK_DEBUG_FS
 	const struct blk_mq_debugfs_attr *queue_debugfs_attrs;
@@ -119,17 +120,6 @@ extern void elv_merged_request(struct request_queue *, struct request *,
 extern bool elv_attempt_insert_merge(struct request_queue *, struct request *);
 extern struct request *elv_former_request(struct request_queue *, struct request *);
 extern struct request *elv_latter_request(struct request_queue *, struct request *);
-<<<<<<< HEAD
-extern int elv_register_queue(struct request_queue *q);
-extern void elv_unregister_queue(struct request_queue *q);
-extern int elv_may_queue(struct request_queue *, unsigned int);
-extern void elv_completed_request(struct request_queue *, struct request *);
-extern int elv_set_request(struct request_queue *q, struct request *rq,
-			   struct bio *bio, gfp_t gfp_mask);
-extern void elv_put_request(struct request_queue *, struct request *);
-extern void elv_drain_elevator(struct request_queue *);
-=======
->>>>>>> a1ce35fa4985 (block: remove dead elevator code)
 
 /*
  * io scheduler registration
@@ -143,8 +133,6 @@ extern void elv_unregister(struct elevator_type *);
 extern ssize_t elv_iosched_show(struct request_queue *, char *);
 extern ssize_t elv_iosched_store(struct request_queue *, const char *, size_t);
 
-extern int elevator_init(struct request_queue *, char *);
-extern void elevator_exit(struct request_queue *, struct elevator_queue *);
 extern bool elv_bio_merge_ok(struct request *, struct bio *);
 extern struct elevator_queue *elevator_alloc(struct request_queue *,
 					struct elevator_type *);
@@ -172,20 +160,18 @@ extern struct request *elv_rb_find(struct rb_root *, sector_t);
 #define ELEVATOR_INSERT_FLUSH	5
 #define ELEVATOR_INSERT_SORT_MERGE	6
 
-/*
- * return values from elevator_may_queue_fn
- */
-enum {
-	ELV_MQUEUE_MAY,
-	ELV_MQUEUE_NO,
-	ELV_MQUEUE_MUST,
-};
-
 #define rq_end_sector(rq)	(blk_rq_pos(rq) + blk_rq_sectors(rq))
 #define rb_entry_rq(node)	rb_entry((node), struct request, rb_node)
 
 #define rq_entry_fifo(ptr)	list_entry((ptr), struct request, queuelist)
 #define rq_fifo_clear(rq)	list_del_init(&(rq)->queuelist)
+
+/*
+ * Elevator features.
+ */
+
+/* Supports zoned block devices sequential write constraint */
+#define ELEVATOR_F_ZBD_SEQ_WRITE	(1U << 0)
 
 #endif /* CONFIG_BLOCK */
 #endif
