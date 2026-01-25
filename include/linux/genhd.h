@@ -130,7 +130,7 @@ struct hd_struct {
 	struct disk_stats dkstats;
 #endif
 	struct percpu_ref ref;
-	struct rcu_work rcu_work;
+	struct rcu_head rcu_head;
 };
 
 #define GENHD_FL_REMOVABLE			1
@@ -143,7 +143,7 @@ struct hd_struct {
 #define GENHD_FL_NATIVE_CAPACITY		128
 #define GENHD_FL_BLOCK_EVENTS_ON_EXCL_WRITE	256
 #define GENHD_FL_NO_PART_SCAN			512
-#define GENHD_FL_NO_RANDOMIZE			1024
+#define GENHD_FL_HIDDEN				1024
 
 enum {
 	DISK_EVENT_MEDIA_CHANGE			= 1 << 0, /* media changed */
@@ -218,7 +218,6 @@ struct gendisk {
 #endif	/* CONFIG_BLK_DEV_INTEGRITY */
 	int node_id;
 	struct badblocks *bb;
-	struct lockdep_map lockdep_map;
 };
 
 static inline struct gendisk *part_to_disk(struct hd_struct *part)
@@ -302,6 +301,9 @@ extern struct hd_struct *disk_map_sector_rcu(struct gendisk *disk,
 #ifdef	CONFIG_SMP
 #define part_stat_lock()	({ rcu_read_lock(); get_cpu(); })
 #define part_stat_unlock()	do { put_cpu(); rcu_read_unlock(); } while (0)
+
+#define part_stat_get_cpu(part, field, cpu)					\
+	(per_cpu_ptr((part)->dkstats, (cpu))->field)
 
 #define part_stat_get(part, field)					\
 	part_stat_get_cpu(part, field, smp_processor_id())
@@ -655,24 +657,6 @@ extern ssize_t part_fail_store(struct device *dev,
 			       const char *buf, size_t count);
 #endif /* CONFIG_FAIL_MAKE_REQUEST */
 
-#define alloc_disk_node(minors, node_id)				\
-({									\
-	static struct lock_class_key __key;				\
-	const char *__name;						\
-	struct gendisk *__disk;						\
-									\
-	__name = "(gendisk_completion)"#minors"("#node_id")";		\
-									\
-	__disk = __alloc_disk_node(minors, node_id);			\
-									\
-	if (__disk)							\
-		lockdep_init_map(&__disk->lockdep_map, __name, &__key, 0); \
-									\
-	__disk;								\
-})
-
-#define alloc_disk(minors) alloc_disk_node(minors, NUMA_NO_NODE)
-
 static inline int hd_ref_init(struct hd_struct *part)
 {
 	if (percpu_ref_init(&part->ref, __delete_partition, 0,
@@ -719,7 +703,7 @@ static inline void hd_free_part(struct hd_struct *part)
  */
 static inline sector_t part_nr_sects_read(struct hd_struct *part)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_SMP)
+#if BITS_PER_LONG==32 && defined(CONFIG_SMP)
 	sector_t nr_sects;
 	unsigned seq;
 	do {
@@ -727,7 +711,7 @@ static inline sector_t part_nr_sects_read(struct hd_struct *part)
 		nr_sects = part->nr_sects;
 	} while (read_seqcount_retry(&part->nr_sects_seq, seq));
 	return nr_sects;
-#elif BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
+#elif BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
 	sector_t nr_sects;
 
 	preempt_disable();
@@ -746,13 +730,13 @@ static inline sector_t part_nr_sects_read(struct hd_struct *part)
  */
 static inline void part_nr_sects_write(struct hd_struct *part, sector_t size)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_SMP)
+#if BITS_PER_LONG==32 && defined(CONFIG_SMP)
 	preempt_disable();
 	write_seqcount_begin(&part->nr_sects_seq);
 	part->nr_sects = size;
 	write_seqcount_end(&part->nr_sects_seq);
 	preempt_enable();
-#elif BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
+#elif BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
 	preempt_disable();
 	part->nr_sects = size;
 	preempt_enable();
