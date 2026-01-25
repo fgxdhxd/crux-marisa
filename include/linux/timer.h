@@ -175,46 +175,35 @@ static inline void init_timer_on_stack_key(struct timer_list *timer,
 #define TIMER_DATA_TYPE		unsigned long
 #define TIMER_FUNC_TYPE		void (*)(TIMER_DATA_TYPE)
 
-#ifdef CONFIG_CFI_CLANG
-/*
- * With CFI_CLANG, we cannot cast the callback function to TIMER_FUNC_TYPE
- * without tripping an indirect call check in call_timer_fn. Therefore, we
- * add a new field to struct timer_list and use __timer_callback to perform
- * the indirect call using the correct function pointer.
- */
-static inline void __timer_callback(unsigned long data)
-{
-	struct timer_list *timer = (struct timer_list *)data;
-
-	timer->__function(timer);
-}
-
+#ifndef CONFIG_LOCKDEP
 static inline void timer_setup(struct timer_list *timer,
-			       void (*callback)(struct timer_list *),
-			       unsigned int flags)
-{
-	timer->__function = callback;
-
-	__setup_timer(timer, __timer_callback,
-		      (TIMER_DATA_TYPE)timer, flags);
-}
-#else
-static inline void timer_setup(struct timer_list *timer,
-			       void (*callback)(struct timer_list *),
-			       unsigned int flags)
+				   void (*callback)(struct timer_list *),
+				   unsigned int flags)
 {
 	__setup_timer(timer, (TIMER_FUNC_TYPE)callback,
-		      (TIMER_DATA_TYPE)timer, flags);
+				   (TIMER_DATA_TYPE)timer, flags);
 }
-#endif
 
 static inline void timer_setup_on_stack(struct timer_list *timer,
-			       void (*callback)(struct timer_list *),
-			       unsigned int flags)
+				   void (*callback)(struct timer_list *),
+				   unsigned int flags)
 {
 	__setup_timer_on_stack(timer, (TIMER_FUNC_TYPE)callback,
-			       (TIMER_DATA_TYPE)timer, flags);
+				   (TIMER_DATA_TYPE)timer, flags);
 }
+#else
+/*
+ * Under LOCKDEP, the timer lock_class_key (set up in __init_timer) needs
+ * to be tied to the caller's context, so an inline (above) won't work. We
+ * do want to keep the inline for argument type checking, though.
+ */
+# define timer_setup(timer, callback, flags)				\
+		__setup_timer(timer, (TIMER_FUNC_TYPE)callback,		\
+			      (TIMER_DATA_TYPE)timer, flags)
+# define timer_setup_on_stack(timer, callback, flags)			\
+		__setup_timer_on_stack(timer, (TIMER_FUNC_TYPE)callback,\
+				       (TIMER_DATA_TYPE)timer, flags)
+#endif
 
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
