@@ -84,10 +84,10 @@ struct partition {
 } __attribute__((packed));
 
 struct disk_stats {
+	u64 nsecs[NR_STAT_GROUPS];
 	unsigned long sectors[NR_STAT_GROUPS];
 	unsigned long ios[NR_STAT_GROUPS];
 	unsigned long merges[NR_STAT_GROUPS];
-	unsigned long ticks[NR_STAT_GROUPS];
 	unsigned long io_ticks;
 	unsigned long time_in_queue;
 	local_t in_flight[2];
