@@ -17,8 +17,7 @@ struct timer_list {
 	 */
 	struct hlist_node	entry;
 	unsigned long		expires;
-	void			(*function)(unsigned long);
-	unsigned long		data;
+	void			(*function)(struct timer_list *);
 	u32			flags;
 
 #ifdef CONFIG_CFI_CLANG
@@ -67,13 +66,9 @@ struct timer_list {
 
 #define TIMER_TRACE_FLAGMASK	(TIMER_MIGRATING | TIMER_DEFERRABLE | TIMER_PINNED | TIMER_IRQSAFE)
 
-#define TIMER_DATA_TYPE		struct timer_list *
-#define TIMER_FUNC_TYPE		void (*)(TIMER_DATA_TYPE)
-
 #define __TIMER_INITIALIZER(_function, _flags) {		\
 		.entry = { .next = TIMER_ENTRY_STATIC },	\
 		.function = (_function),			\
-		.data = (_data),				\
 		.flags = (_flags),				\
 		__TIMER_LOCKDEP_MAP_INITIALIZER(		\
 			__FILE__ ":" __stringify(__LINE__))	\
@@ -91,10 +86,10 @@ struct timer_list {
 #define TIMER_PINNED_DEFERRED_INITIALIZER(_function, _expires, _data)	\
 	__TIMER_INITIALIZER((_function), (_expires), (_data), TIMER_DEFERRABLE | TIMER_PINNED)
 
-#define DEFINE_TIMER(_name, _function, _expires, _data)		\
+#define DEFINE_TIMER(_name, _function)				\
 	struct timer_list _name =				\
-		__TIMER_INITIALIZER((TIMER_FUNC_TYPE)_function, 0)
-
+		__TIMER_INITIALIZER(_function, 0)
+	
 /*
  * LOCKDEP and DEBUG timer interfaces.
  */
