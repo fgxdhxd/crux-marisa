@@ -81,7 +81,8 @@ struct timer_list {
 /*
  * LOCKDEP and DEBUG timer interfaces.
  */
-void init_timer_key(struct timer_list *timer, unsigned int flags,
+void init_timer_key(struct timer_list *timer,
+		    void (*func)(struct timer_list *), unsigned int flags,
 		    const char *name, struct lock_class_key *key);
 
 #ifdef CONFIG_DEBUG_OBJECTS_TIMERS
