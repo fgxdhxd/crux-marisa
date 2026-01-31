@@ -254,8 +254,8 @@ static bool is_el1_instruction_abort(unsigned int esr)
 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_CUR;
 }
 
-static inline bool is_permission_fault(unsigned int esr, struct pt_regs *regs,
-				       unsigned long addr)
+static inline bool is_el1_permission_fault(unsigned long addr, unsigned int esr,
+					   struct pt_regs *regs)
 {
 	unsigned int ec       = ESR_ELx_EC(esr);
 	unsigned int fsc_type = esr & ESR_ELx_FSC_TYPE;
@@ -273,6 +273,22 @@ static inline bool is_permission_fault(unsigned int esr, struct pt_regs *regs,
 	return false;
 }
 
+static void die_kernel_fault(const char *msg, unsigned long addr,
+			     unsigned int esr, struct pt_regs *regs)
+{
+	bust_spinlocks(1);
+
+	pr_alert("Unable to handle kernel %s at virtual address %016lx\n", msg,
+		 addr);
+
+	mem_abort_decode(esr);
+
+	show_pte(addr);
+	die("Oops", regs, esr);
+	bust_spinlocks(0);
+	do_exit(SIGKILL);
+}
+
 static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 			      struct pt_regs *regs)
 {
@@ -285,9 +301,7 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	if (!is_el1_instruction_abort(esr) && fixup_exception(regs))
 		return;
 
-	bust_spinlocks(1);
-
-	if (is_permission_fault(esr, regs, addr)) {
+	if (is_el1_permission_fault(addr, esr, regs)) {
 		if (esr & ESR_ELx_WNR)
 			msg = "write to read-only memory";
 		else
@@ -298,22 +312,64 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 		msg = "paging request";
 	}
 
-	pr_alert("Unable to handle kernel %s at virtual address %08lx\n", msg,
-		 addr);
-
-	mem_abort_decode(esr);
-
-	show_pte(addr);
-	die("Oops", regs, esr);
-	bust_spinlocks(0);
-	make_task_dead(SIGKILL);
+	die_kernel_fault(msg, addr, esr, regs);
 }
 
-static void __do_user_fault(struct siginfo *info, unsigned int esr)
+static void set_thread_esr(unsigned long address, unsigned int esr)
 {
-	current->thread.fault_address = (unsigned long)info->si_addr;
+	current->thread.fault_address = address;
+
+	/*
+	 * If the faulting address is in the kernel, we must sanitize the ESR.
+	 * From userspace's point of view, kernel-only mappings don't exist
+	 * at all, so we report them as level 0 translation faults.
+	 * (This is not quite the way that "no mapping there at all" behaves:
+	 * an alignment fault not caused by the memory type would take
+	 * precedence over translation fault for a real access to empty
+	 * space. Unfortunately we can't easily distinguish "alignment fault
+	 * not caused by memory type" from "alignment fault caused by memory
+	 * type", so we ignore this wrinkle and just return the translation
+	 * fault.)
+	 */
+	if (!is_ttbr0_addr(current->thread.fault_address)) {
+		switch (ESR_ELx_EC(esr)) {
+		case ESR_ELx_EC_DABT_LOW:
+			/*
+			 * These bits provide only information about the
+			 * faulting instruction, which userspace knows already.
+			 * We explicitly clear bits which are architecturally
+			 * RES0 in case they are given meanings in future.
+			 * We always report the ESR as if the fault was taken
+			 * to EL1 and so ISV and the bits in ISS[23:14] are
+			 * clear. (In fact it always will be a fault to EL1.)
+			 */
+			esr &= ESR_ELx_EC_MASK | ESR_ELx_IL |
+				ESR_ELx_CM | ESR_ELx_WNR;
+			esr |= ESR_ELx_FSC_FAULT;
+			break;
+		case ESR_ELx_EC_IABT_LOW:
+			/*
+			 * Claim a level 0 translation fault.
+			 * All other bits are architecturally RES0 for faults
+			 * reported with that DFSC value, so we clear them.
+			 */
+			esr &= ESR_ELx_EC_MASK | ESR_ELx_IL;
+			esr |= ESR_ELx_FSC_FAULT;
+			break;
+		default:
+			/*
+			 * This should never happen (entry.S only brings us
+			 * into this code for insn and data aborts from a lower
+			 * exception level). Fail safe by not providing an ESR
+			 * context record at all.
+			 */
+			WARN(1, "ESR 0x%x is not DABT or IABT from EL0\n", esr);
+			esr = 0;
+			break;
+		}
+	}
+
 	current->thread.fault_code = esr;
-	force_sig_info(info->si_signo, info, current);
 }
 
 static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
@@ -324,13 +380,10 @@ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *re
 	 */
 	if (user_mode(regs)) {
 		const struct fault_info *inf = esr_to_fault_info(esr);
-		struct siginfo si = {
-			.si_signo	= inf->sig,
-			.si_code	= inf->code,
-			.si_addr	= (void __user *)addr,
-		};
 
-		__do_user_fault(&si, esr);
+		set_thread_esr(addr, esr);
+		arm64_force_sig_fault(inf->sig, inf->code, (void __user *)addr,
+				      inf->name);
 	} else {
 		__do_kernel_fault(addr, esr, regs);
 	}
@@ -379,22 +432,26 @@ static bool is_el0_instruction_abort(unsigned int esr)
 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_LOW;
 }
 
+/*
+ * Note: not valid for EL1 DC IVAC, but we never use that such that it
+ * should fault. EL0 cannot issue DC IVAC (undef).
+ */
+static bool is_write_abort(unsigned int esr)
+{
+	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
+}
+
 static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 				   struct pt_regs *regs)
 {
-	struct task_struct *tsk;
-	struct mm_struct *mm;
-	struct siginfo si;
-	int fault, major = 0;
-	unsigned long vm_flags = VM_READ | VM_WRITE;
+	const struct fault_info *inf;
+	struct mm_struct *mm = current->mm;
+	int fault, sig, code, major = 0;
+	unsigned long vm_flags = VM_READ | VM_WRITE | VM_EXEC;
 	unsigned int mm_flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
-	struct vm_area_struct *vma = NULL;
 
 	if (notify_page_fault(regs, esr))
 		return 0;
-
-	tsk = current;
-	mm  = tsk->mm;
 
 	/*
 	 * If we're in an interrupt or have no user context, we must not take
@@ -408,32 +465,28 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 
 	if (is_el0_instruction_abort(esr)) {
 		vm_flags = VM_EXEC;
-	} else if ((esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM)) {
+		mm_flags |= FAULT_FLAG_INSTRUCTION;
+	} else if (is_write_abort(esr)) {
 		vm_flags = VM_WRITE;
 		mm_flags |= FAULT_FLAG_WRITE;
 	}
 
-	if (addr < TASK_SIZE && is_permission_fault(esr, regs, addr)) {
+	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
 		/* regs->orig_addr_limit may be 0 if we entered from EL0 */
 		if (regs->orig_addr_limit == KERNEL_DS)
-			die("Accessing user space memory with fs=KERNEL_DS", regs, esr);
+			die_kernel_fault("access to user memory with fs=KERNEL_DS",
+					 addr, esr, regs);
 
 		if (is_el1_instruction_abort(esr))
-			die("Attempting to execute userspace memory", regs, esr);
+			die_kernel_fault("execution of user memory",
+					 addr, esr, regs);
 
 		if (!search_exception_tables(regs->pc))
-			die("Accessing user space memory outside uaccess.h routines", regs, esr);
+			die_kernel_fault("access to user memory outside uaccess routines",
+					 addr, esr, regs);
 	}
 
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
-
-	/*
-	 * let's try a speculative page fault without grabbing the
-	 * mmap_sem.
-	 */
-	fault = handle_speculative_fault(mm, addr, mm_flags, &vma);
-	if (fault != VM_FAULT_RETRY)
-		goto done;
 
 	/*
 	 * As per x86, we may deadlock here. However, since the kernel only
@@ -457,10 +510,7 @@ retry:
 #endif
 	}
 
-	if (!vma || !can_reuse_spf_vma(vma, addr))
-		vma = find_vma(mm, addr);
-
-	fault = __do_page_fault(vma, addr, mm_flags, vm_flags, tsk);
+	fault = __do_page_fault(mm, addr, mm_flags, vm_flags);
 	major |= fault & VM_FAULT_MAJOR;
 
 	if (fault & VM_FAULT_RETRY) {
@@ -484,18 +534,10 @@ retry:
 			mm_flags &= ~FAULT_FLAG_ALLOW_RETRY;
 			mm_flags |= FAULT_FLAG_TRIED;
 
-			/*
-			 * Do not try to reuse this vma and fetch it
-			 * again since we will release the mmap_sem.
-			 */
-			vma = NULL;
-
 			goto retry;
 		}
 	}
 	up_read(&mm->mmap_sem);
-
-done:
 
 	/*
 	 * Handle the "normal" (no error) case first.
@@ -509,11 +551,11 @@ done:
 		 * that point.
 		 */
 		if (major) {
-			tsk->maj_flt++;
+			current->maj_flt++;
 			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs,
 				      addr);
 		} else {
-			tsk->min_flt++;
+			current->min_flt++;
 			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs,
 				      addr);
 		}
@@ -538,37 +580,35 @@ done:
 		return 0;
 	}
 
-	memset(&si, 0, sizeof(si));
-	si.si_addr = (void __user *)addr;
-
+	inf = esr_to_fault_info(esr);
+	set_thread_esr(addr, esr);
 	if (fault & VM_FAULT_SIGBUS) {
 		/*
 		 * We had some memory, but were unable to successfully fix up
 		 * this page fault.
 		 */
-		si.si_signo	= SIGBUS;
-		si.si_code	= BUS_ADRERR;
-	} else if (fault & VM_FAULT_HWPOISON_LARGE) {
-		unsigned int hindex = VM_FAULT_GET_HINDEX(fault);
+		arm64_force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)addr,
+				      inf->name);
+	} else if (fault & (VM_FAULT_HWPOISON_LARGE | VM_FAULT_HWPOISON)) {
+		unsigned int lsb;
 
-		si.si_signo	= SIGBUS;
-		si.si_code	= BUS_MCEERR_AR;
-		si.si_addr_lsb	= hstate_index_to_shift(hindex);
-	} else if (fault & VM_FAULT_HWPOISON) {
-		si.si_signo	= SIGBUS;
-		si.si_code	= BUS_MCEERR_AR;
-		si.si_addr_lsb	= PAGE_SHIFT;
+		lsb = PAGE_SHIFT;
+		if (fault & VM_FAULT_HWPOISON_LARGE)
+			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
+
+		arm64_force_sig_mceerr(BUS_MCEERR_AR, (void __user *)addr, lsb,
+				       inf->name);
 	} else {
 		/*
 		 * Something tried to access memory that isn't in our memory
 		 * map.
 		 */
-		si.si_signo	= SIGSEGV;
-		si.si_code	= fault == VM_FAULT_BADACCESS ?
-				  SEGV_ACCERR : SEGV_MAPERR;
+		arm64_force_sig_fault(SIGSEGV,
+				      fault == VM_FAULT_BADACCESS ? SEGV_ACCERR : SEGV_MAPERR,
+				      (void __user *)addr,
+				      inf->name);
 	}
 
-	__do_user_fault(&si, esr);
 	return 0;
 
 no_context:

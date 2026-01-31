@@ -215,12 +215,6 @@ NOKPROBE_SYMBOL(call_step_hook);
 static void send_user_sigtrap(int si_code)
 {
 	struct pt_regs *regs = current_pt_regs();
-	siginfo_t info = {
-		.si_signo	= SIGTRAP,
-		.si_errno	= 0,
-		.si_code	= si_code,
-		.si_addr	= (void __user *)instruction_pointer(regs),
-	};
 
 	if (WARN_ON(!user_mode(regs)))
 		return;
@@ -228,7 +222,9 @@ static void send_user_sigtrap(int si_code)
 	if (interrupts_enabled(regs))
 		local_irq_enable();
 
-	arm64_force_sig_info(&info, "User debug trap", current);
+	arm64_force_sig_fault(SIGTRAP, si_code,
+			     (void __user *)instruction_pointer(regs),
+			     "User debug trap");
 }
 
 static int single_step_handler(unsigned long addr, unsigned int esr,

@@ -182,12 +182,6 @@ static void ptrace_hbptriggered(struct perf_event *bp,
 				struct pt_regs *regs)
 {
 	struct arch_hw_breakpoint *bkpt = counter_arch_bp(bp);
-	siginfo_t info = {
-		.si_signo	= SIGTRAP,
-		.si_errno	= 0,
-		.si_code	= TRAP_HWBKPT,
-		.si_addr	= (void __user *)(bkpt->trigger),
-	};
 
 #ifdef CONFIG_COMPAT
 	int i;
@@ -211,7 +205,9 @@ static void ptrace_hbptriggered(struct perf_event *bp,
 
 send_sig:
 #endif
-	arm64_force_sig_info(&info, "Hardware breakpoint trap (ptrace)", current);
+	arm64_force_sig_fault(SIGTRAP, TRAP_HWBKPT,
+			      (void __user *)(bkpt->trigger),
+			      "Hardware breakpoint trap (ptrace)");
 }
 
 /*
