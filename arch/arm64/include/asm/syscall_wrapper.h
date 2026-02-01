@@ -37,19 +37,6 @@
 	ALLOW_ERROR_INJECTION(__arm64_compat_sys_##sname, ERRNO);			\
 	asmlinkage long __arm64_compat_sys_##sname(const struct pt_regs *__unused)
 
-#define COMPAT_SYSCALL_DEFINE1(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE2(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE3(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE4(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE5(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-#define COMPAT_SYSCALL_DEFINE6(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
-
 #define COND_SYSCALL_COMPAT(name) 							\
 	asmlinkage long __weak __arm64_compat_sys_##name(const struct pt_regs *regs)	\
 	{										\

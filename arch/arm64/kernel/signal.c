@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/cache.h>
 #include <linux/compat.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -39,7 +40,9 @@
 #include <asm/unistd.h>
 #include <asm/fpsimd.h>
 #include <asm/ptrace.h>
+#include <asm/syscall.h>
 #include <asm/signal32.h>
+#include <asm/traps.h>
 #include <asm/vdso.h>
 
 /*
