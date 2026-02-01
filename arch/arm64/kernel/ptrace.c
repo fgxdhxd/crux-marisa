@@ -182,34 +182,35 @@ static void ptrace_hbptriggered(struct perf_event *bp,
 				struct pt_regs *regs)
 {
 	struct arch_hw_breakpoint *bkpt = counter_arch_bp(bp);
+	const char *desc = "Hardware breakpoint trap (ptrace)";
 
 #ifdef CONFIG_COMPAT
-	int i;
+	if (is_compat_task()) {
+		int si_errno = 0;
+		int i;
 
-	if (!is_compat_task())
-		goto send_sig;
-
-	for (i = 0; i < ARM_MAX_BRP; ++i) {
-		if (current->thread.debug.hbp_break[i] == bp) {
-			info.si_errno = (i << 1) + 1;
-			break;
+		for (i = 0; i < ARM_MAX_BRP; ++i) {
+			if (current->thread.debug.hbp_break[i] == bp) {
+				si_errno = (i << 1) + 1;
+				break;
+			}
 		}
-	}
 
-	for (i = 0; i < ARM_MAX_WRP; ++i) {
-		if (current->thread.debug.hbp_watch[i] == bp) {
-			info.si_errno = -((i << 1) + 1);
-			break;
+		for (i = 0; i < ARM_MAX_WRP; ++i) {
+			if (current->thread.debug.hbp_watch[i] == bp) {
+				si_errno = -((i << 1) + 1);
+				break;
+			}
 		}
+		arm64_force_sig_ptrace_errno_trap(si_errno,
+						  (void __user *)bkpt->trigger,
+						  desc);
 	}
-
-send_sig:
 #endif
 	arm64_force_sig_fault(SIGTRAP, TRAP_HWBKPT,
 			      (void __user *)(bkpt->trigger),
-			      "Hardware breakpoint trap (ptrace)");
+			      desc);
 }
-
 /*
  * Unregister breakpoints from this task and reset the pointers in
  * the thread_struct.
