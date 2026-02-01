@@ -285,6 +285,16 @@ static inline void kernel_signal_stop(void)
 
 	schedule();
 }
+#ifdef __ARCH_SI_TRAPNO
+# define ___ARCH_SI_TRAPNO(_a1) , _a1
+#else
+# define ___ARCH_SI_TRAPNO(_a1)
+#endif
+#ifdef __ia64__
+# define ___ARCH_SI_IA64(_a1, _a2, _a3) , _a1, _a2, _a3
+#else
+# define ___ARCH_SI_IA64(_a1, _a2, _a3)
+#endif
 
 int force_sig_fault_to_task(int sig, int code, void __user *addr
 	___ARCH_SI_TRAPNO(int trapno)
