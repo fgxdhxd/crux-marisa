@@ -572,7 +572,7 @@ badframe:
 		pr_info_ratelimited("%s[%d]: bad frame in %s: pc=%08llx sp=%08llx\n",
 				    current->comm, task_pid_nr(current), __func__,
 				    regs->pc, regs->sp);
-	force_sig(SIGSEGV, current);
+	force_sig(SIGSEGV);
 	return 0;
 }
 
