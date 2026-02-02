@@ -265,13 +265,13 @@ extern int dequeue_signal(struct task_struct *tsk, sigset_t *mask, kernel_siginf
 
 static inline int kernel_dequeue_signal(siginfo_t *info)
 {
-	struct task_struct *tsk = current;
+	struct task_struct *task = current;
 	kernel_siginfo_t __info;
 	int ret;
 
-	spin_lock_irq(&tsk->sighand->siglock);
-	ret = dequeue_signal(tsk, &tsk->blocked, info ?: &__info);
-	spin_unlock_irq(&tsk->sighand->siglock);
+	spin_lock_irq(&task->sighand->siglock);
+	ret = dequeue_signal(task, &task->blocked, &__info);
+	spin_unlock_irq(&task->sighand->siglock);
 
 	return ret;
 }

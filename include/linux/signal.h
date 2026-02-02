@@ -380,11 +380,6 @@ int unhandled_signal(struct task_struct *tsk, int sig);
  * default action of stopping the process may happen later or never.
  */
 
- static inline void clear_siginfo(struct siginfo *info)
-{
-	memset(info, 0, sizeof(*info));
-}
-
 #ifdef SIGEMT
 #define SIGEMT_MASK	rt_sigmask(SIGEMT)
 #else
