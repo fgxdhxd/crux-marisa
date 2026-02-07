@@ -802,14 +802,6 @@ static inline bool bio_check_ro(struct bio *bio, struct hd_struct *part)
 	return false;
 }
 
-static noinline int should_fail_bio(struct bio *bio)
-{
-	if (should_fail_request(&bio->bi_disk->part0, bio->bi_iter.bi_size))
-		return -EIO;
-	return 0;
-}
-ALLOW_ERROR_INJECTION(should_fail_bio, ERRNO);
-
 /*
  * Check whether this bio extends beyond the end of the device or partition.
  * This may well happen - the kernel calls bread() without checking the size of
@@ -892,7 +884,7 @@ generic_make_request_checks(struct bio *bio)
 		goto end_io;
 	}
 
-	if (should_fail_bio(bio))
+	if (should_fail_request(&bio->bi_disk->part0, bio->bi_iter.bi_size))
 		goto end_io;
 
 	if (bio->bi_partno) {

@@ -1187,11 +1187,9 @@ static inline int wait_on_page_bit_common(wait_queue_head_t *q,
 	int unfairness = sysctl_page_lock_unfairness;
 	struct wait_page_queue wait_page;
 	wait_queue_entry_t *wait = &wait_page.wait;
-	bool bit_is_set;
 	bool thrashing = false;
 	bool delayacct = false;
 	unsigned long pflags;
-	int ret = 0;
 
 	if (bit_nr == PG_locked &&
 	    !PageUptodate(page) && PageWorkingset(page)) {
@@ -1285,7 +1283,6 @@ repeat:
 		if (unlikely(test_and_set_bit(bit_nr, &page->flags)))
 			goto repeat;
 
-		wait->flags |= WQ_FLAG_DONE;
 		break;
 	}
 
@@ -1319,7 +1316,7 @@ repeat:
 	if (behavior == EXCLUSIVE)
 		return wait->flags & WQ_FLAG_DONE ? 0 : -EINTR;
 
-	return ret;
+	return wait->flags & WQ_FLAG_WOKEN ? 0 : -EINTR;
 }
 
 void wait_on_page_bit(struct page *page, int bit_nr)
