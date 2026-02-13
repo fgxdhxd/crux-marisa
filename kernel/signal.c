@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <linux/export.h>
 #include <linux/init.h>
+#include <linux/rekernel.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/user.h>
 #include <linux/sched/debug.h>
@@ -1221,6 +1222,17 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 {
 	unsigned long flags;
 	int ret = -ESRCH;
+
+#ifdef CONFIG_REKERNEL
+	if (start_rekernel_server() == 0) {
+ 		if (line_is_frozen(p) && (sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT)) {
+     		char binder_kmsg[PACKET_SIZE];
+     		snprintf(binder_kmsg, sizeof(binder_kmsg), "type=Signal,signal=%d,killer=%d,dst=%d;", sig, task_uid(p).val, task_uid(current).val);
+     		send_netlink_message(binder_kmsg, strlen(binder_kmsg));
+ 		}
+ 	}
+#endif
+
 #ifdef CONFIG_MILLET
 	struct millet_data data;
 

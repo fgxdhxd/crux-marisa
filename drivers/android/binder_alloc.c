@@ -15,6 +15,7 @@
 #include <linux/rbtree.h>
 #include <linux/seq_file.h>
 #include <linux/vmalloc.h>
+#include <linux/rekernel.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
 #include <linux/list_lru.h>
@@ -459,8 +460,7 @@ static bool debug_low_async_space_locked(struct binder_alloc *alloc)
 	return false;
 }
 
-/* Callers preallocate @new_buffer, it is freed by this function if unused */
-static struct binder_buffer *binder_alloc_new_buf_locked(
+struct binder_buffer *binder_alloc_new_buf_locked(
 				struct binder_alloc *alloc,
 				struct binder_buffer *new_buffer,
 				size_t size,
@@ -488,6 +488,25 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 				data.mod.k_priv.binder.trans.dst_task = owner;
 				data.mod.k_priv.binder.trans.src_task = current;
 				millet_sendmsg(BINDER_TYPE, owner, &data);
+
+#ifdef CONFIG_REKERNEL
+            if (start_rekernel_server() == 0) {
+                if (line_is_frozen(owner)) {
+                    char binder_kmsg[PACKET_SIZE];
+                    snprintf(binder_kmsg,
+                             sizeof(binder_kmsg),
+                             "type=Binder,bindertype=free_buffer_full,"
+                             "oneway=1,from_pid=%d,from=%d,"
+                             "target_pid=%d,target=%d;",
+                             current->pid,
+                             task_uid(current).val,
+                             owner->pid,
+                             task_uid(owner).val);
+                    send_netlink_message(binder_kmsg,
+                                         strlen(binder_kmsg));
+                }
+            }
+#endif
 			}
 	}
 	if (false)

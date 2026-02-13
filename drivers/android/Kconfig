@@ -72,6 +72,10 @@ config ANDROID_SPOOF_KERNEL_VERSION_FOR_BPF
 	  booting newer Android versions without system-side patches.
 	  Also pretends to support ANY attach_type and prog_type.
 
+config REKERNEL
+	bool "ReKernel Freezer Support"
+	depends on ANDROID
+
 endif # if ANDROID
 
 endmenu
