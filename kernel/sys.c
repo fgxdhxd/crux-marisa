@@ -1182,6 +1182,8 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
+#define SPOOF_KERNEL_VERSION "4.14.355-Marisa+"
+
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
@@ -1189,12 +1191,10 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
 #ifdef CONFIG_ANDROID_SPOOF_KERNEL_VERSION_FOR_BPF
-	if (!strncmp(current->comm, "bpfloader", 9) ||
-	    !strncmp(current->comm, "netbpfload", 10) ||
-	    !strncmp(current->comm, "netd", 4)) {
-		strcpy(tmp.release, "4.19.280");
-		pr_debug("fake uname: %s release=%s\n",
-			 current->comm, tmp.release);
+	if (strstr(current->comm, "bpf")) {
+		strncpy(tmp.release, SPOOF_KERNEL_VERSION, sizeof(tmp.release)-1);
+		tmp.release[sizeof(tmp.release)-1] = '\0';
+		// pr_debug("fake uname: %s release=%s\n", current->comm, tmp.release);
 	}
 #endif
 	up_read(&uts_sem);
