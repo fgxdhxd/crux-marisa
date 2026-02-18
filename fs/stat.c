@@ -388,7 +388,8 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
 
 #ifdef CONFIG_KSU_MANUAL_HOOK
 	ksu_handle_newfstat_ret(&fd, &statbuf);
-#endif	if (!error)
+#endif	
+	if (!error)
 		error = cp_new_stat(&stat, statbuf);
 
 	return error;
