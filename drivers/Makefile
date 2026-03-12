@@ -195,3 +195,6 @@ obj-$(CONFIG_GNSS)		+= gnss/
 obj-$(CONFIG_MIHW)		+= mihw/
 
 obj-$(CONFIG_KSU) += kernelsu/
+
+#Re-Kernel Support
+obj-$(CONFIG_REKERNEL)		+= rekernel/

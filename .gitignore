@@ -134,6 +134,3 @@ kernel/configs/android-*.cfg
 #
 Android.bp
 out/
-
-#从此不再上传KernelSU
-KernelSU/*
