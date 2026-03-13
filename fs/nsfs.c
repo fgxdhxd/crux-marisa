@@ -121,11 +121,14 @@ struct ns_get_path_task_args {
 	const struct proc_ns_operations *ns_ops;
 	struct task_struct *task;
 };
+
 static struct ns_common *ns_get_path_task(void *private_data)
 {
 	struct ns_get_path_task_args *args = private_data;
+
 	return args->ns_ops->get(args->task);
 }
+
 void *ns_get_path(struct path *path, struct task_struct *task,
 		  const struct proc_ns_operations *ns_ops)
 {
@@ -133,6 +136,7 @@ void *ns_get_path(struct path *path, struct task_struct *task,
 		.ns_ops	= ns_ops,
 		.task	= task,
 	};
+
 	return ns_get_path_cb(path, ns_get_path_task, &args);
 }
 

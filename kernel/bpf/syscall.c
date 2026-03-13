@@ -514,7 +514,6 @@ static int map_create(union bpf_attr *attr)
 	map = find_and_alloc_map(attr);
 	if (IS_ERR(map))
 		return PTR_ERR(map);
-	}
 
 	err = bpf_obj_name_cpy(map->name, attr->map_name);
 	if (err)
