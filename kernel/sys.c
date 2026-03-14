@@ -1190,13 +1190,6 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
-#ifdef CONFIG_ANDROID_SPOOF_KERNEL_VERSION_FOR_BPF
-	if (strstr(current->comm, "bpf")) {
-		strncpy(tmp.release, SPOOF_KERNEL_VERSION, sizeof(tmp.release)-1);
-		tmp.release[sizeof(tmp.release)-1] = '\0';
-		// pr_debug("fake uname: %s release=%s\n", current->comm, tmp.release);
-	}
-#endif
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
