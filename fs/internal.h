@@ -213,6 +213,10 @@ static inline void global_filetable_delayed_print(struct mount *mnt)
 
 #endif /* CONFIG_FILE_TABLE_DEBUG */
 
+struct stashed_operations {
+	void (*put_data)(void *data);
+	void (*init_inode)(struct inode *inode, void *data);
+};
 int path_from_stashed(struct dentry **stashed, unsigned long ino,
 		      struct vfsmount *mnt, void *data, struct path *path);
 void stashed_dentry_prune(struct dentry *dentry);
