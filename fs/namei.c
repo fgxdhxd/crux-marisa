@@ -3057,7 +3057,8 @@ int vfs_mkobj(struct dentry *dentry, umode_t mode,
 		void *arg)
 {
 	struct inode *dir = dentry->d_parent->d_inode;
-	int error = may_create(dir, dentry);
+	struct vfsmount *mnt = NULL;
+	int error = may_create(mnt, dir, dentry);
 	if (error)
 		return error;
 
