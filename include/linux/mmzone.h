@@ -270,9 +270,10 @@ enum zone_watermarks {
 	NR_WMARK
 };
 
-#define min_wmark_pages(z) (z->watermark[WMARK_MIN])
-#define low_wmark_pages(z) (z->watermark[WMARK_LOW])
-#define high_wmark_pages(z) (z->watermark[WMARK_HIGH])
+#define min_wmark_pages(z) (z->_watermark[WMARK_MIN] + z->watermark_boost)
+#define low_wmark_pages(z) (z->_watermark[WMARK_LOW] + z->watermark_boost)
+#define high_wmark_pages(z) (z->_watermark[WMARK_HIGH] + z->watermark_boost)
+#define wmark_pages(z, i) (z->_watermark[i] + z->watermark_boost)
 
 struct per_cpu_pages {
 	int count;		/* number of pages in the list */
@@ -363,7 +364,8 @@ struct zone {
 	/* Read-mostly fields */
 
 	/* zone watermarks, access with *_wmark_pages(zone) macros */
-	unsigned long watermark[NR_WMARK];
+	unsigned long _watermark[NR_WMARK];
+	unsigned long watermark_boost;
 
 	unsigned long nr_reserved_highatomic;
 
@@ -766,7 +768,8 @@ static inline bool pgdat_is_empty(pg_data_t *pgdat)
 #include <linux/memory_hotplug.h>
 
 void build_all_zonelists(pg_data_t *pgdat);
-void wakeup_kswapd(struct zone *zone, int order, enum zone_type classzone_idx);
+void wakeup_kswapd(struct zone *zone, gfp_t gfp_mask, int order,
+		   enum zone_type classzone_idx);
 bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 			 int classzone_idx, unsigned int alloc_flags,
 			 long free_pages);
@@ -910,6 +913,8 @@ static inline int is_highmem(struct zone *zone)
 /* These two functions are used to setup the per zone pages min values */
 struct ctl_table;
 int min_free_kbytes_sysctl_handler(struct ctl_table *, int,
+					void __user *, size_t *, loff_t *);
+int watermark_boost_factor_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);
 int watermark_scale_factor_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);

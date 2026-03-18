@@ -201,7 +201,7 @@ err:
 	kfree(device);
 	mutex_lock(&binderfs_minors_mutex);
 	--info->device_count;
-	ida_remove(&binderfs_minors, minor);
+	ida_free(&binderfs_minors, minor);
 	mutex_unlock(&binderfs_minors_mutex);
 	iput(inode);
 
@@ -255,7 +255,7 @@ static void binderfs_evict_inode(struct inode *inode)
 
 	mutex_lock(&binderfs_minors_mutex);
 	--info->device_count;
-	ida_remove(&binderfs_minors, device->miscdev.minor);
+	ida_free(&binderfs_minors, device->miscdev.minor);
 	mutex_unlock(&binderfs_minors_mutex);
 
 	if (refcount_dec_and_test(&device->ref)) {
