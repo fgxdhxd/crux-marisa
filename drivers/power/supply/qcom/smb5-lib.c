@@ -9012,9 +9012,9 @@ static enum alarmtimer_restart chg_termination_alarm_cb(struct alarm *alarm,
 	return ALARMTIMER_NORESTART;
 }
 
-static void apsd_timer_cb(unsigned long data)
+static void apsd_timer_cb(struct timer_list *t)
 {
-	struct smb_charger *chg = (struct smb_charger *)data;
+	struct smb_charger *chg = from_timer(chg, t, apsd_timer);
 
 	smblib_dbg(chg, PR_MISC, "APSD Extented timer timeout at %d\n",
 			jiffies_to_msecs(jiffies));
@@ -9660,7 +9660,7 @@ int smblib_init(struct smb_charger *chg)
 		INIT_DELAYED_WORK(&chg->micro_usb_switch_work,
 					smblib_micro_usb_switch_work);
 
-	setup_timer(&chg->apsd_timer, apsd_timer_cb, (unsigned long)chg);
+	timer_setup(&chg->apsd_timer, apsd_timer_cb, 0);
 
 	INIT_DELAYED_WORK(&chg->check_init_boot, smb_check_init_boot);
 	if (chg->wa_flags & CHG_TERMINATION_WA) {

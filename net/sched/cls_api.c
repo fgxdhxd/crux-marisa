@@ -205,7 +205,7 @@ static void tcf_chain_head_change(struct tcf_chain *chain,
 
 static void tcf_chain_flush(struct tcf_chain *chain)
 {
-	struct tcf_proto *tp
+	struct tcf_proto *tp;
 
 	tcf_chain_head_change(chain, NULL);
 	while ((tp = rtnl_dereference(chain->filter_chain)) != NULL) {

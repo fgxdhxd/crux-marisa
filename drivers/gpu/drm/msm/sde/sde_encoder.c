@@ -4385,10 +4385,10 @@ static int _sde_encoder_wakeup_time(struct drm_encoder *drm_enc,
 	return 0;
 }
 
-static void sde_encoder_vsync_event_handler(unsigned long data)
+static void sde_encoder_vsync_event_handler(struct timer_list *t)
 {
-	struct drm_encoder *drm_enc = (struct drm_encoder *) data;
-	struct sde_encoder_virt *sde_enc;
+	struct sde_encoder_virt *sde_enc = from_timer(sde_enc, t, vsync_event_timer);
+	struct drm_encoder *drm_enc = &sde_enc->base;
 	struct msm_drm_private *priv;
 	struct msm_drm_thread *event_thread;
 
@@ -4397,7 +4397,6 @@ static void sde_encoder_vsync_event_handler(unsigned long data)
 		return;
 	}
 
-	sde_enc = to_sde_encoder_virt(drm_enc);
 	priv = drm_enc->dev->dev_private;
 	if (!sde_enc->crtc) {
 		SDE_ERROR("invalid crtc");

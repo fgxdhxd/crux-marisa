@@ -5052,7 +5052,8 @@ int kgsl_device_platform_probe(struct kgsl_device *device)
 	rwlock_init(&device->context_lock);
 	spin_lock_init(&device->submit_lock);
 
-	setup_timer(&device->idle_timer, kgsl_timer, (unsigned long) device);
+	timer_setup(&device->idle_timer,
+				(void (*)(struct timer_list *))kgsl_timer, 0);
 
 	status = kgsl_mmu_probe(device, kgsl_mmu_type);
 	if (status != 0)

@@ -1378,9 +1378,10 @@ static void msm_hs_disconnect_rx(struct uart_port *uport)
 }
 
 /* Tx timeout callback function */
-void tx_timeout_handler(unsigned long arg)
+void tx_timeout_handler(struct timer_list *t)
 {
-	struct msm_hs_port *msm_uport = (struct msm_hs_port *) arg;
+	struct msm_hs_tx *tx = from_timer(tx, t, tx_timeout_timer);
+	struct msm_hs_port *msm_uport = container_of(tx, struct msm_hs_port, tx);
 	struct uart_port *uport = &msm_uport->uport;
 	int isr;
 

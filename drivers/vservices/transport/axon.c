@@ -2762,9 +2762,9 @@ out_unlock:
 	spin_unlock_irq(&transport->readiness_lock);
 }
 
-static void transport_rx_retry_timer(unsigned long data)
+static void transport_rx_retry_timer(struct timer_list *t)
 {
-	struct vs_transport_axon *transport = (struct vs_transport_axon *)data;
+	struct vs_transport_axon *transport = from_timer(transport, t, rx_retry_timer);
 
 	/* Try to receive again; hopefully we have memory now */
 	tasklet_schedule(&transport->rx_tasklet);
@@ -3239,8 +3239,7 @@ static int transport_axon_probe(struct platform_device *dev)
 	priv->rx_alloc_extra = 0;
 	INIT_LIST_HEAD(&priv->rx_freelist);
 
-	setup_timer(&priv->rx_retry_timer, transport_rx_retry_timer,
-			(unsigned long)priv);
+	timer_setup(&priv->rx_retry_timer, transport_rx_retry_timer, 0);
 
 	/* Keep RX disabled until the core service is ready. */
 	tasklet_disable(&priv->rx_tasklet);

@@ -1433,9 +1433,9 @@ int diag_md_session_create(int mode, int peripheral_mask, int proc)
 		driver->md_session_map[proc][i] = new_session;
 		driver->md_session_mask[proc] |= MD_PERIPHERAL_MASK(i);
 	}
-	setup_timer(&new_session->hdlc_reset_timer,
+	timer_setup(&new_session->hdlc_reset_timer,
 		diag_md_hdlc_reset_timer_func,
-		new_session->pid);
+		0);
 
 	driver->md_session_mode[proc] = DIAG_MD_PERIPHERAL;
 	mutex_unlock(&driver->md_session_lock);
@@ -4446,7 +4446,7 @@ static int __init diagchar_init(void)
 	driver->delayed_rsp_id = 0;
 	driver->hdlc_disabled = 0;
 	driver->dci_state = DIAG_DCI_NO_ERROR;
-	setup_timer(&drain_timer, drain_timer_func, 1234);
+	timer_setup(&drain_timer, drain_timer_func, 0);
 	driver->supports_sockets = 1;
 	driver->time_sync_enabled = 0;
 	driver->uses_time_api = 0;

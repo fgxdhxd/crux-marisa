@@ -2818,7 +2818,7 @@ static void diag_dci_init_handshake_remote(void)
 		temp = &dci_channel_status[i];
 		temp->id = i;
 		INIT_WORK(&temp->handshake_work, dci_handshake_work_fn);
-		setup_timer(&temp->wait_time, dci_chk_handshake, i);
+		timer_setup(&temp->wait_time, dci_chk_handshake, 0);
 	}
 }
 
@@ -2901,7 +2901,7 @@ int diag_dci_init(void)
 
 	INIT_WORK(&dci_data_drain_work, dci_data_drain_work_fn);
 
-	setup_timer(&dci_drain_timer, dci_drain_data, 0);
+	timer_setup(&dci_drain_timer, dci_drain_data, 0);
 	return DIAG_DCI_NO_ERROR;
 err:
 	pr_err("diag: Could not initialize diag DCI buffers");

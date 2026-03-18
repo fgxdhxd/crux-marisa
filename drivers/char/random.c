@@ -1000,7 +1000,7 @@ void add_interrupt_randomness(int irq)
 		return;
 
 	if (unlikely(!fast_pool->mix.data))
-		setup_timer(&fast_pool->mix, mix_interrupt_randomness, (unsigned long)fast_pool);
+		timer_setup(&fast_pool->mix, mix_interrupt_randomness, 0);
 
 	fast_pool->count |= MIX_INFLIGHT;
 	if (!timer_pending(&fast_pool->mix)) {
