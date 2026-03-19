@@ -1609,7 +1609,7 @@ static int __sched do_nanosleep(struct hrtimer_sleeper *t, enum hrtimer_mode mod
 
 	do {
 		set_current_state(TASK_INTERRUPTIBLE);
-		hrtimer_sleeper_start_expires(t, mode);
+		hrtimer_start_expires(&t->timer, mode);
 
 		if (likely(t->task))
 			freezable_schedule();
@@ -1879,7 +1879,7 @@ schedule_hrtimeout_range_clock(ktime_t *expires, u64 delta,
 
 	hrtimer_init_sleeper_on_stack(&t, clock_id, mode);
 	hrtimer_set_expires_range_ns(&t.timer, *expires, delta);
-	hrtimer_sleeper_start_expires(&t, mode);
+	hrtimer_start_expires(&t.timer, mode);
 
 	if (likely(t.task))
 		schedule();

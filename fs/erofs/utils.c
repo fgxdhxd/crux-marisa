@@ -12,7 +12,7 @@ struct page *erofs_allocpage(struct list_head *pool, gfp_t gfp, bool nofail)
 	struct page *page;
 
 	if (!list_empty(pool)) {
-		page = lru_to_page(pool);
+		page = list_entry(pool->prev, struct page, lru);
 		DBG_BUGON(page_ref_count(page) != 1);
 		list_del(&page->lru);
 	} else {

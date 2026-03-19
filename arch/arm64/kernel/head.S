@@ -370,6 +370,7 @@ __create_page_tables:
 	add	x6, x6, x5			// runtime __va(_end)
 
 	map_memory x0, x1, x5, x6, x7, x3, x4, x10, x11, x12, x13, x14
+#endif
 
 	/*
 	 * Since the page tables have been populated with non-cacheable

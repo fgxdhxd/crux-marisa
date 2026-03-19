@@ -945,9 +945,9 @@ int __cold random_online_cpu(unsigned int cpu)
 }
 #endif
 
-static void mix_interrupt_randomness(unsigned long data)
+static void mix_interrupt_randomness(struct timer_list *timer)
 {
-	struct fast_pool *fast_pool = (struct fast_pool *)data;
+	struct fast_pool *fast_pool = from_timer(fast_pool, timer, mix);
 	/*
 	 * The size of the copied stack pool is explicitly 2 longs so that we
 	 * only ever ingest half of the siphash output each time, retaining
@@ -999,7 +999,7 @@ void add_interrupt_randomness(int irq)
 	if (new_count < 1024 && !time_is_before_jiffies(fast_pool->last + HZ))
 		return;
 
-	if (unlikely(!fast_pool->mix.data))
+	if (!timer_pending(&fast_pool->mix))
 		timer_setup(&fast_pool->mix, mix_interrupt_randomness, 0);
 
 	fast_pool->count |= MIX_INFLIGHT;
@@ -1143,7 +1143,7 @@ void __cold rand_initialize_disk(struct gendisk *disk)
  *
  * So the re-arming always happens in the entropy loop itself.
  */
-static void __cold entropy_timer(unsigned long data)
+static void __cold entropy_timer(struct timer_list *timer)
 {
 	credit_init_bits(1);
 }
@@ -1165,7 +1165,7 @@ static void __cold try_to_generate_entropy(void)
 	if (stack.entropy == random_get_entropy())
 		return;
 
-	__setup_timer_on_stack(&stack.timer, entropy_timer, 0, 0);
+	timer_setup_on_stack(&stack.timer, entropy_timer, 0);
 	while (!crng_ready() && !signal_pending(current)) {
 		if (!timer_pending(&stack.timer))
 			mod_timer(&stack.timer, jiffies + 1);

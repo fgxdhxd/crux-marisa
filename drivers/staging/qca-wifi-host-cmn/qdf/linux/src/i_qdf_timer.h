@@ -87,9 +87,9 @@ static inline QDF_STATUS __qdf_timer_init(struct __qdf_timer_t *timer,
 	__setup_timer((timer), (fn), (data), TIMER_DEFERRABLE)
 #endif
 
-static inline void __os_timer_shim(unsigned long addr)
+static inline void __os_timer_shim(struct timer_list *os_timer)
 {
-	struct __qdf_timer_t *timer = (void *)addr;
+	struct __qdf_timer_t *timer = from_timer(timer, os_timer, os_timer);
 
 	timer->callback(timer->context);
 }
@@ -99,25 +99,18 @@ static inline QDF_STATUS __qdf_timer_init(struct __qdf_timer_t *timer,
 					  QDF_TIMER_TYPE type)
 {
 	struct timer_list *os_timer = &timer->os_timer;
-	bool is_on_stack = object_is_on_stack(os_timer);
-	unsigned long addr = (unsigned long)timer;
+	uint32_t flags = 0;
 
 	timer->callback = func;
 	timer->context = arg;
 
-	if (type == QDF_TIMER_TYPE_SW) {
-		if (is_on_stack)
-			setup_deferrable_timer_on_stack(os_timer,
-							__os_timer_shim,
-							addr);
-		else
-			setup_deferrable_timer(os_timer, __os_timer_shim, addr);
-	} else {
-		if (is_on_stack)
-			setup_timer_on_stack(os_timer, __os_timer_shim, addr);
-		else
-			setup_timer(os_timer, __os_timer_shim, addr);
-	}
+	if (type == QDF_TIMER_TYPE_SW)
+		flags |= TIMER_DEFERRABLE;
+
+	if (object_is_on_stack(os_timer))
+		timer_setup_on_stack(os_timer, __os_timer_shim, flags);
+	else
+		timer_setup(os_timer, __os_timer_shim, flags);
 
 	return QDF_STATUS_SUCCESS;
 }

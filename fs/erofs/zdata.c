@@ -1379,13 +1379,13 @@ static int z_erofs_vle_normalaccess_readpages(struct file *filp,
 	struct page *head = NULL;
 	LIST_HEAD(pagepool);
 
-	trace_erofs_readpages(mapping->host, lru_to_page(pages),
+	trace_erofs_readpages(mapping->host, list_entry(pages->prev, struct page, lru),
 			      nr_pages, false);
 
-	f.headoffset = (erofs_off_t)lru_to_page(pages)->index << PAGE_SHIFT;
+	f.headoffset = (erofs_off_t)list_entry(pages->prev, struct page, lru)->index << PAGE_SHIFT;
 
 	for (; nr_pages; --nr_pages) {
-		struct page *page = lru_to_page(pages);
+		struct page *page = list_entry(pages->prev, struct page, lru);
 
 		prefetchw(&page->flags);
 		list_del(&page->lru);

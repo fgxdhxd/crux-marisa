@@ -491,7 +491,7 @@ struct request_queue {
 
 #ifdef CONFIG_BLK_INLINE_ENCRYPTION
 	/* Inline crypto capabilities */
-	struct blk_keyslot_manager *ksm;
+	struct keyslot_manager *ksm;
 #endif
 
 	unsigned int		rq_timeout;
