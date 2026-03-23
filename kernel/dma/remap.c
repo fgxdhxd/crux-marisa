@@ -121,7 +121,6 @@ int __init dma_atomic_pool_init(gfp_t gfp, pgprot_t prot)
 	if (!page)
 		goto out;
 
-	memset(page_address(page), 0, atomic_pool_size);
 	arch_dma_prep_coherent(page, atomic_pool_size);
 
 	atomic_pool = gen_pool_create(PAGE_SHIFT, -1);
@@ -223,8 +222,14 @@ void *arch_dma_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
 	ret = dma_common_contiguous_remap(page, size, VM_USERMAP,
 			arch_dma_mmap_pgprot(dev, PAGE_KERNEL, attrs),
 			__builtin_return_address(0));
-	if (!ret)
+	if (!ret) {
 		__dma_direct_free_pages(dev, size, page);
+		return ret;
+	}
+
+	*dma_handle = phys_to_dma(dev, page_to_phys(page));
+	memset(ret, 0, size);
+
 	return ret;
 }
 

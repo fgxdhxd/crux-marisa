@@ -4,6 +4,7 @@
  *
  * DMA operations that map physical memory directly without using an IOMMU.
  */
+#include <linux/memblock.h> /* for max_pfn */
 #include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/dma-direct.h>
@@ -30,33 +31,66 @@ static inline bool force_dma_unencrypted(void)
 	return sev_active();
 }
 
-static bool
-check_addr(struct device *dev, dma_addr_t dma_addr, size_t size,
-		const char *caller)
+static void report_addr(struct device *dev, dma_addr_t dma_addr, size_t size)
 {
-	if (unlikely(dev && !dma_capable(dev, dma_addr, size))) {
-		if (!dev->dma_mask) {
-			dev_err(dev,
-				"%s: call on device without dma_mask\n",
-				caller);
-			return false;
-		}
-
-		if (*dev->dma_mask >= DMA_BIT_MASK(32)) {
-			dev_err(dev,
-				"%s: overflow %pad+%zu of device mask %llx\n",
-				caller, &dma_addr, size, *dev->dma_mask);
-		}
-		return false;
+	if (!dev->dma_mask) {
+		dev_err_once(dev, "DMA map on device without dma_mask\n");
+	} else if (*dev->dma_mask >= DMA_BIT_MASK(32) || dev->bus_dma_mask) {
+		dev_err_once(dev,
+			"overflow %pad+%zu of DMA mask %llx bus mask %llx\n",
+			&dma_addr, size, *dev->dma_mask, dev->bus_dma_mask);
 	}
-	return true;
+	WARN_ON_ONCE(1);
+}
+
+static inline dma_addr_t phys_to_dma_direct(struct device *dev,
+		phys_addr_t phys)
+{
+	if (force_dma_unencrypted())
+		return __phys_to_dma(dev, phys);
+	return phys_to_dma(dev, phys);
+}
+
+u64 dma_direct_get_required_mask(struct device *dev)
+{
+	u64 max_dma = phys_to_dma_direct(dev, (max_pfn - 1) << PAGE_SHIFT);
+
+	if (dev->bus_dma_mask && dev->bus_dma_mask < max_dma)
+		max_dma = dev->bus_dma_mask;
+
+	return (1ULL << (fls64(max_dma) - 1)) * 2 - 1;
+}
+
+static gfp_t __dma_direct_optimal_gfp_mask(struct device *dev, u64 dma_mask,
+		u64 *phys_mask)
+{
+	if (dev->bus_dma_mask && dev->bus_dma_mask < dma_mask)
+		dma_mask = dev->bus_dma_mask;
+
+	if (force_dma_unencrypted())
+		*phys_mask = __dma_to_phys(dev, dma_mask);
+	else
+		*phys_mask = dma_to_phys(dev, dma_mask);
+
+	/*
+	 * Optimistically try the zone that the physical address mask falls
+	 * into first.  If that returns memory that isn't actually addressable
+	 * we will fallback to the next lower zone and try again.
+	 *
+	 * Note that GFP_DMA32 and GFP_DMA are no ops without the corresponding
+	 * zones.
+	 */
+	if (*phys_mask <= DMA_BIT_MASK(ARCH_ZONE_DMA_BITS))
+		return GFP_DMA;
+	if (*phys_mask <= DMA_BIT_MASK(32))
+		return GFP_DMA32;
+	return 0;
 }
 
 static bool dma_coherent_ok(struct device *dev, phys_addr_t phys, size_t size)
 {
-	dma_addr_t addr = force_dma_unencrypted() ?
-		__phys_to_dma(dev, phys) : phys_to_dma(dev, phys);
-	return addr + size - 1 <= dev->coherent_dma_mask;
+	return phys_to_dma_direct(dev, phys) + size - 1 <=
+			min_not_zero(dev->coherent_dma_mask, dev->bus_dma_mask);
 }
 
 struct page *__dma_direct_alloc_pages(struct device *dev, size_t size,
@@ -316,8 +350,6 @@ int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
 		sg_dma_len(sg) = sg->length;
 	}
 
-	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
-		dma_direct_sync_sg_for_device(dev, sgl, nents, dir);
 	return nents;
 
 out_unmap:
@@ -326,31 +358,27 @@ out_unmap:
 }
 EXPORT_SYMBOL(dma_direct_map_sg);
 
+/*
+ * Because 32-bit DMA masks are so common we expect every architecture to be
+ * able to satisfy them - either by not supporting more physical memory, or by
+ * providing a ZONE_DMA32.  If neither is the case, the architecture needs to
+ * use an IOMMU instead of the direct mapping.
+ */
 int dma_direct_supported(struct device *dev, u64 mask)
 {
-#ifdef CONFIG_ZONE_DMA
-	if (mask < DMA_BIT_MASK(ARCH_ZONE_DMA_BITS))
-		return 0;
-#else
-	/*
-	 * Because 32-bit DMA masks are so common we expect every architecture
-	 * to be able to satisfy them - either by not supporting more physical
-	 * memory, or by providing a ZONE_DMA32.  If neither is the case, the
-	 * architecture needs to use an IOMMU instead of the direct mapping.
-	 */
-	if (mask < DMA_BIT_MASK(32))
-		return 0;
-#endif
-	/*
-	 * Upstream PCI/PCIe bridges or SoC interconnects may not carry
-	 * as many DMA address bits as the device itself supports.
-	 */
-	if (dev->bus_dma_mask && mask > dev->bus_dma_mask)
-		return 0;
-	return 1;
-}
+	u64 min_mask;
 
-int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
-{
-	return dma_addr == DIRECT_MAPPING_ERROR;
+	if (IS_ENABLED(CONFIG_ZONE_DMA))
+		min_mask = DMA_BIT_MASK(ARCH_ZONE_DMA_BITS);
+	else
+		min_mask = DMA_BIT_MASK(32);
+
+	min_mask = min_t(u64, min_mask, (max_pfn - 1) << PAGE_SHIFT);
+
+	/*
+	 * This check needs to be against the actual bit mask value, so
+	 * use __phys_to_dma() here so that the SME encryption mask isn't
+	 * part of the check.
+	 */
+	return mask >= __phys_to_dma(dev, min_mask);
 }
