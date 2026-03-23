@@ -536,7 +536,7 @@ not_found:
 	spin_unlock_irqrestore(&io_tlb_lock, flags);
 	if (!(attrs & DMA_ATTR_NO_WARN) && printk_ratelimit())
 		dev_warn(hwdev, "swiotlb buffer is full (sz: %zd bytes)\n", size);
-	return SWIOTLB_MAP_ERROR;
+	return DMA_MAPPING_ERROR;
 found:
 	spin_unlock_irqrestore(&io_tlb_lock, flags);
 
