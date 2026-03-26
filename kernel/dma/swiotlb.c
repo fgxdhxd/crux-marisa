@@ -331,7 +331,6 @@ int
 swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
 {
 	unsigned long i, bytes;
-	size_t alloc_size;
 
 	bytes = nslabs << IO_TLB_SHIFT;
 
@@ -347,24 +346,23 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
 	 * to find contiguous free memory regions of size up to IO_TLB_SEGSIZE
 	 * between io_tlb_start and io_tlb_end.
 	 */
-	alloc_size = PAGE_ALIGN(io_tlb_nslabs * sizeof(int));
-	io_tlb_list = memblock_alloc(alloc_size, PAGE_SIZE);
+	io_tlb_list = (unsigned int *)__get_free_pages(GFP_KERNEL,
+	                              get_order(io_tlb_nslabs * sizeof(int)));
 	if (!io_tlb_list)
-		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
-		      __func__, alloc_size, PAGE_SIZE);
+		goto cleanup3;
 
-	alloc_size = PAGE_ALIGN(io_tlb_nslabs * sizeof(phys_addr_t));
-	io_tlb_orig_addr = memblock_alloc(alloc_size, PAGE_SIZE);
+	io_tlb_orig_addr = (phys_addr_t *)
+		__get_free_pages(GFP_KERNEL,
+				 get_order(io_tlb_nslabs *
+					   sizeof(phys_addr_t)));
 	if (!io_tlb_orig_addr)
-		panic("%s: Failed to allocate %lu bytes align=0x%lx\n",
-		      __func__, alloc_size, PAGE_SIZE);
+		goto cleanup4;
 
 	for (i = 0; i < io_tlb_nslabs; i++) {
 		io_tlb_list[i] = IO_TLB_SEGSIZE - OFFSET(i, IO_TLB_SEGSIZE);
 		io_tlb_orig_addr[i] = INVALID_PHYS_ADDR;
 	}
 	io_tlb_index = 0;
-	no_iotlb_memory = false;
 
 	swiotlb_print_info();
 
@@ -672,7 +670,7 @@ bool swiotlb_map(struct device *dev, phys_addr_t *phys, dma_addr_t *dma_addr,
 	/* Ensure that the address returned is DMA'ble */
 	*dma_addr = __phys_to_dma(dev, *phys);
 	if (unlikely(!dma_capable(dev, *dma_addr, size))) {
-		swiotlb_tbl_unmap_single(dev, map, size, dir,
+		swiotlb_tbl_unmap_single(dev, *phys, size, dir,
 			attrs | DMA_ATTR_SKIP_CPU_SYNC);
 			return false;
 	}
