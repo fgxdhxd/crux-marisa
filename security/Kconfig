@@ -268,5 +268,6 @@ config DEFAULT_SECURITY
 
 source "security/Kconfig.hardening"
 
+source "security/baseband-guard/Kconfig"
 endmenu
 
