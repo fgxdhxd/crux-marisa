@@ -1718,6 +1718,13 @@ config CRYPTO_ZSTD
 	help
 	  This is the zstd algorithm.
 
+config CRYPTO_ZSTDN
+	tristate "Zstdn compression algorithm"
+	select CRYPTO_ALGAPI
+	select CRYPTO_ACOMP2
+	help
+	  This is the zstdn algorithm.
+
 comment "Random Number Generation"
 
 config CRYPTO_ANSI_CPRNG
