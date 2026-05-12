@@ -1997,7 +1997,9 @@ static struct regmap_config i2c_bq27z561_regmap_config = {
 static int bq_fg_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-
+	pr_err("bq27z561 disabled due to hardware failure\n");
+    return -ENODEV;
+	
 	int ret;
 	struct bq_fg_chip *bq;
 	u8 *regs;
