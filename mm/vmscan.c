@@ -2377,6 +2377,9 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	anon_prio = swappiness;
 	file_prio = 200 - anon_prio;
 
+	if (file_prio < 20)
+	file_prio = 20;
+
 	/*
 	 * OK, so we have swap space and a fair amount of page cache
 	 * pages.  We use the recently rotated / recently scanned
@@ -3488,6 +3491,8 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int classzone_idx)
 		if (kswapd_shrink_node(pgdat, &sc))
 			raise_priority = false;
 
+		cond_resched();
+
 		/*
 		 * If the low watermark is met there is no need for processes
 		 * to be throttled on pfmemalloc_wait as they should not be
@@ -3506,8 +3511,17 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int classzone_idx)
 		 * progress in reclaiming pages
 		 */
 		nr_reclaimed = sc.nr_reclaimed - nr_reclaimed;
-		if (raise_priority || !nr_reclaimed)
+		
+		if (!nr_reclaimed && sc.priority <= DEF_PRIORITY - 8)
+			break;
+		
+		if (raise_priority)
 			sc.priority--;
+		else if (!nr_reclaimed)
+			sc.priority -= 2;
+		
+		if (sc.priority < DEF_PRIORITY - 8)
+			sc.priority = DEF_PRIORITY - 8;
 	} while (sc.priority >= 1);
 
 	if (!sc.nr_reclaimed)
